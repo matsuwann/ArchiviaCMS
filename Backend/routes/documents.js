@@ -1,14 +1,14 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const db = require('../db'); // Correct path to db.js from within the routes folder
+const db = require('../db'); 
 
 const router = express.Router();
 
-// The Regex pattern to enforce the author format on the backend
+
 const authorFormatRegex = /^([A-Za-z'-]+,\s[A-Z]\.(?:\s?[A-Z]\.)?)(;\s[A-Za-z'-]+,\s[A-Z]\.(?:\s?[A-Z]\.)?)*$/;
 
-// --- File Storage Setup (Multer) ---
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
@@ -20,10 +20,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- API Routes ---
 
-// GET all documents
-// Corresponds to API endpoint: GET /api/documents/
+
+
 router.get('/', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM documents ORDER BY created_at DESC');
@@ -34,20 +33,19 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST (upload) a new document
-// Corresponds to API endpoint: POST /api/documents/upload
+
 router.post('/upload', upload.single('file'), async (req, res) => {
   const { title, author } = req.body;
   const file = req.file;
 
-  // --- Backend Validation Logic ---
+ 
   if (!authorFormatRegex.test(author)) {
-    // If the format is invalid, reject the request with a 400 Bad Request error.
+    
     return res.status(400).json({ message: 'Invalid author format. Please use: Lastname, F. M.; Lastname, S.' });
   }
-  // --- End Validation Logic ---
 
-  if (!file || !title) { // We already validated author
+
+  if (!file || !title) { 
     return res.status(400).send('Title, author, and file are required.');
   }
 
@@ -64,8 +62,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// GET documents via search
-// Corresponds to API endpoint: GET /api/documents/search
+
 router.get('/search', async (req, res) => {
     const { term } = req.query;
     if (!term) {
