@@ -1,4 +1,3 @@
-// Frontend/components/LoginForm.js - NEW FILE
 
 'use client';
 
@@ -30,13 +29,11 @@ export default function LoginForm() {
         password,
       });
 
-      // Store the token and username in localStorage
       localStorage.setItem('auth_token', response.data.token);
       localStorage.setItem('username', response.data.username);
 
       setMessage(`Success! Welcome, ${response.data.username}. Redirecting...`);
-      
-      // Redirect user to the home page or a dashboard
+
       setTimeout(() => {
         router.push('/'); 
       }, 1000);
