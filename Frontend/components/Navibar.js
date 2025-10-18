@@ -1,4 +1,3 @@
-// Frontend/components/Navibar.js - UPDATED
 
 import Link from 'next/link';
 

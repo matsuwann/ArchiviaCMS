@@ -7,7 +7,7 @@ const router = express.Router();
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// --- User Registration Endpoint (Confirmed by user) ---
+
 router.post('/register', async (req, res) => { 
   const { username, password } = req.body;
   if (!username || !password) {
@@ -16,17 +16,14 @@ router.post('/register', async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
-    // Check if user already exists
     const existingUser = await db.query('SELECT id FROM users WHERE username = $1', [username]);
     if (existingUser.rows.length > 0) {
       return res.status(409).json({ message: 'Username already exists.' });
     }
-
     const newUser = await db.query(
       'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
       [username, passwordHash]
     );
-
     res.status(201).json({ 
         message: 'User registered successfully. Use these credentials to login.',
         user: newUser.rows[0]
@@ -37,13 +34,12 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// --- CRITICAL: User Login Endpoint (Needed for LoginForm) ---
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ message: 'Username and password are required.' });
   }
-
   try {
     const userResult = await db.query('SELECT * FROM users WHERE username = $1', [username]);
     
@@ -57,8 +53,6 @@ router.post('/login', async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
-
-    // Create and sign a JWT
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       JWT_SECRET,
