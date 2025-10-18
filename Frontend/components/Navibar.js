@@ -1,3 +1,4 @@
+// Frontend/components/Navibar.js - UPDATED
 
 import Link from 'next/link';
 
@@ -20,6 +21,18 @@ export default function Navbar() {
                 Upload Paper
               </Link>
             </li>
+            <li>
+              <Link href="/login" className="hover:text-slate-300">
+                Login
+              </Link>
+            </li>
+            {/* --- NEW LINK --- */}
+            <li>
+              <Link href="/register" className="hover:text-slate-300">
+                Register
+              </Link>
+            </li>
+            {/* --- END NEW LINK --- */}
           </ul>
         </div>
       </div>
