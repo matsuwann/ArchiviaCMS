@@ -1,9 +1,10 @@
-
 'use client';
 
 import { useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // ADDED: Import Link component
+import { useAuth } from '../context/AuthContext'; // Assuming you have implemented AuthContext
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
@@ -11,6 +12,7 @@ export default function LoginForm() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth(); // Assuming you have implemented useAuth
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,8 +31,8 @@ export default function LoginForm() {
         password,
       });
 
-      localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('username', response.data.username);
+      // Use context login function to update global state and localStorage
+      login(response.data.username, response.data.token);
 
       setMessage(`Success! Welcome, ${response.data.username}. Redirecting...`);
 
@@ -91,9 +93,17 @@ export default function LoginForm() {
           {message}
         </p>
       )}
+      
+      {/* FIXED: The Link component is now defined */}
       <p className="mt-4 text-center text-sm text-gray-500">
-        To create a test user, you can use the backend endpoint `/api/auth/register` (e.g., using Postman).
+        Don't have an account?{' '}
+        <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+          Register now
+        </Link>
       </p>
+      {/* END FIXED */}
+
+     
     </div>
   );
 }

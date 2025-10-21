@@ -1,13 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DocumentList from '../components/DocumentList';
-
+import { useAuth } from '../context/AuthContext'; 
 export default function Home() {
   const [documents, setDocuments] = useState([]);
+  const { isAuthenticated, authLoading } = useAuth(); 
+  const router = useRouter();
 
-  
   useEffect(() => {
+
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/register'); 
+      return; 
+    }
+    
+
     const fetchDocs = async () => {
       try {
         const res = await fetch('http://localhost:3001/api/documents');
@@ -17,8 +26,16 @@ export default function Home() {
         console.error('Failed to fetch initial documents:', error);
       }
     };
-    fetchDocs();
-  }, []); 
+
+    if (isAuthenticated) {
+      fetchDocs();
+    }
+  }, [isAuthenticated, authLoading, router]); 
+
+  if (authLoading || !isAuthenticated) {
+ 
+    return <main className="container mx-auto p-4 md:p-8 text-center">Loading...</main>;
+  }
 
   return (
     <main className="container mx-auto p-4 md:p-8">
