@@ -1,59 +1,76 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
+import { createContext, useContext, useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode'; 
+import axios from 'axios'; 
 
 const AuthContext = createContext(null);
 
-
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === null) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); 
-  const [loading, setLoading] = useState(true); 
-  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  
   useEffect(() => {
-    const storedUsername = localStorage.getItem('username');
-    const token = localStorage.getItem('auth_token');
-    
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
 
-    if (storedUsername && token) {
-      setUser({ username: storedUsername });
+        const decodedUser = jwtDecode(storedToken);
+        
+        if (decodedUser.exp * 1000 < Date.now()) {
+          localStorage.removeItem('token');
+        } else {
+          setUser({ 
+              firstName: decodedUser.firstName, 
+              lastName: decodedUser.lastName, 
+              email: decodedUser.email 
+          });
+          setToken(storedToken);
+         
+          axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        }
+      } catch (error) {
+        console.error("Invalid token found in storage:", error);
+        localStorage.removeItem('token'); 
+      }
     }
-    setLoading(false);
+    setAuthLoading(false);
   }, []);
 
 
-  const login = (username, token) => {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('username', username);
-    setUser({ username });
+  const login = (userData, receivedToken) => {
+    localStorage.setItem('token', receivedToken);
+    setToken(receivedToken);
+    setUser(userData); 
+    
+    axios.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
   };
 
-
   const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('username');
+    localStorage.removeItem('token');
     setUser(null);
-    router.push('/login'); 
+    setToken(null);
+   
+    delete axios.defaults.headers.common['Authorization'];
   };
 
   const value = {
     user,
+    token,
+    isAuthenticated: !!user,
+    authLoading,
     login,
     logout,
-    isAuthenticated: !!user,
-    authLoading: loading,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

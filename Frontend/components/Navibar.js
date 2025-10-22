@@ -50,7 +50,7 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <li className="text-white font-semibold">
-                  Welcome, {user.username}!
+                  Welcome, {user?.firstName}!
                 </li>
                 <li>
                   <button 

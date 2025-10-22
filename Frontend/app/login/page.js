@@ -1,5 +1,3 @@
-// Frontend/app/login/page.js - NEW FILE
-
 import LoginForm from '../../components/LoginForm';
 
 export default function LoginPage() {
