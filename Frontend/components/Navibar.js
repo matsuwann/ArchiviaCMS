@@ -7,9 +7,10 @@ import { useAuth } from '../context/AuthContext';
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
+  
+  // Flag to hide "Search & Browse" on Login/Register pages
   const isAuthPage = pathname === '/login' || pathname === '/register';
-  const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
-
+  
   if (authLoading) {
     return (
       <nav className="bg-slate-800 text-white shadow-md">
@@ -32,7 +33,7 @@ export default function Navbar() {
           </Link>
           <ul className="flex space-x-6 items-center">
             
-        
+            {/* Show Search & Browse on all pages except Login/Register */}
             {!isAuthPage && ( 
               <li>
                 <Link href="/" className="hover:text-slate-300">
@@ -40,6 +41,8 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
+
+            {/* Show Upload Paper only when authenticated */}
             {isAuthenticated && (
               <li>
                 <Link href="/upload" className="hover:text-slate-300">
@@ -47,11 +50,23 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
+            
+
+            {/* Conditional Rendering for AUTH STATE */}
             {isAuthenticated ? (
+              // AUTHENTICATED LINKS: Welcome Message/Profile Link and Logout Button
               <>
-                <li className="text-white font-semibold">
-                  Welcome, {user.username}!
+                {/* MODIFIED: The Welcome message is now a clickable Link to the Profile page */}
+                <li>
+                  <Link 
+                    href="/profile" 
+                    className="text-white font-semibold hover:text-slate-300 transition-colors"
+                  >
+                    Welcome, {user.username}!
+                  </Link>
                 </li>
+                {/* END MODIFIED */}
+                
                 <li>
                   <button 
                     onClick={logout} 
@@ -62,10 +77,10 @@ export default function Navbar() {
                 </li>
               </>
             ) : (
-              
+              // UNAUTHENTICATED LINKS: Login Button
               <>
-           
-                {shouldShowLoginLink && (
+                {/* Condition ensures Login button is hidden on /login and /register pages */}
+                {pathname !== '/login' && pathname !== '/register' && (
                   <li>
                     <Link href="/login" className="hover:text-slate-300">
                       Login
