@@ -1,5 +1,3 @@
-// Frontend/app/register/page.js - NEW FILE
-
 import RegisterForm from '../../components/RegisterForm';
 
 export default function RegisterPage() {
