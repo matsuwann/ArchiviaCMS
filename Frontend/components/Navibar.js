@@ -3,14 +3,29 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext'; 
+import { useState } from 'react';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
   
+  // State for dropdown menu visibility
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   // Flag to hide "Search & Browse" on Login/Register pages
   const isAuthPage = pathname === '/login' || pathname === '/register';
+
+  // Helper function to close dropdown after an action (click a link or logout)
+  const handleDropdownClick = () => {
+      setIsDropdownOpen(false);
+  };
   
+  // Handle logout and close the dropdown
+  const handleLogout = () => {
+      logout();
+      handleDropdownClick();
+  };
+
   if (authLoading) {
     return (
       <nav className="bg-slate-800 text-white shadow-md">
@@ -54,28 +69,63 @@ export default function Navbar() {
 
             {/* Conditional Rendering for AUTH STATE */}
             {isAuthenticated ? (
-              // AUTHENTICATED LINKS: Welcome Message/Profile Link and Logout Button
-              <>
-                {/* MODIFIED: The Welcome message is now a clickable Link to the Profile page */}
-                <li>
-                  <Link 
-                    href="/profile" 
-                    className="text-white font-semibold hover:text-slate-300 transition-colors"
+              // AUTHENTICATED: Display Username Dropdown Menu
+              <li className="relative">
+                {/* Username Button to Toggle Dropdown - NOW INCLUDES ICON */}
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-1 px-3 py-1 bg-slate-700 rounded-md font-semibold hover:bg-slate-600 transition-colors focus:outline-none"
+                  aria-expanded={isDropdownOpen}
+                  aria-controls="user-menu-dropdown"
+                >
+                  <span>Welcome{user.username}!</span>
+                  
+                  {/* DROPDOWN ICON ADDED HERE */}
+                  <svg 
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      isDropdownOpen ? 'transform rotate-180' : ''
+                    }`}
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    Welcome, {user.username}!
-                  </Link>
-                </li>
-                {/* END MODIFIED */}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {/* END DROPDOWN ICON */}
+                </button>
                 
-                <li>
-                  <button 
-                    onClick={logout} 
-                    className="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md font-semibold transition-colors"
+                {/* Dropdown Menu Content */}
+                {isDropdownOpen && (
+                  <div 
+                    id="user-menu-dropdown"
+                    className="absolute right-0 mt-2 w-48 bg-slate-700 rounded-md shadow-xl z-10"
                   >
-                    Logout
-                  </button>
-                </li>
-              </>
+                    <ul className="py-1">
+                      {/* Profile Link (remains in dropdown) */}
+                      <li>
+                        <Link 
+                          href="/profile" 
+                          onClick={handleDropdownClick}
+                          className="block px-4 py-2 text-sm text-white hover:bg-slate-600"
+                        >
+                          Profile
+                        </Link>
+                      </li>
+                      
+                      {/* Logout Button (remains in dropdown) */}
+                      <li>
+                        <button 
+                          onClick={handleLogout} 
+                          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-600 border-t border-slate-600"
+                        >
+                          Logout
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </li>
             ) : (
               // UNAUTHENTICATED LINKS: Login Button
               <>
