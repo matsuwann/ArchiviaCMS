@@ -3,12 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext'; 
+import { useState } from 'react'; // Import useState
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Dropdown state
+  
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
+
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
+
+  // Close dropdown when logging out
+  const handleLogout = () => {
+    logout();
+    setIsDropdownOpen(false);
+  };
 
   if (authLoading) {
     return (
@@ -48,19 +59,39 @@ export default function Navbar() {
               </li>
             )}
             {isAuthenticated ? (
-              <>
-                <li className="text-white font-semibold">
+              // Start of Dropdown implementation
+              <li className="relative">
+                <button
+                  onClick={toggleDropdown}
+                  className="py-1 px-3 bg-slate-700 hover:bg-slate-600 rounded-md font-semibold transition-colors flex items-center"
+                >
                   Welcome, {user?.firstName}!
-                </li>
-                <li>
-                  <button 
-                    onClick={logout} 
-                    className="py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md font-semibold transition-colors"
+                  <svg className={`ml-2 h-4 w-4 transform transition-transform ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isDropdownOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-50 overflow-hidden"
                   >
-                    Logout
-                  </button>
-                </li>
-              </>
+                  <Link 
+                      href="/profile" 
+                      onClick={() => setIsDropdownOpen(false)} 
+                      className="block px-4 py-2 hover:bg-slate-200"
+                    >
+                      User Profile
+                    </Link>
+                    <button 
+                      onClick={handleLogout} 
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </li>
+              // End of Dropdown implementation
             ) : (
               
               <>
