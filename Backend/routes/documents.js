@@ -4,11 +4,12 @@ const path = require('path');
 const db = require('../db'); 
 const fs = require('fs').promises; 
 
-// --- START OF FIX: Robustly get the callable function ---
+// --- CRITICAL IMPORT BLOCK ---
 const pdfModule = require('pdf-parse'); 
-// Check .default first, otherwise fall back to the root module object/function
+// Fallback: This attempts to grab the function from .default or the root export, 
+// which is the most robust way to handle this CJS/ESM conflict.
 const pdfParse = pdfModule.default || pdfModule; 
-// --- END OF FIX ---
+// --- END CRITICAL IMPORT BLOCK ---
 
 const { GoogleGenAI } = require('@google/genai'); 
 require('dotenv').config(); 
@@ -123,7 +124,7 @@ router.post('/upload', (req, res) => {
         try {
             // 1. Extract text from the PDF
             const dataBuffer = await fs.readFile(filepath);
-            // The now-correctly resolved pdfParse function is called here
+            // The correctly resolved pdfParse function is called here
             const data = await pdfParse(dataBuffer); 
             const pdfText = data.text;
 
@@ -137,6 +138,7 @@ router.post('/upload', (req, res) => {
 
             // 3. Save to Database with new columns
             const newDocument = await db.query(
+                // IMPORTANT: Ensure your DB schema has ai_keywords (JSONB), ai_authors (JSONB), and ai_date_created (TEXT)
                 'INSERT INTO documents (title, author, filename, filepath, ai_keywords, ai_authors, ai_date_created) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
                 [title, author, filename, filepath, aiKeywords, aiAuthors, aiDateCreated]
             );
