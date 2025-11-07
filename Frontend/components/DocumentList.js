@@ -1,3 +1,5 @@
+// File: Frontend/components/DocumentList.js
+
 'use client';
 
 import { useState } from 'react';
@@ -12,13 +14,25 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
         onSearch(searchTerm);
     };
 
+    // Helper to safely parse JSONB fields (ai_keywords, ai_authors)
+    const safeParse = (jsonString) => {
+        if (!jsonString) return [];
+        try {
+            return JSON.parse(jsonString);
+        } catch (e) {
+            console.error("Error parsing JSON string:", e);
+            return [];
+        }
+    };
+
+
     return (
         <div className="p-6 bg-white rounded-lg shadow-md">
             <h2 className="text-2xl font-bold mb-4">Repository Search</h2>
             <form onSubmit={handleFormSubmit} className="flex gap-2 mb-6">
                 <input
                     type="text"
-                    placeholder="Search by title or author..."
+                    placeholder="Search by title, author, date, or keywords..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -35,20 +49,53 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                     <p className="text-center text-gray-500">Please enter a search term to begin.</p>
                 ) : documents.length > 0 ? (
                     <ul className="space-y-4">
-                        {documents.map((doc) => (
-                            <li key={doc.id} className="p-4 border rounded-md hover:bg-gray-50">
-                                <h3 className="text-lg font-semibold text-indigo-700">{doc.title}</h3>
-                                <p className="text-md text-gray-600">by {doc.author}</p>
-                                <a
-                                    href={`http://localhost:3001/uploads/${doc.filename}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-500 hover:underline mt-2 inline-block"
-                                >
-                                    View PDF
-                                </a>
-                            </li>
-                        ))}
+                        {documents.map((doc) => {
+                            const aiAuthors = safeParse(doc.ai_authors);
+                            const aiKeywords = safeParse(doc.ai_keywords);
+                            
+                            return (
+                                <li key={doc.id} className="p-4 border rounded-md hover:bg-gray-50">
+                                    <h3 className="text-lg font-semibold text-indigo-700">{doc.title}</h3>
+                                    <p className="text-md text-gray-600 mb-1">
+                                        **Submitted Author(s):** {doc.author}
+                                    </p>
+                                    
+                                    {/* NEW: Display AI-generated Author list */}
+                                    {aiAuthors.length > 0 && (
+                                        <p className="text-sm text-gray-700">
+                                            **Canonical Authors (AI):** {aiAuthors.join(', ')}
+                                        </p>
+                                    )}
+
+                                    {/* NEW: Display AI-generated Date */}
+                                    {doc.ai_date_created && (
+                                        <p className="text-sm text-gray-700">
+                                            **Date Created (AI):** {doc.ai_date_created}
+                                        </p>
+                                    )}
+
+                                    {/* NEW: Display AI-generated Keywords */}
+                                    {aiKeywords.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {aiKeywords.map((tag, index) => (
+                                                <span key={index} className="px-2 py-1 text-xs font-medium text-white bg-indigo-500 rounded-full">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    <a
+                                        href={`http://localhost:3001/uploads/${doc.filename}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-500 hover:underline mt-2 inline-block"
+                                    >
+                                        View PDF
+                                    </a>
+                                </li>
+                            );
+                        })}
                     </ul>
                 ) : (
                     <p className="text-center">No documents found for your search.</p>
