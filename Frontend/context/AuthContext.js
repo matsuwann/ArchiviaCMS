@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode'; 
-import axios from 'axios'; 
+import { setAuthToken } from '../services/apiService'; 
 
 const AuthContext = createContext(null);
 
@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       try {
-
         const decodedUser = jwtDecode(storedToken);
         
         if (decodedUser.exp * 1000 < Date.now()) {
@@ -36,7 +35,8 @@ export function AuthProvider({ children }) {
           });
           setToken(storedToken);
          
-          axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+
+          setAuthToken(storedToken);
         }
       } catch (error) {
         console.error("Invalid token found in storage:", error);
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
     setToken(receivedToken);
     setUser(userData); 
     
-    axios.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
+    setAuthToken(receivedToken);
   };
 
   const logout = () => {
@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setToken(null);
    
-    delete axios.defaults.headers.common['Authorization'];
+    setAuthToken(null);
   };
 
   const value = {

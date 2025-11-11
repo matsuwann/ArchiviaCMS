@@ -91,14 +91,14 @@ export default function Navbar() {
                 {shouldShowLoginLink && (
                   <li>
                     <Link href="/login" className="hover:text-slate-300">
-                      Login
+                      Sign In
                     </Link>
                   </li>
                 )}
                  {}
                 <li>
                   <Link href="/register" className="hover:text-slate-300">
-                    Register
+                    Create Account
                   </Link>
                 </li>
               </>
