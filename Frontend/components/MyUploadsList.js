@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import EditDocumentModal from './EditDocumentModal'; 
+import { getMyUploads, deleteDocument, updateDocument } from '../services/apiService';
 
 export default function MyUploadsList() {
   const [documents, setDocuments] = useState([]);
@@ -19,7 +19,7 @@ export default function MyUploadsList() {
   const fetchUploads = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/documents/my-uploads');
+      const response = await getMyUploads();
       setDocuments(response.data);
     } catch (err) {
       setError('Failed to fetch your documents.');
@@ -34,7 +34,7 @@ export default function MyUploadsList() {
       return;
     }
     try {
-      await axios.delete(`http://localhost:3001/api/documents/${docId}`);
+      await deleteDocument(docId);
       setDocuments(documents.filter(doc => doc.id !== docId));
     } catch (err) {
       alert("Failed to delete document.");
@@ -48,17 +48,13 @@ export default function MyUploadsList() {
   };
 
   const handleSave = async (docId, updatedData) => {
-  
-    await axios.put(`http://localhost:3001/api/documents/${docId}`, updatedData);
-    
-    await fetchUploads(); 
-  };
-
-  const safeParse = (jsonString) => {
-    if (typeof jsonString === 'string') {
-        try { return JSON.parse(jsonString); } catch (e) { return []; }
+    try {
+        await updateDocument(docId, updatedData);
+        await fetchUploads();
+    } catch (error) {
+        console.error("Failed to save:", error);
+        alert("Failed to save changes.");
     }
-    return Array.isArray(jsonString) ? jsonString : [];
   };
 
   if (loading) return <p className="text-center">Loading your uploads...</p>;
@@ -72,7 +68,7 @@ export default function MyUploadsList() {
         ) : (
           <ul className="divide-y divide-gray-200">
             {documents.map(doc => {
-              const aiAuthors = safeParse(doc.ai_authors);
+              const aiAuthors = doc.ai_authors || [];
               return (
                 <li key={doc.id} className="py-4 flex justify-between items-center">
                   <div>
@@ -105,7 +101,6 @@ export default function MyUploadsList() {
         )}
       </div>
       
-      {}
       {isModalOpen && (
         <EditDocumentModal 
           document={selectedDocument} 

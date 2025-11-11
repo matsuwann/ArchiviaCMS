@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios';
+import { uploadDocument } from '../services/apiService';
 
 export default function UploadForm({ onUploadSuccess }) {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,14 +22,9 @@ export default function UploadForm({ onUploadSuccess }) {
     const formData = new FormData();
     formData.append('file', file);
 
-    try {
-      const response = await axios.post('http://localhost:3001/api/documents/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+    try { 
+      const response = await uploadDocument(formData);
       
-   
       setMessage(`Success! Uploaded: ${response.data.title}`);
       setFile(null);
       e.target.reset(); 
@@ -51,6 +46,7 @@ export default function UploadForm({ onUploadSuccess }) {
   return (
     <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">Upload New Research Paper</h2>
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="file" className="block text-sm font-medium text-gray-700">PDF Document</label>
@@ -59,7 +55,7 @@ export default function UploadForm({ onUploadSuccess }) {
             id="file"
             onChange={(e) => setFile(e.target.files[0])}
             accept="application/pdf"
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-7Am00 hover:file:bg-indigo-100"
             required
           />
         </div>
@@ -71,6 +67,7 @@ export default function UploadForm({ onUploadSuccess }) {
           {loading ? 'Processing...' : 'Upload and Analyze'}
         </button>
       </form>
+
       {message && <p className="mt-4 text-center text-sm text-gray-600">{message}</p>}
     </div>
   );

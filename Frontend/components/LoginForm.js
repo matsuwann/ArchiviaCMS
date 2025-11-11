@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { login as apiLogin } from '../services/apiService';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -26,13 +26,9 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', {
-        email,
-        password,
-      });
+      const response = await apiLogin(email, password);
 
       login(response.data.user, response.data.token);
-
       setMessage(`Success! Welcome, ${response.data.user.firstName}. Redirecting...`);
 
       setTimeout(() => {
@@ -92,7 +88,6 @@ export default function LoginForm() {
           {message}
         </p>
       )}
-      
       <p className="mt-4 text-center text-sm text-gray-500">
         Don't have an account?{' '}
         <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">

@@ -1,16 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios'; 
 import DocumentList from '../components/DocumentList';
+import { searchDocuments } from '../services/apiService';
 
 export default function Home() {
-  
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
-  
   const handleSearch = async (searchTerm) => {
     if (!searchTerm) {
       setDocuments([]);
@@ -23,8 +21,7 @@ export default function Home() {
     setDocuments([]); 
 
     try {
-     
-      const response = await axios.get(`http://localhost:3001/api/documents/search?term=${searchTerm}`);
+      const response = await searchDocuments(searchTerm);
       setDocuments(response.data);
     } catch (error) {
       console.error("Failed to fetch search results:", error);

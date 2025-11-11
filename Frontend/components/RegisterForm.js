@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PasswordChecklist from './PasswordChecklist.js'; 
+import { register as apiRegister } from '../services/apiService'; 
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -15,11 +15,9 @@ export default function RegisterForm() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter(); 
-
  
   const [showPassword, setShowPassword] = useState(false);
   
-
   const [passwordValidity, setPasswordValidity] = useState({
     hasLength: false,
     hasUpper: false,
@@ -64,12 +62,7 @@ export default function RegisterForm() {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', {
-        firstName,
-        lastName,
-        email,
-        password,
-      });
+      const response = await apiRegister(firstName, lastName, email, password);
 
       setMessage(`Success! ${response.data.message} Redirecting to login...`);
       setFirstName('');
@@ -78,10 +71,10 @@ export default function RegisterForm() {
       setPassword('');
       setConfirmPassword('');
 
-      
       setTimeout(() => {
         router.push('/login');
       }, 1500); 
+      
     } catch (error) {
       if (error.response && error.response.data && error.response.data.message) {
         setMessage(`Registration failed: ${error.response.data.message}`);
