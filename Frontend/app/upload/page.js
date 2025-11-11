@@ -20,7 +20,7 @@ export default function UploadPage() {
           Upload New Paper
         </h1>
         <p className="mt-2 text-lg text-gray-500">
-          Fill out the form below to add a new document to the repository.
+          Upload a new file below to add a new document to the repository.
         </p>
       </header>
 

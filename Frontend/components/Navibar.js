@@ -3,35 +3,24 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext'; 
-import { useState } from 'react'; // Import useState
+import { useState } from 'react'; 
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
-  // Close dropdown when logging out
   const handleLogout = () => {
     logout();
     setIsDropdownOpen(false);
   };
 
   if (authLoading) {
-    return (
-      <nav className="bg-slate-800 text-white shadow-md">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <span className="text-2xl font-bold">Archivia</span>
-            <div className="text-sm">Loading user session...</div>
-          </div>
-        </div>
-      </nav>
-    );
   }
 
   return (
@@ -43,7 +32,6 @@ export default function Navbar() {
           </Link>
           <ul className="flex space-x-6 items-center">
             
-        
             {!isAuthPage && ( 
               <li>
                 <Link href="/" className="hover:text-slate-300">
@@ -59,7 +47,6 @@ export default function Navbar() {
               </li>
             )}
             {isAuthenticated ? (
-              // Start of Dropdown implementation
               <li className="relative">
                 <button
                   onClick={toggleDropdown}
@@ -75,7 +62,15 @@ export default function Navbar() {
                   <div
                     className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-50 overflow-hidden"
                   >
-                  <Link 
+                    <Link 
+                      href="/my-uploads" 
+                      onClick={() => setIsDropdownOpen(false)} 
+                      className="block px-4 py-2 hover:bg-slate-200"
+                    >
+                      My Submissions
+                    </Link>
+
+                    <Link 
                       href="/profile" 
                       onClick={() => setIsDropdownOpen(false)} 
                       className="block px-4 py-2 hover:bg-slate-200"
@@ -91,11 +86,8 @@ export default function Navbar() {
                   </div>
                 )}
               </li>
-              // End of Dropdown implementation
             ) : (
-              
               <>
-           
                 {shouldShowLoginLink && (
                   <li>
                     <Link href="/login" className="hover:text-slate-300">
@@ -103,6 +95,12 @@ export default function Navbar() {
                     </Link>
                   </li>
                 )}
+                 {}
+                <li>
+                  <Link href="/register" className="hover:text-slate-300">
+                    Register
+                  </Link>
+                </li>
               </>
             )}
           </ul>
