@@ -6,12 +6,12 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react'; 
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated, authLoading } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, authLoading } = useAuth(); // <-- Get isAdmin
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   
-  const isAuthPage = pathname === '/login' || pathname === '/register';
-  const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/admin/login';
+  const shouldShowLoginLink = !isAuthenticated && !isAuthPage;
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
@@ -21,6 +21,19 @@ export default function Navbar() {
   };
 
   if (authLoading) {
+    // Render a minimal navbar or null during auth loading to avoid flashes
+    return (
+       <nav className="bg-slate-800 text-white shadow-md">
+         <div className="container mx-auto px-4">
+           <div className="flex justify-between items-center py-4">
+              <Link href="/" className="text-2xl font-bold hover:text-slate-300">
+                Archivia
+              </Link>
+              <div className="h-6 w-20 bg-slate-700 rounded animate-pulse"></div>
+           </div>
+         </div>
+       </nav>
+    );
   }
 
   return (
@@ -46,6 +59,16 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
+
+            {/* NEW: Admin Dashboard Link */}
+            {isAdmin && (
+              <li>
+                <Link href="/admin/dashboard" className="py-1 px-3 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                  Admin Dashboard
+                </Link>
+              </li>
+            )}
+
             {isAuthenticated ? (
               <li className="relative">
                 <button
@@ -95,12 +118,14 @@ export default function Navbar() {
                     </Link>
                   </li>
                 )}
-                 {}
-                <li>
-                  <Link href="/register" className="hover:text-slate-300">
-                    Register
-                  </Link>
-                </li>
+                
+                {!isAuthPage && (
+                  <li>
+                    <Link href="/register" className="hover:text-slate-300">
+                      Register
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>

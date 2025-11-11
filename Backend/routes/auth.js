@@ -58,6 +58,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    // Note: We now also select 'is_admin'
     const userResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
 
     if (userResult.rows.length === 0) {
@@ -71,13 +72,30 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
+    // Create the token payload
+    const payload = { 
+      userId: user.id, 
+      email: user.email, 
+      firstName: user.first_name, 
+      lastName: user.last_name,
+      isAdmin: user.is_admin // Add the admin flag to the token
+    };
+
     const token = jwt.sign(
-      { userId: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name },
+      payload,
       JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    res.json({ token, user: { email: user.email, firstName: user.first_name, lastName: user.last_name } });
+    res.json({ 
+      token, 
+      user: { 
+        email: user.email, 
+        firstName: user.first_name, 
+        lastName: user.last_name,
+        isAdmin: user.is_admin // Also send admin status in the user object
+      } 
+    });
 
   } catch (err) {
     console.error(err.message);

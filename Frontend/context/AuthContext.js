@@ -32,7 +32,8 @@ export function AuthProvider({ children }) {
           setUser({ 
               firstName: decodedUser.firstName, 
               lastName: decodedUser.lastName, 
-              email: decodedUser.email 
+              email: decodedUser.email,
+              isAdmin: decodedUser.isAdmin // <-- Store admin status
           });
           setToken(storedToken);
          
@@ -50,7 +51,7 @@ export function AuthProvider({ children }) {
   const login = (userData, receivedToken) => {
     localStorage.setItem('token', receivedToken);
     setToken(receivedToken);
-    setUser(userData); 
+    setUser(userData); // userData from server now includes isAdmin
     
     axios.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
   };
@@ -67,6 +68,7 @@ export function AuthProvider({ children }) {
     user,
     token,
     isAuthenticated: !!user,
+    isAdmin: user?.isAdmin || false, // <-- Expose isAdmin
     authLoading,
     login,
     logout,

@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/auth'); 
 const documentRoutes = require('./routes/documents');
+const adminRoutes = require('./routes/admin'); // <-- Add this
 const app = express();
 const port = 3001;
 
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/documents', documentRoutes);
 app.use('/api/auth', authRoutes); 
+app.use('/api/admin', adminRoutes); // <-- Add this
 
 
 app.listen(port, () => {
