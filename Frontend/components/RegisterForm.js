@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
 import PasswordChecklist from './PasswordChecklist.js'; 
 
 export default function RegisterForm() {
@@ -14,7 +14,7 @@ export default function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
 
  
   const [showPassword, setShowPassword] = useState(false);
@@ -78,11 +78,10 @@ export default function RegisterForm() {
       setPassword('');
       setConfirmPassword('');
 
-      // ADDED: Redirect to login page after a brief delay
+      
       setTimeout(() => {
         router.push('/login');
-      }, 1500); // 1.5 second delay
-      
+      }, 1500); 
     } catch (error) {
       if (error.response && error.response.data && error.response.data.message) {
         setMessage(`Registration failed: ${error.response.data.message}`);
