@@ -21,27 +21,52 @@ export default function Navbar() {
   };
 
   if (authLoading) {
+    // Render a placeholder or nothing
   }
 
+  // Define dynamic styles from CSS variables
+  const navStyle = {
+    backgroundColor: 'var(--navbar-bg-color)',
+    color: 'var(--navbar-text-color)', // Default text color for the nav
+  };
+
+  const brandStyle = {
+    fontFamily: 'var(--navbar-brand-font)',
+    fontSize: 'var(--navbar-brand-size)',
+    fontWeight: 'var(--navbar-brand-weight)',
+    color: 'var(--navbar-text-color)', // Brand text color
+  };
+  
+  const linkStyle = {
+    color: 'var(--navbar-link-color)', // Specific color for links
+  };
+
   return (
-    <nav className="bg-slate-800 text-white shadow-md">
+    <nav style={navStyle} className="shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
-          <Link href="/" className="text-2xl font-bold hover:text-slate-300">
-            Archivia
+          
+          <Link 
+            href="/" 
+            style={brandStyle} 
+            className="hover:opacity-80 flex items-center"
+          >
+            <div className="navbar-brand-icon"></div> 
+            <span className="navbar-brand-text-from-css">Archivia</span>
           </Link>
+
           <ul className="flex space-x-6 items-center">
             
             {!isAuthPage && ( 
               <li>
-                <Link href="/" className="hover:text-slate-300">
+                <Link href="/" style={linkStyle} className="hover:opacity-80">
                   Search & Browse
                 </Link>
               </li>
             )}
             {isAuthenticated && (
               <li>
-                <Link href="/upload" className="hover:text-slate-300">
+                <Link href="/upload" style={linkStyle} className="hover:opacity-80">
                   Upload Paper
                 </Link>
               </li>
@@ -50,7 +75,8 @@ export default function Navbar() {
               <li className="relative">
                 <button
                   onClick={toggleDropdown}
-                  className="py-1 px-3 bg-slate-700 hover:bg-slate-600 rounded-md font-semibold transition-colors flex items-center"
+                  className="py-1 px-3 bg-black bg-opacity-10 hover:bg-opacity-20 rounded-md font-semibold transition-colors flex items-center"
+                  style={{ color: 'var(--navbar-text-color)' }}
                 >
                   Welcome, {user?.firstName}!
                   <svg className={`ml-2 h-4 w-4 transform transition-transform ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,11 +84,16 @@ export default function Navbar() {
                   </svg>
                 </button>
 
+                {/* Dropdown menu */}
                 {isDropdownOpen && (
                   <div
+                    // <--- THIS IS THE FIX
+                    // This resets the color to the main page's text color,
+                    // stopping the navbar's white text from cascading down.
+                    style={{ color: 'var(--foreground)' }} 
+                    // <--- END FIX
                     className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-50 overflow-hidden"
                   >
-                    {/* --- START: ADMIN-ONLY LINKS --- */}
                     {user?.is_admin && (
                       <div className="border-b border-gray-200">
                         <Link 
@@ -88,8 +119,7 @@ export default function Navbar() {
                          </Link>
                       </div>
                     )}
-                    {/* --- END: ADMIN-ONLY LINKS --- */}
-
+                    
                     <Link 
                       href="/my-uploads" 
                       onClick={() => setIsDropdownOpen(false)} 
@@ -118,14 +148,13 @@ export default function Navbar() {
               <>
                 {shouldShowLoginLink && (
                   <li>
-                    <Link href="/login" className="hover:text-slate-300">
+                    <Link href="/login" style={linkStyle} className="hover:opacity-80">
                       Sign In
                     </Link>
                   </li>
                 )}
-                 {}
                 <li>
-                  <Link href="/register" className="hover:text-slate-300">
+                  <Link href="/register" style={linkStyle} className="hover:opacity-80">
                     Create Account
                   </Link>
                 </li>

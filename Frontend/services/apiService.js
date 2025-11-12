@@ -102,3 +102,24 @@ export const adminUploadIcon = (formData) => {
     },
   });
 };
+
+// --- Admin Theme Image Functions ---
+export const adminUploadBgImage = (formData) => {
+  return api.post('/admin/upload-bg-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+export const adminRemoveBgImage = () => {
+  return api.post('/admin/remove-bg-image');
+};
+
+export const adminUploadBrandIcon = (formData) => {
+  return api.post('/admin/upload-brand-icon', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+export const adminRemoveBrandIcon = () => {
+  return api.post('/admin/remove-brand-icon');
+};

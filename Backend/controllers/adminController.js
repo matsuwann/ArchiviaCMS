@@ -123,3 +123,66 @@ exports.uploadIcon = (req, res) => {
     });
   });
 };
+
+exports.uploadBgImage = (req, res) => {
+  fileUploadService.uploadBgImage.single('bg-image')(req, res, async function (err) {
+    if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).send('An image file is required.');
+    }
+    
+    try {
+      // We save the URL path in the DB
+      const imageUrl = `/system-background${path.extname(req.file.originalname)}`;
+      await settingsModel.updateSettings({ backgroundImage: `url(${imageUrl})` });
+      res.status(200).json({ 
+        message: 'Background image updated!',
+        imageUrl: `url(${imageUrl})` 
+      });
+    } catch (dbErr) {
+      res.status(500).json({ message: 'File uploaded but failed to save to settings.'});
+    }
+  });
+};
+
+exports.removeBgImage = async (req, res) => {
+  try {
+    await settingsModel.updateSettings({ backgroundImage: 'none' });
+    res.status(200).json({ message: 'Background image removed.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to remove background image.' });
+  }
+};
+
+exports.uploadBrandIcon = (req, res) => {
+  fileUploadService.uploadBrandIcon.single('brand-icon')(req, res, async function (err) {
+    if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).send('An icon file is required.');
+    }
+    
+    try {
+      const iconUrl = `/system-brand-icon${path.extname(req.file.originalname)}`;
+      await settingsModel.updateSettings({ brandIconUrl: `url(${iconUrl})` });
+      res.status(200).json({ 
+        message: 'Brand icon updated!',
+        iconUrl: `url(${iconUrl})`
+      });
+    } catch (dbErr) {
+      res.status(500).json({ message: 'Icon uploaded but failed to save to settings.'});
+    }
+  });
+};
+
+exports.removeBrandIcon = async (req, res) => {
+  try {
+    await settingsModel.updateSettings({ brandIconUrl: 'none' });
+    res.status(200).json({ message: 'Brand icon removed.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to remove brand icon.' });
+  }
+};

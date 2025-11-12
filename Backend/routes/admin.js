@@ -20,4 +20,9 @@ router.delete('/documents/:id', adminController.adminDeleteDocument);
 router.put('/settings', adminController.updateSettings);
 router.post('/icon-upload', adminController.uploadIcon);
 
+router.post('/upload-bg-image', adminController.uploadBgImage);
+router.post('/remove-bg-image', adminController.removeBgImage);
+router.post('/upload-brand-icon', adminController.uploadBrandIcon);
+router.post('/remove-brand-icon', adminController.removeBrandIcon);
+
 module.exports = router;
