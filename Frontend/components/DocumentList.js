@@ -1,5 +1,4 @@
 'use client';
-
 import { useState } from 'react';
 
 export default function DocumentList({ documents, isLoading, searchPerformed, onSearch }) {
@@ -9,7 +8,6 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
         e.preventDefault();
         onSearch(searchTerm);
     };
-
     
     return (
         <div className="p-6 bg-white rounded-lg shadow-md">
@@ -35,7 +33,6 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                 ) : documents.length > 0 ? (
                     <ul className="space-y-4">
                         {documents.map((doc) => {
-                            
                             const aiAuthors = doc.ai_authors || [];
                             const aiKeywords = doc.ai_keywords || [];
                             
@@ -54,7 +51,7 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                             <span className="font-semibold">Date Created:</span> {doc.ai_date_created}
                                         </p>
                                     )}
-                                    {/* ------
+
                                     {aiKeywords.length > 0 && (
                                         <div className="mt-2 flex flex-wrap gap-2">
                                             {aiKeywords.map((tag, index) => (
@@ -64,9 +61,8 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                             ))}
                                         </div>
                                     )}
-                                    ------ */}
                                     <a
-                                        href={`http://localhost:3001/uploads/${doc.filename}`}
+                                        href={doc.filepath}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm text-blue-500 hover:underline mt-2 inline-block"

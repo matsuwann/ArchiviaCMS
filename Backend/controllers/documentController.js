@@ -1,6 +1,8 @@
 const documentModel = require('../models/documentModel');
 const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
+const s3Service = require('../services/s3Service'); 
+const path = require('path');
 
 const upload = fileUploadService.upload;
 
@@ -43,30 +45,31 @@ exports.uploadDocument = (req, res) => {
     const file = req.file;
     if (!file) { return res.status(400).send('A file is required.'); }
     
-    const { filename, path: filepath } = file; 
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
     const userId = req.user.userId;
-  
 
     try {
- 
-        const metadata = await aiService.analyzeDocument(filepath);
+        const metadata = await aiService.analyzeDocument(file.buffer);
         
+        const fileUrl = await s3Service.uploadToS3(file, filename);
+
         const documentData = {
-          ...metadata, 
-          filename: filename,   
-          filepath: filepath,   
-          user_id: userId       
+          ...metadata,
+          filename: filename,
+          filepath: fileUrl, 
+          user_id: userId
         };
 
         const newDocument = await documentModel.create(documentData);
         res.status(201).json(newDocument);
 
     } catch (aiOrDbErr) {
-        console.error('AI Processing or Database Error:', aiOrDbErr.message);
+        console.error('AI Processing or S3 Error:', aiOrDbErr.message);
         if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
-             return res.status(503).json({ message: 'The AI model is currently overloaded. Please try again in a moment.' });
+             return res.status(503).json({ message: 'The AI model is currently overloaded.' });
         }
-        res.status(500).json({ message: 'Server error during AI processing or database save.' });
+        res.status(500).json({ message: 'Server error during processing.' });
     }
   });
 };
@@ -91,11 +94,10 @@ exports.updateDocument = async (req, res) => {
     const updatedDoc = await documentModel.update(id, userId, { title, ai_authors, ai_date_created });
 
     if (!updatedDoc) {
-      return res.status(440).json({ message: "Document not found or you don't have permission to edit it." });
+      return res.status(404).json({ message: "Document not found or you don't have permission to edit it." });
     }
     res.json(updatedDoc);
-  } catch (err)
- {
+  } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
@@ -112,9 +114,14 @@ exports.deleteDocument = async (req, res) => {
     }
 
     const deletedCount = await documentModel.deleteByIdAndUser(id, userId);
+    
     if (deletedCount > 0) {
-      await aiService.deleteFile(file.filepath); 
+    
+      await s3Service.deleteFromS3(file.filename); 
       res.json({ message: `Document '${file.filename}' deleted successfully.` });
+    } else {
+    
+      return res.status(404).json({ message: "Document not found." });
     }
   } catch (err) {
     console.error(err.message);

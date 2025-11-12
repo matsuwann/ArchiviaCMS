@@ -26,7 +26,7 @@ exports.findByTerm = async (term) => {
 
 exports.findByUser = async (userId) => {
   const { rows } = await db.query(
-    `SELECT id, title, filename, ai_authors, ai_date_created 
+    `SELECT id, title, filename, filepath, ai_authors, ai_date_created 
      FROM documents 
      WHERE user_id = $1 
      ORDER BY created_at DESC`,
@@ -45,7 +45,6 @@ exports.create = async ({ title, filename, filepath, ai_keywords, ai_authors, ai
   return rows[0];
 };
 
-
 exports.update = async (id, userId, { title, ai_authors, ai_date_created }) => {
   const aiAuthorsJson = JSON.stringify(ai_authors);
   const { rows } = await db.query(
@@ -60,7 +59,7 @@ exports.update = async (id, userId, { title, ai_authors, ai_date_created }) => {
 
 exports.findFileForUser = async (id, userId) => {
     const { rows } = await db.query(
-      'SELECT filename, filepath FROM documents WHERE id = $1 AND user_id = $2',
+      'SELECT filename FROM documents WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
     return rows[0];
