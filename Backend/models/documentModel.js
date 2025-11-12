@@ -73,3 +73,31 @@ exports.deleteByIdAndUser = async (id, userId) => {
     );
     return rowCount;
 };
+
+exports.adminUpdate = async (id, { title, ai_authors, ai_date_created }) => {
+  const aiAuthorsJson = JSON.stringify(ai_authors);
+  const { rows } = await db.query(
+    `UPDATE documents 
+     SET title = $1, ai_authors = $2, ai_date_created = $3 
+     WHERE id = $4 
+     RETURNING *`,
+    [title, aiAuthorsJson, ai_date_created, id]
+  );
+  return rows[0];
+};
+
+exports.adminFindFileById = async (id) => {
+    const { rows } = await db.query(
+      'SELECT filename, filepath FROM documents WHERE id = $1',
+      [id]
+    );
+    return rows[0];
+};
+
+exports.adminDeleteById = async (id) => {
+    const { rowCount } = await db.query(
+      'DELETE FROM documents WHERE id = $1', 
+      [id]
+    );
+    return rowCount;
+};

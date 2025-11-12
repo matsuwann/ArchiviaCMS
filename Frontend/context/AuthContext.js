@@ -31,7 +31,8 @@ export function AuthProvider({ children }) {
           setUser({ 
               firstName: decodedUser.firstName, 
               lastName: decodedUser.lastName, 
-              email: decodedUser.email 
+              email: decodedUser.email,
+              role: decodedUser.role 
           });
           setToken(storedToken);
          
