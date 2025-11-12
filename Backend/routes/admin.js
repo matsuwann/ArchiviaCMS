@@ -1,3 +1,4 @@
+// Backend/routes/admin.js
 const express = require('express');
 const adminController = require('../controllers/adminController');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -11,7 +12,12 @@ router.get('/users', adminController.getAllUsers);
 router.put('/users/:id', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
 
+// Document Routes
 router.put('/documents/:id', adminController.adminUpdateDocument);
 router.delete('/documents/:id', adminController.adminDeleteDocument);
+
+// Theme/Settings Routes
+router.put('/settings', adminController.updateSettings);
+router.post('/icon-upload', adminController.uploadIcon);
 
 module.exports = router;

@@ -1,4 +1,5 @@
-const settingsModel = require('../models/settingsModel'); // <--- ENSURE THIS LINE EXISTS
+// Backend/controllers/settingsController.js
+const settingsModel = require('../models/settingsModel');
 
 /**
  * Gets all system settings and formats them as a key-value object.

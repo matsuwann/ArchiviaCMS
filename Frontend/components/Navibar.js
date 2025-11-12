@@ -62,6 +62,34 @@ export default function Navbar() {
                   <div
                     className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-50 overflow-hidden"
                   >
+                    {/* --- START: ADMIN-ONLY LINKS --- */}
+                    {user?.is_admin && (
+                      <div className="border-b border-gray-200">
+                        <Link 
+                          href="/admin/users" 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200"
+                        >
+                          Manage Users
+                        </Link>
+                         <Link 
+                          href="/admin/documents" 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200"
+                        >
+                          Manage Documents
+                        </Link>
+                         <Link 
+                          href="/admin/theme" 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200"
+                         >
+                          Manage Theme
+                         </Link>
+                      </div>
+                    )}
+                    {/* --- END: ADMIN-ONLY LINKS --- */}
+
                     <Link 
                       href="/my-uploads" 
                       onClick={() => setIsDropdownOpen(false)} 

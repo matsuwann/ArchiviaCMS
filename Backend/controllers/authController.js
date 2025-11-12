@@ -37,7 +37,13 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
         message: 'User registered successfully. You can now log in.',
-        user: user
+        user: {
+          id: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          is_admin: user.is_admin // This will be false by default
+        }
     });
   } catch (err) {
     console.error(err.message);
@@ -64,12 +70,26 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name },
+      { 
+        userId: user.id, 
+        email: user.email, 
+        firstName: user.first_name, 
+        lastName: user.last_name,
+        is_admin: user.is_admin // <--- MODIFIED
+      },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    res.json({ token, user: { email: user.email, firstName: user.first_name, lastName: user.last_name } });
+    res.json({ 
+      token, 
+      user: { 
+        email: user.email, 
+        firstName: user.first_name, 
+        lastName: user.last_name,
+        is_admin: user.is_admin // <--- MODIFIED
+      } 
+    });
 
   } catch (err) {
     console.error(err.message);

@@ -1,3 +1,4 @@
+// Backend/middleware/adminMiddleware.js
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -12,12 +13,12 @@ const adminMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Check for admin role
-if (!decoded.is_admin) { // <--- MODIFIED
-  return res.status(403).json({ message: 'Access denied. Admin role required.' });
-}
-
+    
+    // Check for admin boolean
+    if (!decoded.is_admin) {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+    
     req.user = decoded; 
     next();
   } catch (ex) {

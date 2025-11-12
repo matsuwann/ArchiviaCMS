@@ -1,8 +1,9 @@
+// Backend/controllers/adminController.js
 const userModel = require('../models/userModel');
 const documentModel = require('../models/documentModel');
 const aiService = require('../services/aiService');
-const settingsModel = require('../models/settingsModel'); // <--- LIKELY MISSING
-const fileUploadService = require('../services/fileUploadService'); // <--- LIKELY MISSING
+const settingsModel = require('../models/settingsModel');
+const fileUploadService = require('../services/fileUploadService');
 
 // --- User Management ---
 exports.getAllUsers = async (req, res) => {

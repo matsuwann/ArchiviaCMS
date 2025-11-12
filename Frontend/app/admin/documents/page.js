@@ -21,7 +21,7 @@ export default function AdminDocumentManagement() {
   const handleSearch = async (term) => {
     try {
       setLoading(true);
-      const response = await searchDocuments(term); //
+      const response = await searchDocuments(term); 
       setDocuments(response.data);
     } catch (err) {
       setError('Failed to fetch documents.');

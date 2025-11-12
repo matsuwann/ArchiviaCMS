@@ -1,4 +1,4 @@
-'use client'; // <--- THIS IS THE FIX. IT MUST BE THE VERY FIRST LINE.
+'use client';
 
 import { useState, useEffect } from 'react';
 import { getSettings, adminUpdateSettings, adminUploadIcon } from '../../../services/apiService';

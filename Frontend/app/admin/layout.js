@@ -32,7 +32,6 @@ export default function AdminLayout({ children }) {
                 Admin Dashboard
             </h1>
         </header>
-        {/* You could add an admin-specific Nav here */}
         <div className="max-w-6xl mx-auto">
             {children}
         </div>
