@@ -1,4 +1,4 @@
-const fs = (require('fs')).promises;
+const fs = require('fs').promises;
 const pdfModule = require('pdf-parse'); 
 const pdfParse = pdfModule.default || pdfModule; 
 const { GoogleGenAI } = require('@google/genai'); 
@@ -36,32 +36,20 @@ async function generateMetadata(text) {
   return JSON.parse(response.text);
 }
 
-exports.analyzeDocument = async (filepath) => {
-    try {
-        const dataBuffer = await fs.readFile(filepath);
-        const data = await pdfParse(dataBuffer); 
-        const pdfText = data.text;
-        
-        const metadata = await generateMetadata(pdfText);
-        
-        return {
-            title: metadata.ai_title,
-            ai_keywords: JSON.stringify(metadata.keywords),
-            ai_authors: JSON.stringify(metadata.ai_authors),
-            ai_date_created: metadata.ai_date_created,
-        };
-    } catch (err) {
-
-        await fs.unlink(filepath).catch(e => console.error("Failed to delete temp file:", e)); 
-        throw err; 
-    }
-};
-
-exports.deleteFile = async (filepath) => {
-    try {
-        await fs.unlink(filepath);
-    } catch (err) {
-        console.error("Error deleting file from filesystem:", err.message);
-
-    }
+exports.analyzeDocument = async (fileBuffer) => {
+  try {
+    const data = await pdfParse(fileBuffer); 
+    const pdfText = data.text;
+    
+    const metadata = await generateMetadata(pdfText);
+    
+    return {
+        title: metadata.ai_title,
+        ai_keywords: JSON.stringify(metadata.keywords),
+        ai_authors: JSON.stringify(metadata.ai_authors),
+        ai_date_created: metadata.ai_date_created,
+    };
+  } catch (err) {
+    throw err; 
+  }
 };
