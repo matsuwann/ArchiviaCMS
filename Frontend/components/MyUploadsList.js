@@ -50,13 +50,13 @@ export default function MyUploadsList() {
   const handleSave = async (docId, updatedData) => {
     try {
         await updateDocument(docId, updatedData);
-        await fetchUploads();
+        await fetchUploads(); 
     } catch (error) {
         console.error("Failed to save:", error);
         alert("Failed to save changes.");
     }
   };
-
+  
   if (loading) return <p className="text-center">Loading your uploads...</p>;
   if (error) return <p className="text-center text-red-500">{error}</p>;
 
@@ -68,7 +68,7 @@ export default function MyUploadsList() {
         ) : (
           <ul className="divide-y divide-gray-200">
             {documents.map(doc => {
-              const aiAuthors = doc.ai_authors || [];
+              const aiAuthors = doc.ai_authors || []; 
               return (
                 <li key={doc.id} className="py-4 flex justify-between items-center">
                   <div>
@@ -79,6 +79,14 @@ export default function MyUploadsList() {
                     <p className="text-sm text-gray-500">
                       Date: {doc.ai_date_created || 'N/A'}
                     </p>
+                    <a
+                        href={doc.filepath}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-500 hover:underline mt-2 inline-block"
+                    >
+                        View PDF
+                    </a>
                   </div>
                   <div className="flex gap-2">
                     <button
