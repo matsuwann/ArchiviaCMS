@@ -18,9 +18,67 @@ export const metadata = {
   description: "A Capstone and Research Repository", 
 };
 
-export default function RootLayout({ children }) {
+/**
+ * (SERVER FUNCTION) Fetches settings from your backend API.
+ */
+async function getSystemSettings() {
+  try {
+    const res = await fetch('http://localhost:3001/api/settings', { 
+      cache: 'no-store' 
+    });
+    
+    if (!res.ok) {
+      console.error("Failed to fetch settings, using defaults.");
+      return null;
+    }
+    
+    return await res.json();
+
+  } catch (error) {
+    console.error("Error fetching settings:", error.message);
+    return null;
+  }
+}
+
+export default async function RootLayout({ children }) {
+  
+  const settings = await getSystemSettings();
+
+  // --- MODIFIED: Handle all new variables ---
+  const brandIconUrl = settings?.brandIconUrl || 'none';
+  const bgImageUrl = settings?.backgroundImage || 'none';
+
+  const customStyles = `
+    :root {
+      /* Page */
+      --background-color: ${settings?.backgroundColor || '#ffffff'};
+      --background-image: ${bgImageUrl};
+      --foreground: ${settings?.foregroundColor || '#171717'};
+      
+      /* Navbar */
+      --navbar-bg-color: ${settings?.navbarBgColor || '#1e293b'};
+      --navbar-text-color: ${settings?.navbarTextColor || '#ffffff'};
+      --navbar-link-color: ${settings?.navbarLinkColor || '#ffffff'};
+      
+      /* Brand */
+      --navbar-brand-font: ${settings?.navbarBrandFont || 'var(--font-geist-sans)'};
+      --navbar-brand-size: ${settings?.navbarBrandSize || '1.5rem'};
+      --navbar-brand-weight: ${settings?.navbarBrandWeight || '700'};
+      --navbar-brand-text: '${settings?.navbarBrandText || 'Archivia'}';
+      
+      /* Brand Icon (Computed) */
+      --brand-icon-url: ${brandIconUrl};
+      --brand-icon-display: ${brandIconUrl === 'none' ? 'none' : 'inline-block'};
+    }
+  `;
+  // --- END MODIFICATION ---
+
   return (
     <html lang="en">
+      <head>
+        <style>{customStyles}</style>
+      </head>
+      
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

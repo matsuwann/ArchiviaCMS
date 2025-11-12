@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  /* Page variables */
+  --background-color: #ffffff;
+  --background-image: none;
   --foreground: #171717;
+  
+  /* Navbar variables */
+  --navbar-bg-color: #1e293b;
+  --navbar-text-color: #ffffff;
+  --navbar-link-color: #ffffff;
+  
+  /* Brand variables */
+  --navbar-brand-font: var(--font-geist-sans);
+  --navbar-brand-size: 1.5rem;
+  --navbar-brand-weight: 700;
+  --navbar-brand-text: 'Archivia';
+  --brand-icon-url: none;
+  --brand-icon-display: none;
 }
 
 @theme inline {
@@ -14,13 +29,40 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
+    --background-color: #ffffff;
     --foreground: #000000;
   }
 }
 
 body {
-  background: var(--background);
+  /* MODIFIED: Use new variables for background */
+  background-color: var(--background-color);
+  background-image: var(--background-image);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* This reads the brand text from the CSS variable */
+.navbar-brand-text-from-css {
+  font-size: 0; /* Hide the fallback text */
+}
+.navbar-brand-text-from-css::before {
+  content: var(--navbar-brand-text, 'Archivia');
+  font-size: var(--navbar-brand-size); /* Re-apply the font size */
+}
+
+/* This is the new brand icon */
+.navbar-brand-icon {
+  display: var(--brand-icon-display, 'none'); /* 'none' or 'inline-block' */
+  width: 32px; /* You can customize this */
+  height: 32px;
+  margin-right: 0.5rem;
+  background-image: var(--brand-icon-url);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }

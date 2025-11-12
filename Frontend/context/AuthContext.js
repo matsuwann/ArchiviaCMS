@@ -31,7 +31,8 @@ export function AuthProvider({ children }) {
           setUser({ 
               firstName: decodedUser.firstName, 
               lastName: decodedUser.lastName, 
-              email: decodedUser.email 
+              email: decodedUser.email,
+              is_admin: decodedUser.is_admin // <--- MODIFIED
           });
           setToken(storedToken);
          
@@ -50,7 +51,7 @@ export function AuthProvider({ children }) {
   const login = (userData, receivedToken) => {
     localStorage.setItem('token', receivedToken);
     setToken(receivedToken);
-    setUser(userData); 
+    setUser(userData); // userData from API now includes 'is_admin'
     
     setAuthToken(receivedToken);
   };
