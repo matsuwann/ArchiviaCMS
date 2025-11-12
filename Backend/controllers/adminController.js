@@ -1,8 +1,8 @@
 const userModel = require('../models/userModel');
-const documentModel = require('../models/documentModel'); // <-- ADD
-const aiService = require('../services/aiService'); // <-- ADD
-const settingsModel = require('../models/settingsModel');
-const fileUploadService = require('../services/fileUploadService');
+const documentModel = require('../models/documentModel');
+const aiService = require('../services/aiService');
+const settingsModel = require('../models/settingsModel'); // <--- LIKELY MISSING
+const fileUploadService = require('../services/fileUploadService'); // <--- LIKELY MISSING
 
 // --- User Management ---
 exports.getAllUsers = async (req, res) => {
@@ -18,9 +18,9 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { is_admin } = req.body; // <--- MODIFIED
+    const { is_admin } = req.body; 
 
-    if (typeof is_admin !== 'boolean') { // <--- MODIFIED
+    if (typeof is_admin !== 'boolean') {
       return res.status(400).json({ message: 'Invalid admin status specified. Must be true or false.' });
     }
 
@@ -50,6 +50,7 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// --- Admin Document Management ---
 exports.adminUpdateDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -71,7 +72,6 @@ exports.adminDeleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find file first to delete it from disk
     const file = await documentModel.adminFindFileById(id);
     if (!file) {
       return res.status(404).json({ message: "Document not found." });
@@ -79,7 +79,7 @@ exports.adminDeleteDocument = async (req, res) => {
 
     const deletedCount = await documentModel.adminDeleteById(id);
     if (deletedCount > 0) {
-      await aiService.deleteFile(file.filepath); //
+      await aiService.deleteFile(file.filepath); 
       res.json({ message: `Document '${file.filename}' deleted successfully.` });
     }
   } catch (err) {
@@ -88,16 +88,12 @@ exports.adminDeleteDocument = async (req, res) => {
   }
 };
 
-/**
- * (ADMIN) Updates system settings.
- * Expects a body like { backgroundColor: '#FFF', foregroundColor: '#111' }
- */
+// --- Theme Management ---
 exports.updateSettings = async (req, res) => {
   try {
     const newSettings = req.body;
     const updatedSettingsArray = await settingsModel.updateSettings(newSettings);
     
-    // Convert back to object for the response
     const settingsObject = updatedSettingsArray.reduce((acc, item) => {
       acc[item.setting_key] = item.setting_value;
       return acc;
@@ -110,11 +106,7 @@ exports.updateSettings = async (req, res) => {
   }
 };
 
-/**
- * (ADMIN) Handles the icon file upload.
- */
 exports.uploadIcon = (req, res) => {
-  // Use the 'uploadIcon' service we just made
   fileUploadService.uploadIcon.single('icon')(req, res, function (err) {
     if (err) {
       if (err.message) {
