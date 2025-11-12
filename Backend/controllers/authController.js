@@ -42,7 +42,7 @@ exports.register = async (req, res) => {
           firstName: user.first_name,
           lastName: user.last_name,
           email: user.email,
-          is_admin: user.is_admin // This will be false by default
+          is_admin: user.is_admin 
         }
     });
   } catch (err) {
@@ -75,7 +75,7 @@ exports.login = async (req, res) => {
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin // <--- MODIFIED
+        is_admin: user.is_admin
       },
       JWT_SECRET,
       { expiresIn: '1h' }
@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin // <--- MODIFIED
+        is_admin: user.is_admin
       } 
     });
 

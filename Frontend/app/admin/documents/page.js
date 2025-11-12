@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import EditDocumentModal from '../../../components/EditDocumentModal'; 
 import { searchDocuments, adminDeleteDocument, adminUpdateDocument } from '../../../services/apiService';
+import { toast } from 'react-hot-toast';
 
 export default function AdminDocumentManagement() {
   const [documents, setDocuments] = useState([]);
@@ -14,7 +15,7 @@ export default function AdminDocumentManagement() {
   const [selectedDocument, setSelectedDocument] = useState(null);
 
   useEffect(() => {
-    // Fetch all documents on initial load
+
     handleSearch('');
   }, []);
 
@@ -25,6 +26,7 @@ export default function AdminDocumentManagement() {
       setDocuments(response.data);
     } catch (err) {
       setError('Failed to fetch documents.');
+      toast.error('Failed to fetch documents.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -36,18 +38,47 @@ export default function AdminDocumentManagement() {
     handleSearch(searchTerm);
   };
 
-  const handleDelete = async (docId) => {
-    if (!window.confirm("Are you sure you want to delete this document? This is permanent.")) {
-      return;
-    }
-    try {
-      await adminDeleteDocument(docId);
-      alert('Document deleted.');
-      handleSearch(searchTerm); // Refresh the list
-    } catch (err) {
-      alert("Failed to delete document.");
-      console.error(err);
-    }
+const handleDelete = async (docId) => {
+    toast((t) => (
+      <span className="flex flex-col gap-2">
+        Are you sure you want to delete this?
+        <div className="flex gap-2">
+          <button
+            className="w-full py-1 px-3 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-700"
+            onClick={() => {
+              toast.dismiss(t.id);
+              performDelete(docId);
+            }}
+          >
+            Delete
+          </button>
+          <button
+            className="w-full py-1 px-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancel
+          </button>
+        </div>
+      </span>
+    ), { duration: 6000 });
+  };
+
+  const performDelete = async (docId) => {
+    const deletePromise = adminDeleteDocument(docId);
+    toast.promise(
+      deletePromise,
+      {
+        loading: 'Deleting document...',
+        success: () => {
+          handleSearch(searchTerm);
+          return 'Document deleted.';
+        },
+        error: (err) => {
+          console.error(err);
+          return 'Failed to delete document.';
+        }
+      }
+    );
   };
 
   const handleEdit = (doc) => {
@@ -55,16 +86,15 @@ export default function AdminDocumentManagement() {
     setIsModalOpen(true);
   };
 
-  // This function is passed to the modal
   const handleSave = async (docId, updatedData) => {
     try {
         await adminUpdateDocument(docId, updatedData);
         setIsModalOpen(false);
-        alert('Document updated.');
-        handleSearch(searchTerm); // Refresh the list
+        toast.success('Document updated.');
+        handleSearch(searchTerm); 
     } catch (error) {
         console.error("Failed to save:", error);
-        alert("Failed to save changes.");
+        toast.error("Failed to save changes.");
     }
   };
 
@@ -75,7 +105,6 @@ export default function AdminDocumentManagement() {
           Document Management
         </h2>
         
-        {/* Search Bar */}
         <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-6">
             <input
                 type="text"
@@ -89,7 +118,6 @@ export default function AdminDocumentManagement() {
             </button>
         </form>
 
-        {/* Document List */}
         {loading ? (
             <p className="text-center">Loading documents...</p>
         ) : error ? (
@@ -132,7 +160,6 @@ export default function AdminDocumentManagement() {
         )}
       </div>
       
-      {/* Edit Modal (re-used) */}
       {isModalOpen && (
         <EditDocumentModal 
           document={selectedDocument} 

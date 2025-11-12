@@ -9,7 +9,8 @@ import {
   adminUploadBgImage, 
   adminRemoveBgImage, 
   adminUploadBrandIcon, 
-  adminRemoveBrandIcon 
+  adminRemoveBrandIcon,
+  adminResetSettings 
 } from '../../../services/apiService';
 
 export default function AdminThemeManagement() {
@@ -34,19 +35,19 @@ export default function AdminThemeManagement() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
-  // Fetch all settings on load
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        setLoading(true);
-        const response = await getSettings();
-        setSettings(prev => ({ ...prev, ...response.data }));
-      } catch (err) {
-        setMessage('Failed to load current settings.');
-      } finally {
-        setLoading(false);
-      }
+  async function fetchSettings() {
+    try {
+      setLoading(true);
+      const response = await getSettings();
+      setSettings(prev => ({ ...prev, ...response.data }));
+    } catch (err) {
+      setMessage('Failed to load current settings.');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchSettings();
   }, []);
 
@@ -59,7 +60,6 @@ export default function AdminThemeManagement() {
     setSettings(prev => ({ ...prev, [key]: newColor }));
   };
 
-  // Saves all text and color settings
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -74,9 +74,24 @@ export default function AdminThemeManagement() {
     }
   };
 
-  // --- File Upload Handlers ---
-  
-  const handleIconSubmit = async (e) => { /* ... (Favicon) ... */
+  const handleResetToDefault = async () => {
+    if (!window.confirm("Are you sure you want to reset all theme settings to their default values? This action cannot be undone.")) {
+      return;
+    }
+    setLoading(true);
+    setMessage('Resetting settings...');
+    try {
+      const response = await adminResetSettings();
+      setSettings(prev => ({ ...prev, ...response.data })); 
+      setMessage('Settings reset to default! Reload page to see all changes.');
+    } catch (err) {
+      setMessage('Failed to reset settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIconSubmit = async (e) => {
     e.preventDefault();
     if (!iconFile) return setMessage('Please select a favicon file.');
     setLoading(true);
@@ -172,7 +187,6 @@ export default function AdminThemeManagement() {
           Manage System Theme
         </h2>
         
-        {/* Global Message Bar */}
         {message && (
           <div className="p-3 bg-blue-100 text-blue-800 rounded-md mb-6 text-center">
             {message}
@@ -288,10 +302,20 @@ export default function AdminThemeManagement() {
           >
             {loading ? 'Saving...' : 'Save All Text & Color Settings'}
           </button>
+          
+
+          <button
+            type="button"
+            onClick={handleResetToDefault}
+            disabled={loading}
+            className="w-full py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 disabled:bg-red-400"
+          >
+            Reset All Settings to Default
+          </button>
+
         </form>
       </div>
 
-      {/* Background Image Card */}
       <div className="p-8 bg-white rounded-xl shadow-2xl">
         <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage Background Image</h2>
         <form onSubmit={handleBgImageSubmit} className="space-y-4">
@@ -313,7 +337,6 @@ export default function AdminThemeManagement() {
         </button>
       </div>
 
-      {/* Brand Icon Card */}
       <div className="p-8 bg-white rounded-xl shadow-2xl">
         <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage Navbar Brand Icon</h2>
         <form onSubmit={handleBrandIconSubmit} className="space-y-4">
@@ -335,7 +358,6 @@ export default function AdminThemeManagement() {
         </button>
       </div>
 
-      {/* Favicon Card (Unchanged) */}
       <div className="p-8 bg-white rounded-xl shadow-2xl">
         <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage System Favicon</h2>
         <form onSubmit={handleIconSubmit} className="space-y-4">

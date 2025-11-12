@@ -2,51 +2,54 @@
 
 import { useState } from 'react';
 import { uploadDocument } from '../services/apiService';
+import { toast } from 'react-hot-toast'; 
 
 export default function UploadForm({ onUploadSuccess }) {
   const [file, setFile] = useState(null);
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!file) {
-      setMessage('Please select a file to upload.');
+      toast.error('Please select a file to upload.'); 
       return;
     }
 
     setLoading(true); 
-    setMessage('Processing... this may take a moment.');
-
+    
     const formData = new FormData();
     formData.append('file', file);
 
-    try { 
-      const response = await uploadDocument(formData);
-      
-      setMessage(`Success! Uploaded: ${response.data.title}`);
-      setFile(null);
-      e.target.reset(); 
-      if (onUploadSuccess) {
-        onUploadSuccess();
+    const uploadPromise = uploadDocument(formData);
+
+    toast.promise(
+      uploadPromise,
+      {
+        loading: 'Processing... this may take a moment.',
+        success: (response) => {
+          setFile(null);
+          e.target.reset(); 
+          if (onUploadSuccess) {
+            onUploadSuccess();
+          }
+          return `Success! Uploaded: ${response.data.title}`;
+        },
+        error: (error) => {
+          if (error.response && error.response.data && error.response.data.message) {
+            return `Upload failed: ${error.response.data.message}`;
+          }
+          return 'Upload failed. An unexpected error occurred.';
+        }
       }
-    } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
-        setMessage(`Upload failed: ${error.response.data.message}`);
-      } else {
-        setMessage('Upload failed. An unexpected error occurred.');
-      }
-      console.error('Upload error:', error);
-    } finally {
-      setLoading(false); 
-    }
+    ).finally(() => {
+      setLoading(false);
+    });
   };
 
   return (
     <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">Upload New Research Paper</h2>
-      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="file" className="block text-sm font-medium text-gray-700">PDF Document</label>
@@ -67,8 +70,7 @@ export default function UploadForm({ onUploadSuccess }) {
           {loading ? 'Processing...' : 'Upload and Analyze'}
         </button>
       </form>
-
-      {message && <p className="mt-4 text-center text-sm text-gray-600">{message}</p>}
+      
     </div>
   );
 }

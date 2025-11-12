@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navibar";
 import { AuthProvider } from '../context/AuthContext'; 
+import { Toaster } from 'react-hot-toast';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,9 +19,7 @@ export const metadata = {
   description: "A Capstone and Research Repository", 
 };
 
-/**
- * (SERVER FUNCTION) Fetches settings from your backend API.
- */
+
 async function getSystemSettings() {
   try {
     const res = await fetch('http://localhost:3001/api/settings', { 
@@ -44,7 +43,6 @@ export default async function RootLayout({ children }) {
   
   const settings = await getSystemSettings();
 
-  // --- MODIFIED: Handle all new variables ---
   const brandIconUrl = settings?.brandIconUrl || 'none';
   const bgImageUrl = settings?.backgroundImage || 'none';
 
@@ -71,7 +69,6 @@ export default async function RootLayout({ children }) {
       --brand-icon-display: ${brandIconUrl === 'none' ? 'none' : 'inline-block'};
     }
   `;
-  // --- END MODIFICATION ---
 
   return (
     <html lang="en">
@@ -83,6 +80,7 @@ export default async function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider> 
+        <Toaster position="bottom-right" />
           <Navbar />
           {children}
         </AuthProvider>

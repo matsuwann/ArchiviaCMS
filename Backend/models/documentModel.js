@@ -73,8 +73,6 @@ exports.deleteByIdAndUser = async (id, userId) => {
     return rowCount;
 };
 
-// --- NEW ADMIN FUNCTIONS ---
-
 exports.adminUpdate = async (id, { title, ai_authors, ai_date_created }) => {
   const aiAuthorsJson = JSON.stringify(ai_authors);
   const { rows } = await db.query(

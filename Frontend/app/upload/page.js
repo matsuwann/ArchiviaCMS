@@ -6,10 +6,7 @@ import UploadForm from '../../components/UploadForm';
 export default function UploadPage() {
   const router = useRouter();
 
-
   const handleUploadSuccess = () => {
-    alert('File uploaded successfully! Redirecting to the homepage.');
-
     router.push('/'); 
   };
 
