@@ -1,11 +1,9 @@
-// Backend/controllers/adminController.js
 const userModel = require('../models/userModel');
 const documentModel = require('../models/documentModel');
 const aiService = require('../services/aiService');
 const settingsModel = require('../models/settingsModel');
 const fileUploadService = require('../services/fileUploadService');
 
-// --- User Management ---
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await userModel.findAll();
@@ -51,7 +49,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// --- Admin Document Management ---
 exports.adminUpdateDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -89,12 +86,15 @@ exports.adminDeleteDocument = async (req, res) => {
   }
 };
 
-// --- Theme Management ---
 exports.updateSettings = async (req, res) => {
   try {
     const newSettings = req.body;
+    console.log('[Backend Controller] Received settings to update:', newSettings);
+    
     const updatedSettingsArray = await settingsModel.updateSettings(newSettings);
     
+    console.log('[Backend Controller] Sending updated settings to frontend.');
+
     const settingsObject = updatedSettingsArray.reduce((acc, item) => {
       acc[item.setting_key] = item.setting_value;
       return acc;
@@ -104,6 +104,24 @@ exports.updateSettings = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error updating settings');
+  }
+};
+
+exports.resetSettings = async (req, res) => {
+  try {
+    console.log('[Backend Controller] Resetting settings to default...');
+    const defaultSettingsArray = await settingsModel.resetToDefault();
+    
+    const settingsObject = defaultSettingsArray.reduce((acc, item) => {
+      acc[item.setting_key] = item.setting_value;
+      return acc;
+    }, {});
+
+    console.log('[Backend Controller] Settings reset.');
+    res.json(settingsObject);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error resetting settings');
   }
 };
 
@@ -134,7 +152,6 @@ exports.uploadBgImage = (req, res) => {
     }
     
     try {
-      // We save the URL path in the DB
       const imageUrl = `/system-background${path.extname(req.file.originalname)}`;
       await settingsModel.updateSettings({ backgroundImage: `url(${imageUrl})` });
       res.status(200).json({ 

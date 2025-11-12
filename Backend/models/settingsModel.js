@@ -17,7 +17,8 @@ exports.getSettings = async () => {
  * @returns {Promise<Array>} A promise that resolves to the newly updated settings.
  */
 exports.updateSettings = async (settingsObject) => {
-  // This runs all update/insert queries in parallel
+  console.log('[Backend Model] Starting to update settings...'); 
+
   const promises = Object.entries(settingsObject).map(([key, value]) => {
     return db.query(
       `INSERT INTO system_settings (setting_key, setting_value)
@@ -28,8 +29,35 @@ exports.updateSettings = async (settingsObject) => {
     );
   });
   
-  await Promise.all(promises);
+  const results = await Promise.allSettled(promises);
   
-  // Return all settings after the update
+  results.forEach(result => {
+    if (result.status === 'rejected') {
+      console.error("A database query failed:", result.reason);
+    }
+  });
+  
+  console.log('[Backend Model] Settings updated. Fetching new settings...'); 
+  
+  return exports.getSettings();
+};
+
+exports.resetToDefault = async () => {
+  await db.query('TRUNCATE TABLE system_settings');
+
+  await db.query(
+    `INSERT INTO system_settings (setting_key, setting_value) VALUES
+      ('backgroundColor', '#ffffff'),
+      ('foregroundColor', '#171717'),
+      ('navbarBrandText', 'Archivia'),
+      ('navbarBgColor', '#1e293b'),
+      ('navbarTextColor', '#ffffff'),
+      ('navbarLinkColor', '#ffffff'),
+      ('navbarBrandFont', 'var(--font-geist-sans)'),
+      ('navbarBrandSize', '1.5rem'),
+      ('navbarBrandWeight', '700'),
+      ('backgroundImage', 'none'),
+      ('brandIconUrl', 'none')`
+  );
   return exports.getSettings();
 };

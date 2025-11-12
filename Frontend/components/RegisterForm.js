@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PasswordChecklist from './PasswordChecklist.js'; 
 import { register as apiRegister } from '../services/apiService'; 
+import { toast } from 'react-hot-toast'; 
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -12,10 +13,8 @@ export default function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter(); 
- 
   const [showPassword, setShowPassword] = useState(false);
   
   const [passwordValidity, setPasswordValidity] = useState({
@@ -29,7 +28,6 @@ export default function RegisterForm() {
   const handlePasswordChange = (e) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-
     setPasswordValidity({
       hasLength: newPassword.length >= 8,
       hasUpper: /[A-Z]/.test(newPassword),
@@ -41,49 +39,50 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
 
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setMessage('All fields are required.');
+      toast.error('All fields are required.');
       return;
     }
-
     if (password !== confirmPassword) {
-      setMessage('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
-
     const allValid = Object.values(passwordValidity).every(Boolean);
     if (!allValid) {
-        setMessage('Please ensure your password meets all the requirements.');
+        toast.error('Please ensure your password meets all the requirements.');
         return;
     }
 
     setLoading(true);
+    
+    const registerPromise = apiRegister(firstName, lastName, email, password);
 
-    try {
-      const response = await apiRegister(firstName, lastName, email, password);
-
-      setMessage(`Success! ${response.data.message} Redirecting to login...`);
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500); 
-      
-    } catch (error) {
-      if (error.response && error.response.data && error.response.data.message) {
-        setMessage(`Registration failed: ${error.response.data.message}`);
-      } else {
-        setMessage('Registration failed. An unexpected error occurred.');
+    toast.promise(
+      registerPromise,
+      {
+        loading: 'Registering...',
+        success: (response) => {
+          setFirstName('');
+          setLastName('');
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setTimeout(() => {
+            router.push('/login');
+          }, 1500); 
+          return `Success! ${response.data.message}`; 
+        },
+        error: (error) => {
+          if (error.response && error.response.data && error.response.data.message) {
+            return `Registration failed: ${error.response.data.message}`;
+          }
+          return 'Registration failed. An unexpected error occurred.';
+        }
       }
-    } finally {
+    ).finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (
@@ -101,14 +100,10 @@ export default function RegisterForm() {
                 <input type="text" id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
             </div>
         </div>
-        
-        
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
           <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
         </div>
-        
-        
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
           <div className="relative">
@@ -131,8 +126,6 @@ export default function RegisterForm() {
           </div>
           {password && <PasswordChecklist validity={passwordValidity} />}
         </div>
-        
-        
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
           <div className="relative">
@@ -153,7 +146,6 @@ export default function RegisterForm() {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
-          
           {confirmPassword && (
             <p className={`mt-1 text-sm ${password === confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
               {password === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
@@ -165,11 +157,8 @@ export default function RegisterForm() {
           {loading ? 'Registering...' : 'Register'}
         </button>
       </form>
-      {message && (
-        <p className={`mt-4 text-center text-sm ${message.includes('Success') ? 'text-green-600' : 'text-red-600'}`}>
-          {message}
-        </p>
-      )}
+      
+
       <p className="mt-4 text-center text-sm text-gray-500">
         Already have an account?{' '}
         <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">

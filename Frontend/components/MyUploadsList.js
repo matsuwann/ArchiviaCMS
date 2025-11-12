@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import EditDocumentModal from './EditDocumentModal'; 
 import { getMyUploads, deleteDocument, updateDocument } from '../services/apiService';
+import { toast } from 'react-hot-toast'; 
 
 export default function MyUploadsList() {
   const [documents, setDocuments] = useState([]);
@@ -23,6 +24,7 @@ export default function MyUploadsList() {
       setDocuments(response.data);
     } catch (err) {
       setError('Failed to fetch your documents.');
+      toast.error('Failed to fetch your documents.'); 
       console.error(err);
     } finally {
       setLoading(false);
@@ -30,16 +32,47 @@ export default function MyUploadsList() {
   };
 
   const handleDelete = async (docId) => {
-    if (!window.confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
-      return;
-    }
-    try {
-      await deleteDocument(docId);
-      setDocuments(documents.filter(doc => doc.id !== docId));
-    } catch (err) {
-      alert("Failed to delete document.");
-      console.error(err);
-    }
+    toast((t) => (
+      <span className="flex flex-col gap-2">
+        Are you sure you want to delete this?
+        <div className="flex gap-2">
+          <button
+            className="w-full py-1 px-3 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-700"
+            onClick={() => {
+              toast.dismiss(t.id);
+              performDelete(docId);
+            }}
+          >
+            Delete
+          </button>
+          <button
+            className="w-full py-1 px-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancel
+          </button>
+        </div>
+      </span>
+    ), { duration: 6000 });
+  };
+
+  const performDelete = async (docId) => {
+    const deletePromise = deleteDocument(docId);
+    
+    toast.promise(
+      deletePromise,
+      {
+        loading: 'Deleting document...',
+        success: () => {
+          setDocuments(documents.filter(doc => doc.id !== docId));
+          return 'Document deleted successfully.';
+        },
+        error: (err) => {
+          console.error(err);
+          return 'Failed to delete document.';
+        }
+      }
+    );
   };
 
   const handleEdit = (doc) => {
@@ -48,17 +81,27 @@ export default function MyUploadsList() {
   };
 
   const handleSave = async (docId, updatedData) => {
+    const savePromise = updateDocument(docId, updatedData);
+    
+    await toast.promise(
+      savePromise,
+      {
+        loading: 'Saving changes...',
+        success: 'Changes saved successfully!',
+        error: 'Failed to save changes.'
+      }
+    );
+
     try {
-        await updateDocument(docId, updatedData);
-        await fetchUploads(); 
+      await savePromise; 
+      await fetchUploads();
     } catch (error) {
-        console.error("Failed to save:", error);
-        alert("Failed to save changes.");
+      console.error("Failed to save:", error);
     }
   };
   
   if (loading) return <p className="text-center">Loading your uploads...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
+  if (error && documents.length === 0) return <p className="text-center text-red-500">{error}</p>;
 
   return (
     <>

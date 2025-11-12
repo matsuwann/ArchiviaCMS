@@ -1,28 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast'; 
 
 export default function EditDocumentModal({ document, onClose, onSave }) {
   const [title, setTitle] = useState('');
   const [authors, setAuthors] = useState(''); 
   const [dateCreated, setDateCreated] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-
 
   useEffect(() => {
     if (document) {
       setTitle(document.title || '');
       setDateCreated(document.ai_date_created || '');
-
-      let authorsArray = [];
-      if (typeof document.ai_authors === 'string') {
-        try {
-          authorsArray = JSON.parse(document.ai_authors);
-        } catch (e) {}
-      } else if (Array.isArray(document.ai_authors)) {
-        authorsArray = document.ai_authors;
-      }
+      
+      let authorsArray = document.ai_authors || [];
       setAuthors(authorsArray.join('; ')); 
     }
   }, [document]);
@@ -30,11 +22,11 @@ export default function EditDocumentModal({ document, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
 
     const authorsArray = authors.split(';').map(name => name.trim());
 
     try {
+
       await onSave(document.id, {
         title,
         ai_authors: authorsArray,
@@ -42,7 +34,6 @@ export default function EditDocumentModal({ document, onClose, onSave }) {
       });
       onClose(); 
     } catch (err) {
-      setMessage('Failed to update document. Please try again.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -89,7 +80,7 @@ export default function EditDocumentModal({ document, onClose, onSave }) {
               placeholder="e.g., 2024-05"
             />
           </div>
-          {message && <p className="text-red-500 text-sm">{message}</p>}
+          
           <div className="flex justify-end gap-4">
             <button
               type="button"

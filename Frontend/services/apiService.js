@@ -50,22 +50,18 @@ export const deleteDocument = (id) => {
   return api.delete(`/documents/${id}`);
 };
 
-// --- NEW ADMIN FUNCTIONS ---
-
-// --- Admin User Functions ---
 export const getAllUsers = () => {
   return api.get('/admin/users');
 };
 
-export const adminUpdateUserRole = (id, isAdmin) => {
-  return api.put(`/admin/users/${id}`, { is_admin: isAdmin });
+export const adminUpdateUser = (id, userData) => {
+  return api.put(`/admin/users/${id}`, userData);
 };
 
 export const adminDeleteUser = (id) => {
   return api.delete(`/admin/users/${id}`);
 };
 
-// --- Admin Document Functions ---
 export const adminUpdateDocument = (id, data) => {
   return api.put(`/admin/documents/${id}`, data);
 };
@@ -74,27 +70,14 @@ export const adminDeleteDocument = (id) => {
   return api.delete(`/admin/documents/${id}`);
 };
 
-// --- Admin Theme & Settings Functions ---
-
-/**
- * (PUBLIC) Gets the current system settings (colors, etc.)
- */
 export const getSettings = () => {
   return api.get('/settings');
 };
 
-/**
- * (ADMIN) Updates the system settings.
- * @param {object} settingsData - e.g., { backgroundColor: '#ffffff', foregroundColor: '#111111' }
- */
 export const adminUpdateSettings = (settingsData) => {
   return api.put('/admin/settings', settingsData);
 };
 
-/**
- * (ADMIN) Uploads a new icon.
- * @param {FormData} formData - FormData object containing the 'icon' file
- */
 export const adminUploadIcon = (formData) => {
   return api.post('/admin/icon-upload', formData, {
     headers: {
@@ -103,7 +86,6 @@ export const adminUploadIcon = (formData) => {
   });
 };
 
-// --- Admin Theme Image Functions ---
 export const adminUploadBgImage = (formData) => {
   return api.post('/admin/upload-bg-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -122,4 +104,8 @@ export const adminUploadBrandIcon = (formData) => {
 
 export const adminRemoveBrandIcon = () => {
   return api.post('/admin/remove-brand-icon');
+};
+
+export const adminResetSettings = () => {
+  return api.post('/admin/settings/reset');
 };
