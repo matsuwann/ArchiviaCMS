@@ -1,5 +1,21 @@
 const multer = require('multer');
+const path = require('path'); // <--- THIS WAS THE MISSING LINE
+const fs = require('fs'); // <-- This one was correct
 
+/**
+ * Helper function to ensure a directory exists before saving a file to it.
+ * @param {string} dirPath - The directory path to check/create.
+ * @param {function} cb - The callback function from multer.
+ */
+const ensureDir = (dirPath, cb) => {
+  // Use { recursive: true } to create parent directories if they don't exist
+  fs.mkdir(dirPath, { recursive: true }, (err) => {
+    if (err) return cb(err); // Pass error to multer
+    cb(null, dirPath); // Pass path to multer
+  });
+};
+
+// --- Document Upload (Original) ---
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === 'application/pdf') {
     cb(null, true);
@@ -8,19 +24,23 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const storage = multer.memoryStorage();
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dest = 'uploads/';
+    ensureDir(dest, (err) => cb(err, dest));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
 exports.upload = multer({ 
   storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 25 * 1024 * 1024 } 
+  fileFilter: fileFilter
 });
 
-// --- NEW ICON UPLOAD CONFIGURATION ---
-
-/**
- * File filter for icons (accepts png, svg, ico)
- */
+// --- Icon Upload (Favicon) ---
 const iconFileFilter = (req, file, cb) => {
   if (file.mimetype === 'image/png' || file.mimetype === 'image/svg+xml' || file.mimetype === 'image/vnd.microsoft.icon' || file.mimetype === 'image/x-icon') {
     cb(null, true);
@@ -29,30 +49,22 @@ const iconFileFilter = (req, file, cb) => {
   }
 };
 
-/**
- * Storage configuration for the icon.
- * This saves the file to a static name, overwriting the old one.
- */
 const iconStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // This path goes up from /Backend, into /Frontend/public
     const dest = path.join(__dirname, '..', '..', 'Frontend', 'public');
-    cb(null, dest);
+    ensureDir(dest, (err) => cb(err, dest));
   },
   filename: function (req, file, cb) {
-    // Overwrites the existing favicon
     cb(null, 'favicon.ico'); 
   }
 });
 
-/**
- * Multer instance for icon uploads
- */
 exports.uploadIcon = multer({ 
   storage: iconStorage,
   fileFilter: iconFileFilter
 });
 
+// --- NEW IMAGE UPLOAD CONFIGURATIONS ---
 const imageFileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
@@ -65,10 +77,9 @@ const imageFileFilter = (req, file, cb) => {
 const bgImageStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dest = path.join(__dirname, '..', '..', 'Frontend', 'public');
-    cb(null, dest);
+    ensureDir(dest, (err) => cb(err, dest));
   },
   filename: function (req, file, cb) {
-    // Saves as public/system-background.ext (e.g., .jpg, .png)
     cb(null, 'system-background' + path.extname(file.originalname)); 
   }
 });
@@ -77,10 +88,9 @@ const bgImageStorage = multer.diskStorage({
 const brandIconStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dest = path.join(__dirname, '..', '..', 'Frontend', 'public');
-    cb(null, dest);
+    ensureDir(dest, (err) => cb(err, dest));
   },
   filename: function (req, file, cb) {
-    // Saves as public/system-brand-icon.ext (e.g., .png, .svg)
     cb(null, 'system-brand-icon' + path.extname(file.originalname)); 
   }
 });

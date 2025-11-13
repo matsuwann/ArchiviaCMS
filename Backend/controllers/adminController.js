@@ -1,3 +1,4 @@
+const path = require('path');
 const userModel = require('../models/userModel');
 const documentModel = require('../models/documentModel');
 const aiService = require('../services/aiService');
