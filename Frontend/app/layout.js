@@ -48,7 +48,7 @@ async function getSystemSettings() {
 export default async function RootLayout({ children }) {
   
   const settings = await getSystemSettings();
-  const GOOGLE_CLIENT_ID = 105198460940-ea151a6aa6ng04jmsbaja3i2djb0iuaj.apps.googleusercontent.com
+  const GOOGLE_CLIENT_ID = "105198460940-ea151a6aa6ng04jmsbaja3i2djb0iuaj.apps.googleusercontent.com";
 
   const brandIconUrl = settings?.brandIconUrl || 'none';
   const bgImageUrl = settings?.backgroundImage || 'none';
