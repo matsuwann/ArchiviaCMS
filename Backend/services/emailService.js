@@ -1,14 +1,20 @@
 const nodemailer = require('nodemailer');
 
-// Use explicit host and port configuration for better reliability on Render
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,    // Port 465 is for Secure SSL (Allowed by Render)
-  secure: true, // Use SSL
+  port: 587,      // CHANGED: Use Port 587
+  secure: false,  // CHANGED: Must be false for port 587
   auth: {
     user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD, 
+    pass: process.env.GMAIL_APP_PASSWORD,
   },
+  // Keep these for debugging until it works
+  logger: true,
+  debug: true,
+  // Add this to handle potential certificate issues in cloud environments
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 exports.sendOTP = async (email, otp) => {
@@ -18,7 +24,13 @@ exports.sendOTP = async (email, otp) => {
     subject: 'Archivia Verification Code',
     text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
   };
-  
-  // Attempt to send the email
-  await transporter.sendMail(mailOptions);
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully!");
+    console.log("Message ID:", info.messageId);
+  } catch (error) {
+    console.error("❌ Email send failed:", error);
+    throw error; 
+  }
 };
