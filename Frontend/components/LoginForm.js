@@ -88,7 +88,8 @@ export default function LoginForm() {
       
       
       <p className="mt-4 text-center text-sm text-gray-500">
-        Don't have an account?{' '}
+        {/* FIX: Replaced ' with &apos; */}
+        Don&apos;t have an account?{' '}
         <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
           Register now
         </Link>

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
+const emailService = require('../services/emailService');
 
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -26,28 +27,76 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
+    // OTP Generation
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins from now
+
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await userModel.create({
+    const user = await userModel.createWithOTP({
       firstName,
       lastName,
       email,
-      passwordHash
+      passwordHash,
+      otp,
+      otpExpires
     });
 
+    // Send OTP Email
+    await emailService.sendOTP(email, otp);
+
     res.status(201).json({
-        message: 'User registered successfully. You can now log in.',
+        message: 'Registration successful. Please verify your email.',
+        email: email, // Send back email to pre-fill verify form
         user: {
           id: user.id,
           firstName: user.first_name,
           lastName: user.last_name,
-          email: user.email,
-          is_admin: user.is_admin 
+          email: user.email
         }
     });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error during registration.');
+  }
+};
+
+exports.verifyEmail = async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ message: 'Email and OTP are required.' });
+  }
+
+  try {
+    const user = await userModel.findByEmail(email);
+    
+    if (!user) {
+        return res.status(400).json({ message: 'User not found.' });
+    }
+    
+    // Check if already verified
+    if (user.is_verified) {
+        return res.status(200).json({ message: 'User is already verified.' });
+    }
+
+    // Check OTP match and expiry
+    if (user.otp_code !== otp) {
+        return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+    
+    if (new Date() > new Date(user.otp_expires)) {
+        return res.status(400).json({ message: 'OTP has expired. Please register again to generate a new one.' });
+    }
+
+    // Mark verified
+    await userModel.markVerified(user.id);
+    
+    res.status(200).json({ message: 'Email verified! You can now log in.' });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error during verification.' });
   }
 };
 
@@ -62,6 +111,10 @@ exports.login = async (req, res) => {
     const user = await userModel.findByEmail(email);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    if (!user.is_verified) {
+        return res.status(403).json({ message: 'Please verify your email address before logging in.' });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
