@@ -4,6 +4,7 @@ const documentModel = require('../models/documentModel');
 const aiService = require('../services/aiService');
 const settingsModel = require('../models/settingsModel');
 const fileUploadService = require('../services/fileUploadService');
+const s3Service = require('../services/s3Service');
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -127,40 +128,64 @@ exports.resetSettings = async (req, res) => {
 };
 
 exports.uploadIcon = (req, res) => {
-  fileUploadService.uploadIcon.single('icon')(req, res, function (err) {
-    if (err) {
-      if (err.message) {
-        return res.status(400).json({ message: err.message });
-      }
-      return res.status(500).json({ message: 'Icon upload error.' });
+  fileUploadService.uploadIcon.single('icon')(req, res, async function (err) {
+    if (err) return res.status(400).json({ message: err.message || 'Upload error' });
+    if (!req.file) return res.status(400).send('An icon file is required.');
+
+    try {
+      // Upload to S3 instead of local disk
+      const filename = `favicon-${Date.now()}${path.extname(req.file.originalname)}`;
+      const iconUrl = await s3Service.uploadToS3(req.file, filename);
+      
+      // NOTE: For the favicon to update dynamically, you'd need to store this URL 
+      // in your settings table and update your Frontend layout to read it.
+      // For now, we just return success.
+      res.status(200).json({ message: 'Icon uploaded to S3 (Update frontend to use dynamic favicon URL).' });
+    } catch (dbErr) {
+      console.error(dbErr);
+      res.status(500).json({ message: 'Failed to upload icon to S3.'});
     }
-    if (!req.file) {
-      return res.status(400).send('An icon file is required.');
-    }
-    res.status(200).json({ 
-      message: 'Icon updated successfully. Hard refresh your browser to see changes.'
-    });
   });
 };
 
 exports.uploadBgImage = (req, res) => {
   fileUploadService.uploadBgImage.single('bg-image')(req, res, async function (err) {
-    if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-    if (!req.file) {
-      return res.status(400).send('An image file is required.');
-    }
+    if (err) return res.status(400).json({ message: err.message || 'Upload error' });
+    if (!req.file) return res.status(400).send('An image file is required.');
     
     try {
-      const imageUrl = `/system-background${path.extname(req.file.originalname)}`;
+      const filename = `system-background-${Date.now()}${path.extname(req.file.originalname)}`;
+      const imageUrl = await s3Service.uploadToS3(req.file, filename);
+      
       await settingsModel.updateSettings({ backgroundImage: `url(${imageUrl})` });
       res.status(200).json({ 
         message: 'Background image updated!',
         imageUrl: `url(${imageUrl})` 
       });
     } catch (dbErr) {
-      res.status(500).json({ message: 'File uploaded but failed to save to settings.'});
+      console.error(dbErr);
+      res.status(500).json({ message: 'Failed to save background image.'});
+    }
+  });
+};
+
+exports.uploadBrandIcon = (req, res) => {
+  fileUploadService.uploadBrandIcon.single('brand-icon')(req, res, async function (err) {
+    if (err) return res.status(400).json({ message: err.message || 'Upload error' });
+    if (!req.file) return res.status(400).send('An icon file is required.');
+    
+    try {
+      const filename = `brand-icon-${Date.now()}${path.extname(req.file.originalname)}`;
+      const iconUrl = await s3Service.uploadToS3(req.file, filename);
+      
+      await settingsModel.updateSettings({ brandIconUrl: `url(${iconUrl})` });
+      res.status(200).json({ 
+        message: 'Brand icon updated!',
+        iconUrl: `url(${iconUrl})`
+      });
+    } catch (dbErr) {
+      console.error(dbErr);
+      res.status(500).json({ message: 'Failed to save brand icon.'});
     }
   });
 };
@@ -172,28 +197,6 @@ exports.removeBgImage = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Failed to remove background image.' });
   }
-};
-
-exports.uploadBrandIcon = (req, res) => {
-  fileUploadService.uploadBrandIcon.single('brand-icon')(req, res, async function (err) {
-    if (err) {
-      return res.status(400).json({ message: err.message });
-    }
-    if (!req.file) {
-      return res.status(400).send('An icon file is required.');
-    }
-    
-    try {
-      const iconUrl = `/system-brand-icon${path.extname(req.file.originalname)}`;
-      await settingsModel.updateSettings({ brandIconUrl: `url(${iconUrl})` });
-      res.status(200).json({ 
-        message: 'Brand icon updated!',
-        iconUrl: `url(${iconUrl})`
-      });
-    } catch (dbErr) {
-      res.status(500).json({ message: 'Icon uploaded but failed to save to settings.'});
-    }
-  });
 };
 
 exports.removeBrandIcon = async (req, res) => {

@@ -20,9 +20,13 @@ export const metadata = {
 };
 
 
+// FIX: Use environment variable
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
 async function getSystemSettings() {
   try {
-    const res = await fetch('http://localhost:3001/api/settings', { 
+    // Use the dynamic URL
+    const res = await fetch(`${API_URL}/settings`, { 
       cache: 'no-store' 
     });
     
@@ -30,9 +34,7 @@ async function getSystemSettings() {
       console.error("Failed to fetch settings, using defaults.");
       return null;
     }
-    
     return await res.json();
-
   } catch (error) {
     console.error("Error fetching settings:", error.message);
     return null;
