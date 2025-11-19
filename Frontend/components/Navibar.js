@@ -10,7 +10,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   
+  // Checks if we are on /login or /register
   const isAuthPage = pathname === '/login' || pathname === '/register';
+  
+  // Logic for Sign In link (already existed)
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
@@ -24,21 +27,20 @@ export default function Navbar() {
     // Render a placeholder or nothing
   }
 
-  // Define dynamic styles from CSS variables
   const navStyle = {
     backgroundColor: 'var(--navbar-bg-color)',
-    color: 'var(--navbar-text-color)', // Default text color for the nav
+    color: 'var(--navbar-text-color)', 
   };
 
   const brandStyle = {
     fontFamily: 'var(--navbar-brand-font)',
     fontSize: 'var(--navbar-brand-size)',
     fontWeight: 'var(--navbar-brand-weight)',
-    color: 'var(--navbar-text-color)', // Brand text color
+    color: 'var(--navbar-text-color)', 
   };
   
   const linkStyle = {
-    color: 'var(--navbar-link-color)', // Specific color for links
+    color: 'var(--navbar-link-color)', 
   };
 
   return (
@@ -84,14 +86,9 @@ export default function Navbar() {
                   </svg>
                 </button>
 
-                {/* Dropdown menu */}
                 {isDropdownOpen && (
                   <div
-                    // <--- THIS IS THE FIX
-                    // This resets the color to the main page's text color,
-                    // stopping the navbar's white text from cascading down.
                     style={{ color: 'var(--foreground)' }} 
-                    // <--- END FIX
                     className="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-md shadow-lg z-50 overflow-hidden"
                   >
                     {user?.is_admin && (
@@ -146,6 +143,7 @@ export default function Navbar() {
               </li>
             ) : (
               <>
+                {/* Only show Sign In if NOT on login/register pages */}
                 {shouldShowLoginLink && (
                   <li>
                     <Link href="/login" style={linkStyle} className="hover:opacity-80">
@@ -153,11 +151,15 @@ export default function Navbar() {
                     </Link>
                   </li>
                 )}
-                <li>
-                  <Link href="/register" style={linkStyle} className="hover:opacity-80">
-                    Create Account
-                  </Link>
-                </li>
+                
+                {/* MODIFIED: Only show Create Account if NOT on login/register pages */}
+                {!isAuthPage && (
+                  <li>
+                    <Link href="/register" style={linkStyle} className="hover:opacity-80">
+                      Create Account
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>
