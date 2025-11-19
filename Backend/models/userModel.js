@@ -51,3 +51,25 @@ exports.deleteById = async (userId) => {
   const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [userId]);
   return rowCount;
 };
+
+exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
+  // 1. Check if user exists
+  const existingUser = await exports.findByEmail(email);
+  
+  if (existingUser) {
+    return existingUser;
+  }
+
+  // 2. If not, create them. 
+  // We set a placeholder for password_hash since they use Google to login.
+  // We verify them immediately.
+  const { rows } = await db.query(
+    `INSERT INTO users 
+     (first_name, last_name, email, password_hash, is_verified) 
+     VALUES ($1, $2, $3, $4, TRUE) 
+     RETURNING id, first_name, last_name, email, is_admin`,
+    [firstName, lastName, email, 'GOOGLE_AUTH_USER'] 
+  );
+  
+  return rows[0];
+};

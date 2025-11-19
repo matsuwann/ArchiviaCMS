@@ -1,10 +1,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navibar";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '../context/AuthContext'; 
 import { Toaster } from 'react-hot-toast';
 
-// ADD THIS LINE HERE
+
 export const dynamic = 'force-dynamic'; 
 
 const geistSans = Geist({
@@ -23,12 +24,12 @@ export const metadata = {
 };
 
 
-// FIX: Use environment variable
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 async function getSystemSettings() {
   try {
-    // Use the dynamic URL
+   
     const res = await fetch(`${API_URL}/settings`, { 
       cache: 'no-store' 
     });
@@ -47,6 +48,7 @@ async function getSystemSettings() {
 export default async function RootLayout({ children }) {
   
   const settings = await getSystemSettings();
+  const GOOGLE_CLIENT_ID = 105198460940-ea151a6aa6ng04jmsbaja3i2djb0iuaj.apps.googleusercontent.com
 
   const brandIconUrl = settings?.brandIconUrl || 'none';
   const bgImageUrl = settings?.backgroundImage || 'none';
@@ -77,18 +79,16 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <head>
-        <style>{customStyles}</style>
-      </head>
-      
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <AuthProvider> 
-        <Toaster position="bottom-right" />
-          <Navbar />
-          {children}
-        </AuthProvider>
+      <head><style>{customStyles}</style></head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+       
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> 
+          <AuthProvider> 
+            <Toaster position="bottom-right" />
+            <Navbar />
+            {children}
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

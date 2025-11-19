@@ -1,5 +1,6 @@
 'use client';
-
+import { GoogleLogin } from '@react-oauth/google'; 
+import axios from 'axios';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +14,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,6 +48,26 @@ export default function LoginForm() {
       console.error('Login error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
+        token: credentialResponse.credential,
+      });
+
+      
+      login(res.data.user, res.data.token);
+      toast.success(`Welcome, ${res.data.user.firstName}!`);
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+
+    } catch (err) {
+      console.error('Google Login Error:', err);
+      toast.error('Google login failed.');
     }
   };
 
@@ -85,6 +107,22 @@ export default function LoginForm() {
           {loading ? 'Logging In...' : 'Login'}
         </button>
       </form>
+
+      <div className="my-4 flex items-center">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-500 text-sm">OR</span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => toast.error('Google Login Failed')}
+          theme="outline"
+          size="large"
+          width="100%"
+        />
+      </div>
       
       
       <p className="mt-4 text-center text-sm text-gray-500">
