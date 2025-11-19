@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import PasswordChecklist from './PasswordChecklist.js'; 
 import { register as apiRegister } from '../services/apiService'; 
 import { toast } from 'react-hot-toast'; 
+import { GoogleLogin } from '@react-oauth/google'; // <--- Import Google
+import axios from 'axios'; // <--- Import Axios for the Google call
+import { useAuth } from '../context/AuthContext'; // <--- Import Auth Context
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -14,7 +17,9 @@ export default function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const router = useRouter(); 
+  const { login } = useAuth(); // <--- Get login function
   const [showPassword, setShowPassword] = useState(false);
   
   const [passwordValidity, setPasswordValidity] = useState({
@@ -35,6 +40,28 @@ export default function RegisterForm() {
       hasNumber: /[0-9]/.test(newPassword),
       hasSpecial: /[@$!%*?&]/.test(newPassword),
     });
+  };
+
+  // <--- GOOGLE HANDLER --->
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // Send the token to your backend
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
+        token: credentialResponse.credential,
+      });
+
+      // Log the user in directly
+      login(res.data.user, res.data.token);
+      toast.success(`Account created! Welcome, ${res.data.user.firstName}.`);
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+
+    } catch (err) {
+      console.error('Google Signup Error:', err);
+      toast.error('Google signup failed.');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -63,7 +90,6 @@ export default function RegisterForm() {
       {
         loading: 'Registering...',
         success: (response) => {
-          // Redirect to Verify page with email in query param
           setTimeout(() => {
             router.push(`/verify?email=${encodeURIComponent(email)}`);
           }, 1500); 
@@ -84,8 +110,8 @@ export default function RegisterForm() {
   return (
     <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md max-w-sm mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-center">Register New Account</h2>
+      
       <form onSubmit={handleSubmit} className="space-y-4">
-        
         <div className="flex gap-4">
             <div className="w-1/2">
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">First Name</label>
@@ -153,7 +179,25 @@ export default function RegisterForm() {
           {loading ? 'Processing...' : 'Register'}
         </button>
       </form>
-      
+
+  
+      <div className="my-4 flex items-center">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 text-gray-500 text-sm">OR</span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => toast.error('Google Signup Failed')}
+          theme="outline"
+          size="large"
+          text="signup_with" 
+          width="100%"
+        />
+      </div>
+     
 
       <p className="mt-4 text-center text-sm text-gray-500">
         Already have an account?{' '}
