@@ -2,22 +2,25 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 2525,       // <--- CHANGED: Port 2525 is rarely blocked
-  secure: false,    // Must be false for 2525 (it upgrades via STARTTLS)
+  port: 2525, 
+  secure: false, 
   auth: {
-    user: process.env.GMAIL_USER,       // Your Brevo Login Email
-    pass: process.env.GMAIL_APP_PASSWORD, // Your Brevo SMTP Key
+    // This uses the ID from your Render Env (e.g., 9bfe1a...@smtp-brevo.com)
+    // DO NOT CHANGE THIS in Render if "Authentication Succeeded" appeared in logs.
+    user: process.env.GMAIL_USER, 
+    pass: process.env.GMAIL_APP_PASSWORD, 
   },
   logger: true,
   debug: true,
   tls: {
-    rejectUnauthorized: false // Helps avoid certificate errors on some networks
+    rejectUnauthorized: false 
   }
 });
 
 exports.sendOTP = async (email, otp) => {
   const mailOptions = {
-    from: process.env.GMAIL_USER, 
+    // CHANGE THIS STRING below to the email you use to LOGIN to Brevo dashboard
+    from: 'archiviacap@gmail.com', 
     to: email,
     subject: 'Archivia Verification Code',
     html: `
@@ -35,10 +38,9 @@ exports.sendOTP = async (email, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully via Brevo (Port 2525)!");
+    console.log("✅ Email sent successfully via Brevo!");
     console.log("Message ID:", info.messageId);
   } catch (error) {
     console.error("❌ Email send failed:", error);
-    // We still don't throw here to prevent the registration from hanging
   }
 };
