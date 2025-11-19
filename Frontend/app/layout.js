@@ -4,6 +4,9 @@ import Navbar from "../components/Navibar";
 import { AuthProvider } from '../context/AuthContext'; 
 import { Toaster } from 'react-hot-toast';
 
+// ADD THIS LINE HERE
+export const dynamic = 'force-dynamic'; 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
