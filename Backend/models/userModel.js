@@ -53,16 +53,14 @@ exports.deleteById = async (userId) => {
 };
 
 exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
-  // 1. Check if user exists
+
   const existingUser = await exports.findByEmail(email);
   
   if (existingUser) {
     return existingUser;
   }
 
-  // 2. If not, create them. 
-  // We set a placeholder for password_hash since they use Google to login.
-  // We verify them immediately.
+
   const { rows } = await db.query(
     `INSERT INTO users 
      (first_name, last_name, email, password_hash, is_verified) 
@@ -72,4 +70,26 @@ exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
   );
   
   return rows[0];
+};
+
+exports.saveResetToken = async (email, token, expires) => {
+  await db.query(
+    'UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE email = $3',
+    [token, expires, email]
+  );
+};
+
+exports.findByResetToken = async (token) => {
+  const { rows } = await db.query(
+    'SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()',
+    [token]
+  );
+  return rows[0];
+};
+
+exports.updatePassword = async (userId, passwordHash) => {
+  await db.query(
+    'UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
+    [passwordHash, userId]
+  );
 };

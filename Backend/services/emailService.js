@@ -5,8 +5,7 @@ const transporter = nodemailer.createTransport({
   port: 2525, 
   secure: false, 
   auth: {
-    // This uses the ID from your Render Env (e.g., 9bfe1a...@smtp-brevo.com)
-    // DO NOT CHANGE THIS in Render if "Authentication Succeeded" appeared in logs.
+   
     user: process.env.GMAIL_USER, 
     pass: process.env.GMAIL_APP_PASSWORD, 
   },
@@ -19,7 +18,7 @@ const transporter = nodemailer.createTransport({
 
 exports.sendOTP = async (email, otp) => {
   const mailOptions = {
-    // CHANGE THIS STRING below to the email you use to LOGIN to Brevo dashboard
+   
     from: 'archiviacap@gmail.com', 
     to: email,
     subject: 'Archivia Verification Code',
@@ -43,4 +42,26 @@ exports.sendOTP = async (email, otp) => {
   } catch (error) {
     console.error("❌ Email send failed:", error);
   }
+};
+
+exports.sendPasswordReset = async (email, token) => {
+  // Change this URL to match your actual Frontend URL
+  const resetUrl = `https://archivia-frontend.onrender.com/reset-password?token=${token}`;
+  
+  const mailOptions = {
+    from: process.env.GMAIL_USER || 'archiviacap@gmail.com',
+    to: email,
+    subject: 'Archivia Password Reset',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Password Reset Request</h2>
+        <p>You requested a password reset. Click the link below to set a new password:</p>
+        <a href="${resetUrl}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">Reset Password</a>
+        <p>This link expires in 1 hour.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
 };

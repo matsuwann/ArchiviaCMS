@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const userModel = require('../models/userModel');
 const emailService = require('../services/emailService');
+const crypto = require('crypto');
 
 
 
@@ -200,5 +201,56 @@ exports.googleLogin = async (req, res) => {
   } catch (err) {
     console.error('Google Auth Error:', err);
     res.status(400).json({ message: 'Google authentication failed.' });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await userModel.findByEmail(email);
+    if (!user) {
+      // We return success even if user doesn't exist to prevent email enumeration
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // Generate Token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour from now
+
+    await userModel.saveResetToken(email, token, expires);
+    
+    // Send Email (Background)
+    emailService.sendPasswordReset(email, token).catch(err => console.error("Reset Email Error:", err));
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+  
+  if (!passwordRegex.test(password)) {
+     return res.status(400).json({ 
+       message: 'Password is too weak.',
+       details: 'Must be 8+ chars with uppercase, lowercase, number, and special char.'
+     });
+  }
+
+  try {
+    const user = await userModel.findByResetToken(token);
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    await userModel.updatePassword(user.id, passwordHash);
+
+    res.json({ message: 'Password updated successfully. You can now login.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error.' });
   }
 };
