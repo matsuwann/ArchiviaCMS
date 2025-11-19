@@ -72,16 +72,6 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                         >
                                             View PDF
                                         </a>
-                                        <span className="text-gray-300">|</span>
-                                        <a
-                                            href={doc.filepath}
-                                            download // Attempts to trigger download
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline"
-                                        >
-                                            Download
-                                        </a>
                                     </div>
                                 </li>
                             );
