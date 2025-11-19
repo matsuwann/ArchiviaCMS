@@ -42,12 +42,15 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-    // Send OTP Email
-    await emailService.sendOTP(email, otp);
+// [NEW CODE] Send in background. If it fails, it logs to console but doesn't freeze the user.
+    emailService.sendOTP(email, otp).catch(err => {
+        console.error("BACKGROUND EMAIL ERROR:", err);
+    });
 
+    // Respond immediately so the frontend redirects to the OTP page
     res.status(201).json({
         message: 'Registration successful. Please verify your email.',
-        email: email, // Send back email to pre-fill verify form
+        email: email, 
         user: {
           id: user.id,
           firstName: user.first_name,
