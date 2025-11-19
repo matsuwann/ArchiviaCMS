@@ -66,3 +66,8 @@ body {
   background-repeat: no-repeat;
   background-position: center;
 }
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}

@@ -134,7 +134,7 @@ export default function RegisterForm() {
               id="password"
               value={password}
               onChange={handlePasswordChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full px-3 py-2 pr-16 border border-gray-300 rounded-md shadow-sm"
               required
             />
             <button
@@ -156,7 +156,7 @@ export default function RegisterForm() {
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full px-3 py-2 pr-16 border border-gray-300 rounded-md shadow-sm"
               required
             />
             <button
