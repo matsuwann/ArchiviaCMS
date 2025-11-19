@@ -1,13 +1,15 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const userModel = require('../models/userModel');
 const emailService = require('../services/emailService');
-const { OAuth2Client } = require('google-auth-library');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+
 
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 exports.register = async (req, res) => {
@@ -30,9 +32,9 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
-    // OTP Generation
+ 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins from now
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
 
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -45,12 +47,12 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-// [NEW CODE] Send in background. If it fails, it logs to console but doesn't freeze the user.
+
     emailService.sendOTP(email, otp).catch(err => {
         console.error("BACKGROUND EMAIL ERROR:", err);
     });
 
-    // Respond immediately so the frontend redirects to the OTP page
+   
     res.status(201).json({
         message: 'Registration successful. Please verify your email.',
         email: email, 
@@ -81,12 +83,12 @@ exports.verifyEmail = async (req, res) => {
         return res.status(400).json({ message: 'User not found.' });
     }
     
-    // Check if already verified
+   
     if (user.is_verified) {
         return res.status(200).json({ message: 'User is already verified.' });
     }
 
-    // Check OTP match and expiry
+
     if (user.otp_code !== otp) {
         return res.status(400).json({ message: 'Invalid OTP.' });
     }
@@ -95,7 +97,7 @@ exports.verifyEmail = async (req, res) => {
         return res.status(400).json({ message: 'OTP has expired. Please register again to generate a new one.' });
     }
 
-    // Mark verified
+  
     await userModel.markVerified(user.id);
     
     res.status(200).json({ message: 'Email verified! You can now log in.' });
@@ -153,5 +155,50 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error during login.');
+  }
+};
+
+exports.googleLogin = async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID, 
+    });
+    const payload = ticket.getPayload();
+    const { email, given_name, family_name } = payload;
+
+    const user = await userModel.findOrCreateByGoogle({
+      email,
+      firstName: given_name || 'Google',
+      lastName: family_name || 'User'
+    });
+
+    const appToken = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email, 
+        firstName: user.first_name, 
+        lastName: user.last_name,
+        is_admin: user.is_admin
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ 
+      token: appToken, 
+      user: { 
+        email: user.email, 
+        firstName: user.first_name, 
+        lastName: user.last_name,
+        is_admin: user.is_admin
+      } 
+    });
+
+  } catch (err) {
+    console.error('Google Auth Error:', err);
+    res.status(400).json({ message: 'Google authentication failed.' });
   }
 };
