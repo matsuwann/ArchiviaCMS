@@ -61,14 +61,28 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                             ))}
                                         </div>
                                     )}
-                                    <a
-                                        href={doc.filepath}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-blue-500 hover:underline mt-2 inline-block"
-                                    >
-                                        View PDF
-                                    </a>
+
+                                    {/* MODIFIED: Action Buttons Container */}
+                                    <div className="mt-3 flex gap-4">
+                                        <a
+                                            href={doc.filepath}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                        >
+                                            View PDF
+                                        </a>
+                                        <span className="text-gray-300">|</span>
+                                        <a
+                                            href={doc.filepath}
+                                            download // Attempts to trigger download
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium text-green-600 hover:text-green-800 hover:underline"
+                                        >
+                                            Download
+                                        </a>
+                                    </div>
                                 </li>
                             );
                         })}
