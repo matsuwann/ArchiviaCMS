@@ -1,22 +1,24 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com', // Brevo's SMTP Server
-  port: 587,                     // Standard secure port
-  secure: false,                 // false for port 587
+  host: 'smtp-relay.brevo.com',
+  port: 2525,       // <--- CHANGED: Port 2525 is rarely blocked
+  secure: false,    // Must be false for 2525 (it upgrades via STARTTLS)
   auth: {
-    user: process.env.GMAIL_USER,       // Your Brevo Login Email (from Render Env)
-    pass: process.env.GMAIL_APP_PASSWORD, // Your Brevo SMTP Key (from Render Env)
+    user: process.env.GMAIL_USER,       // Your Brevo Login Email
+    pass: process.env.GMAIL_APP_PASSWORD, // Your Brevo SMTP Key
   },
-  // Logger for debugging
   logger: true,
-  debug: true 
+  debug: true,
+  tls: {
+    rejectUnauthorized: false // Helps avoid certificate errors on some networks
+  }
 });
 
 exports.sendOTP = async (email, otp) => {
   const mailOptions = {
-    from: process.env.GMAIL_USER, // Sender address (MUST be the email you verified with Brevo)
-    to: email,                    // Recipient address (Any user!)
+    from: process.env.GMAIL_USER, 
+    to: email,
     subject: 'Archivia Verification Code',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
@@ -33,10 +35,10 @@ exports.sendOTP = async (email, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully via Brevo!");
+    console.log("✅ Email sent successfully via Brevo (Port 2525)!");
     console.log("Message ID:", info.messageId);
   } catch (error) {
     console.error("❌ Email send failed:", error);
-    // Don't throw error so registration doesn't "hang" if email fails
+    // We still don't throw here to prevent the registration from hanging
   }
 };
