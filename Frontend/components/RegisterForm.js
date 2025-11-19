@@ -63,15 +63,11 @@ export default function RegisterForm() {
       {
         loading: 'Registering...',
         success: (response) => {
-          setFirstName('');
-          setLastName('');
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
+          // Redirect to Verify page with email in query param
           setTimeout(() => {
-            router.push('/login');
+            router.push(`/verify?email=${encodeURIComponent(email)}`);
           }, 1500); 
-          return `Success! ${response.data.message}`; 
+          return `Success! OTP sent to ${email}`; 
         },
         error: (error) => {
           if (error.response && error.response.data && error.response.data.message) {
@@ -154,7 +150,7 @@ export default function RegisterForm() {
         </div>
 
         <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400">
-          {loading ? 'Registering...' : 'Register'}
+          {loading ? 'Processing...' : 'Register'}
         </button>
       </form>
       

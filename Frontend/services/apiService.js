@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/api';
+// Use Environment variable for Render, fallback to localhost
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
   baseURL: API_URL
@@ -14,13 +15,17 @@ export const setAuthToken = (token) => {
   }
 };
 
-
 export const login = (email, password) => {
   return api.post('/auth/login', { email, password });
 };
 
 export const register = (firstName, lastName, email, password) => {
   return api.post('/auth/register', { firstName, lastName, email, password });
+};
+
+// New Verification Function
+export const verifyEmail = (email, otp) => {
+  return api.post('/auth/verify', { email, otp });
 };
 
 export const searchDocuments = (term) => {
