@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Use Environment variable for Render, fallback to localhost
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
@@ -34,7 +33,10 @@ export const searchDocuments = (term) => {
   return api.get(`/documents/search?term=${term}`);
 };
 
-// === NEW FILTERING FUNCTIONS ===
+export const getPopularSearches = () => {
+  return api.get('/documents/popular');
+};
+
 export const getFilters = () => {
   return api.get('/documents/filters');
 };
@@ -42,7 +44,6 @@ export const getFilters = () => {
 export const filterDocuments = (filters) => {
   return api.post('/documents/filter', filters);
 };
-// ==============================
 
 export const uploadDocument = (formData) => {
   return api.post('/documents/upload', formData, {
@@ -94,9 +95,7 @@ export const adminUpdateSettings = (settingsData) => {
 
 export const adminUploadIcon = (formData) => {
   return api.post('/admin/icon-upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 

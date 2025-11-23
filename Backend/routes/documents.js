@@ -5,6 +5,10 @@ const router = express.Router();
 
 router.get('/', documentController.getAllDocuments);
 router.get('/search', documentController.searchDocuments);
+router.get('/popular', documentController.getPopularSearches); // <--- NEW
+
+router.get('/filters', documentController.getFilters);
+router.post('/filter', documentController.filterDocuments);
 
 router.post('/upload', authMiddleware, documentController.uploadDocument);
 router.get('/my-uploads', authMiddleware, documentController.getUserUploads);

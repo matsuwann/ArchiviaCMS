@@ -1,10 +1,18 @@
 const documentModel = require('../models/documentModel');
+const analyticsModel = require('../models/analyticsModel'); // <--- IMPORT
 const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service'); 
 const path = require('path');
 
 const upload = fileUploadService.upload;
+
+// === SIMPLE IN-MEMORY CACHE FOR TRENDS ===
+let trendsCache = {
+  data: [],
+  lastUpdated: 0
+};
+const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
 
 exports.getAllDocuments = async (req, res) => {
   try {
@@ -23,6 +31,8 @@ exports.searchDocuments = async (req, res) => {
     if (!term) {
         rows = await documentModel.findAll();
     } else {
+        // Log search asynchronously
+        analyticsModel.logSearch(term).catch(e => console.error("Analytics logging failed:", e));
         rows = await documentModel.findByTerm(term);
     }
     res.json(rows);
@@ -32,7 +42,43 @@ exports.searchDocuments = async (req, res) => {
   }
 };
 
-// === NEW FILTER CONTROLLER ===
+// === NEW: AI-POWERED POPULAR SEARCHES ===
+exports.getPopularSearches = async (req, res) => {
+  try {
+    // 1. Check Cache
+    const now = Date.now();
+    if (trendsCache.data.length > 0 && (now - trendsCache.lastUpdated < CACHE_DURATION)) {
+        return res.json(trendsCache.data);
+    }
+
+    console.log("Cache stale. Generating new AI insights...");
+
+    // 2. Fetch raw data
+    const rawTerms = await analyticsModel.getTopSearches(50);
+
+    if (rawTerms.length === 0) {
+        return res.json([]);
+    }
+
+    // 3. Ask AI to cluster/summarize
+    const smartTrends = await aiService.generateSearchInsights(rawTerms);
+
+    // 4. Update Cache
+    trendsCache = {
+        data: smartTrends,
+        lastUpdated: now
+    };
+
+    res.json(smartTrends);
+
+  } catch (err) {
+    console.error(err.message);
+    // If AI fails, return cached data if available
+    if (trendsCache.data.length > 0) return res.json(trendsCache.data);
+    res.status(500).send('Server error fetching analytics');
+  }
+};
+
 exports.getFilters = async (req, res) => {
   try {
     const rows = await documentModel.getAllMetadata();
@@ -43,23 +89,19 @@ exports.getFilters = async (req, res) => {
     const journalsSet = new Set();
 
     rows.forEach(doc => {
-      // Authors
       let authors = [];
       try { authors = typeof doc.ai_authors === 'string' ? JSON.parse(doc.ai_authors) : doc.ai_authors; } catch(e) {}
       if (Array.isArray(authors)) authors.forEach(a => authorsSet.add(a.trim()));
 
-      // Keywords
       let keywords = [];
       try { keywords = typeof doc.ai_keywords === 'string' ? JSON.parse(doc.ai_keywords) : doc.ai_keywords; } catch(e) {}
       if (Array.isArray(keywords)) keywords.forEach(k => keywordsSet.add(k.trim()));
 
-      // Year
       if (doc.ai_date_created) {
         const match = doc.ai_date_created.match(/\d{4}/);
         if (match) yearsSet.add(match[0]);
       }
 
-      // Journal
       if (doc.ai_journal && doc.ai_journal !== 'Unknown Source') {
         journalsSet.add(doc.ai_journal.trim());
       }
@@ -87,7 +129,6 @@ exports.filterDocuments = async (req, res) => {
     res.status(500).send('Server error filtering documents');
   }
 };
-// ==============================
 
 exports.uploadDocument = (req, res) => {
   upload.single('file')(req, res, async function (err) {
@@ -95,7 +136,6 @@ exports.uploadDocument = (req, res) => {
         if (err.message === 'Invalid file type. Only PDF documents are accepted.') {
             return res.status(400).json({ message: err.message });
         }
-        console.error('Multer/Upload Error:', err.message);
         return res.status(500).json({ message: 'File upload error.' });
     }
 

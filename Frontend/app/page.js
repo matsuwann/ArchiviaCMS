@@ -3,25 +3,28 @@
 import { useState, useEffect } from 'react';
 import DocumentList from '../components/DocumentList';
 import FilterSidebar from '../components/FilterSidebar';
-import { searchDocuments, getFilters, filterDocuments } from '../services/apiService';
+import { searchDocuments, getFilters, filterDocuments, getPopularSearches } from '../services/apiService';
 
 export default function Home() {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
   
-  // Filter State
+  // Filter & Analytics State
   const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
   const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+  const [popularSearches, setPopularSearches] = useState([]);
 
   useEffect(() => {
     // Load initial data
     Promise.all([
       searchDocuments(''), 
-      getFilters()
-    ]).then(([docsRes, filtersRes]) => {
+      getFilters(),
+      getPopularSearches()
+    ]).then(([docsRes, filtersRes, popRes]) => {
       setDocuments(docsRes.data);
       setAvailableFilters(filtersRes.data);
+      setPopularSearches(popRes.data);
       setIsLoading(false);
     }).catch(err => {
       console.error("Init failed:", err);
@@ -32,12 +35,16 @@ export default function Home() {
   const handleSearch = async (searchTerm) => {
     setIsLoading(true);
     setSearchPerformed(!!searchTerm);
-    // Reset side filters when performing a global search
     setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
     try {
       const response = await searchDocuments(searchTerm);
       setDocuments(response.data);
+      
+      // Update analytics
+      if(searchTerm) {
+          getPopularSearches().then(res => setPopularSearches(res.data));
+      }
     } catch (error) {
       console.error("Search failed:", error);
       setDocuments([]);
@@ -59,7 +66,6 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Check if all filters are cleared to reset to default view
       const isEmpty = newFilters.authors.length === 0 && 
                       newFilters.keywords.length === 0 && 
                       newFilters.journal.length === 0 && 
@@ -108,6 +114,7 @@ export default function Home() {
               isLoading={isLoading}
               searchPerformed={searchPerformed || documents.length > 0}
               onSearch={handleSearch}
+              popularSearches={popularSearches}
             />
         </div>
       </div>

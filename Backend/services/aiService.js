@@ -5,7 +5,7 @@ const { GoogleGenAI } = require('@google/genai');
 require('dotenv').config(); 
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const model = 'gemini-2.0-flash'; // Upgraded to 2.0-flash for better extraction
+const model = 'gemini-2.0-flash'; 
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -61,7 +61,6 @@ exports.analyzeDocument = async (fileBuffer) => {
   try {
     const data = await pdfParse(fileBuffer); 
     const pdfText = data.text;
-    
     const metadata = await generateMetadata(pdfText);
     
     return {
@@ -74,5 +73,49 @@ exports.analyzeDocument = async (fileBuffer) => {
   } catch (err) {
     console.error("[AI Service] Error:", err.message);
     throw err; 
+  }
+};
+
+// === NEW: AI TREND ANALYSIS ===
+exports.generateSearchInsights = async (rawSearchTerms) => {
+  if (!rawSearchTerms || rawSearchTerms.length === 0) return [];
+
+  const termsString = rawSearchTerms.map(t => `${t.term} (${t.count})`).join(', ');
+
+  const prompt = `
+    You are a data analyst for a research repository. 
+    Here is a list of recent user search terms and their frequency:
+    [${termsString}]
+
+    Task:
+    1. Analyze the semantic meaning of these searches.
+    2. Group similar searches together (e.g., "AI", "Machine Learning", "ML" -> "Artificial Intelligence").
+    3. Identify the top 5 most popular *broader themes* or *topics*.
+    4. Return a JSON object with a single key "trends" containing an array of strings.
+    
+    Example Output: { "trends": ["Climate Change", "Neural Networks", "Bioinformatics"] }
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+        model: model,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              trends: { type: "array", items: { type: "string" } }
+            }
+          }
+        }
+    });
+
+    const result = JSON.parse(response.text);
+    return result.trends.map(topic => ({ term: topic }));
+
+  } catch (err) {
+    console.error("[AI Analytics] Error generating insights:", err.message);
+    return rawSearchTerms.slice(0, 5).map(t => ({ term: t.term }));
   }
 };
