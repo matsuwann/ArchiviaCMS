@@ -23,7 +23,6 @@ export const register = (firstName, lastName, email, password) => {
   return api.post('/auth/register', { firstName, lastName, email, password });
 };
 
-// New Verification Function
 export const verifyEmail = (email, otp) => {
   return api.post('/auth/verify', { email, otp });
 };
@@ -34,6 +33,16 @@ export const searchDocuments = (term) => {
   }
   return api.get(`/documents/search?term=${term}`);
 };
+
+// === NEW FILTERING FUNCTIONS ===
+export const getFilters = () => {
+  return api.get('/documents/filters');
+};
+
+export const filterDocuments = (filters) => {
+  return api.post('/documents/filter', filters);
+};
+// ==============================
 
 export const uploadDocument = (formData) => {
   return api.post('/documents/upload', formData, {

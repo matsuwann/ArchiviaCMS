@@ -1,31 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DocumentList from '../components/DocumentList';
-import { searchDocuments } from '../services/apiService';
+import FilterSidebar from '../components/FilterSidebar';
+import { searchDocuments, getFilters, filterDocuments } from '../services/apiService';
 
 export default function Home() {
   const [documents, setDocuments] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  
+  // Filter State
+  const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
+  const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+
+  useEffect(() => {
+    // Load initial data
+    Promise.all([
+      searchDocuments(''), 
+      getFilters()
+    ]).then(([docsRes, filtersRes]) => {
+      setDocuments(docsRes.data);
+      setAvailableFilters(filtersRes.data);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error("Init failed:", err);
+      setIsLoading(false);
+    });
+  }, []);
 
   const handleSearch = async (searchTerm) => {
-    if (!searchTerm) {
-      setDocuments([]);
-      setSearchPerformed(false);
-      return;
-    }
-
     setIsLoading(true);
-    setSearchPerformed(true);
-    setDocuments([]); 
+    setSearchPerformed(!!searchTerm);
+    // Reset side filters when performing a global search
+    setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
     try {
       const response = await searchDocuments(searchTerm);
       setDocuments(response.data);
     } catch (error) {
-      console.error("Failed to fetch search results:", error);
-      setDocuments([]); 
+      console.error("Search failed:", error);
+      setDocuments([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFilterChange = async (category, value) => {
+    if (category === 'reset') {
+        setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+        const res = await searchDocuments('');
+        setDocuments(res.data);
+        return;
+    }
+
+    const newFilters = { ...selectedFilters, [category]: value };
+    setSelectedFilters(newFilters);
+    setIsLoading(true);
+
+    try {
+      // Check if all filters are cleared to reset to default view
+      const isEmpty = newFilters.authors.length === 0 && 
+                      newFilters.keywords.length === 0 && 
+                      newFilters.journal.length === 0 && 
+                      !newFilters.year && 
+                      !newFilters.dateRange;
+
+      if (isEmpty) {
+         const res = await searchDocuments('');
+         setDocuments(res.data);
+      } else {
+         const response = await filterDocuments(newFilters);
+         setDocuments(response.data);
+      }
+    } catch (error) {
+      console.error("Filter failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -38,17 +87,29 @@ export default function Home() {
           Archivia 🔎
         </h1>
         <p className="mt-2 text-lg text-gray-500">
-          A Capstone and Research Repository
+          Advanced Research Repository
         </p>
       </header>
       
-      <div>
-        <DocumentList 
-          documents={documents} 
-          isLoading={isLoading}
-          searchPerformed={searchPerformed}
-          onSearch={handleSearch}
-        />
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar */}
+        <aside className="w-full md:w-1/4">
+            <FilterSidebar 
+                filters={availableFilters} 
+                selectedFilters={selectedFilters}
+                onFilterChange={handleFilterChange}
+            />
+        </aside>
+
+        {/* Main Content */}
+        <div className="w-full md:w-3/4">
+            <DocumentList 
+              documents={documents} 
+              isLoading={isLoading}
+              searchPerformed={searchPerformed || documents.length > 0}
+              onSearch={handleSearch}
+            />
+        </div>
       </div>
     </main>
   );

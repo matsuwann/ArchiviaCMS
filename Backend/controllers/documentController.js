@@ -32,6 +32,63 @@ exports.searchDocuments = async (req, res) => {
   }
 };
 
+// === NEW FILTER CONTROLLER ===
+exports.getFilters = async (req, res) => {
+  try {
+    const rows = await documentModel.getAllMetadata();
+    
+    const authorsSet = new Set();
+    const keywordsSet = new Set();
+    const yearsSet = new Set();
+    const journalsSet = new Set();
+
+    rows.forEach(doc => {
+      // Authors
+      let authors = [];
+      try { authors = typeof doc.ai_authors === 'string' ? JSON.parse(doc.ai_authors) : doc.ai_authors; } catch(e) {}
+      if (Array.isArray(authors)) authors.forEach(a => authorsSet.add(a.trim()));
+
+      // Keywords
+      let keywords = [];
+      try { keywords = typeof doc.ai_keywords === 'string' ? JSON.parse(doc.ai_keywords) : doc.ai_keywords; } catch(e) {}
+      if (Array.isArray(keywords)) keywords.forEach(k => keywordsSet.add(k.trim()));
+
+      // Year
+      if (doc.ai_date_created) {
+        const match = doc.ai_date_created.match(/\d{4}/);
+        if (match) yearsSet.add(match[0]);
+      }
+
+      // Journal
+      if (doc.ai_journal && doc.ai_journal !== 'Unknown Source') {
+        journalsSet.add(doc.ai_journal.trim());
+      }
+    });
+
+    res.json({
+      authors: Array.from(authorsSet).sort(),
+      keywords: Array.from(keywordsSet).sort(),
+      years: Array.from(yearsSet).sort().reverse(),
+      journals: Array.from(journalsSet).sort()
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error fetching filters');
+  }
+};
+
+exports.filterDocuments = async (req, res) => {
+  try {
+    const { authors, keywords, year, journal, dateRange } = req.body;
+    const rows = await documentModel.filterByFacets({ authors, keywords, year, journal, dateRange });
+    res.json(rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error filtering documents');
+  }
+};
+// ==============================
+
 exports.uploadDocument = (req, res) => {
   upload.single('file')(req, res, async function (err) {
     if (err) {
@@ -51,7 +108,6 @@ exports.uploadDocument = (req, res) => {
 
     try {
         const metadata = await aiService.analyzeDocument(file.buffer);
-        
         const fileUrl = await s3Service.uploadToS3(file, filename);
 
         const documentData = {
@@ -65,7 +121,7 @@ exports.uploadDocument = (req, res) => {
         res.status(201).json(newDocument);
 
     } catch (aiOrDbErr) {
-        console.error('AI Processing or S3 Error:', aiOrDbErr.message);
+        console.error('Processing Error:', aiOrDbErr.message);
         if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
              return res.status(503).json({ message: 'The AI model is currently overloaded.' });
         }
@@ -94,7 +150,7 @@ exports.updateDocument = async (req, res) => {
     const updatedDoc = await documentModel.update(id, userId, { title, ai_authors, ai_date_created });
 
     if (!updatedDoc) {
-      return res.status(404).json({ message: "Document not found or you don't have permission to edit it." });
+      return res.status(404).json({ message: "Document not found or no permission." });
     }
     res.json(updatedDoc);
   } catch (err) {
@@ -110,17 +166,14 @@ exports.deleteDocument = async (req, res) => {
 
     const file = await documentModel.findFileForUser(id, userId);
     if (!file) {
-      return res.status(404).json({ message: "Document not found or you don't have permission to delete it." });
+      return res.status(404).json({ message: "Document not found or no permission." });
     }
 
     const deletedCount = await documentModel.deleteByIdAndUser(id, userId);
-    
     if (deletedCount > 0) {
-    
       await s3Service.deleteFromS3(file.filename); 
-      res.json({ message: `Document '${file.filename}' deleted successfully.` });
+      res.json({ message: `Document '${file.filename}' deleted.` });
     } else {
-    
       return res.status(404).json({ message: "Document not found." });
     }
   } catch (err) {
