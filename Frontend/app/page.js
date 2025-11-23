@@ -10,17 +10,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
   
-  // Filter & Analytics State
+  // Data State
   const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
-  const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
   const [popularSearches, setPopularSearches] = useState([]);
+  
+  // Selection State
+  const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
   useEffect(() => {
-    // Load initial data
+    // Load EVERYTHING on initial page load
     Promise.all([
-      searchDocuments(''), 
-      getFilters(),
-      getPopularSearches()
+      searchDocuments(''),      
+      getFilters(),             
+      getPopularSearches()      
     ]).then(([docsRes, filtersRes, popRes]) => {
       setDocuments(docsRes.data);
       setAvailableFilters(filtersRes.data);
@@ -35,15 +37,18 @@ export default function Home() {
   const handleSearch = async (searchTerm) => {
     setIsLoading(true);
     setSearchPerformed(!!searchTerm);
+    // Reset filters on new search text
     setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
     try {
       const response = await searchDocuments(searchTerm);
       setDocuments(response.data);
       
-      // Update analytics
       if(searchTerm) {
-          getPopularSearches().then(res => setPopularSearches(res.data));
+          // Refresh analytics after search
+          setTimeout(() => {
+             getPopularSearches().then(res => setPopularSearches(res.data));
+          }, 1000);
       }
     } catch (error) {
       console.error("Search failed:", error);
@@ -66,6 +71,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
+      // If filters cleared, load all
       const isEmpty = newFilters.authors.length === 0 && 
                       newFilters.keywords.length === 0 && 
                       newFilters.journal.length === 0 && 
@@ -87,19 +93,14 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto p-4 md:p-8">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-          Archivia 🔎
-        </h1>
-        <p className="mt-2 text-lg text-gray-500">
-          Advanced Research Repository
-        </p>
+    <main className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Archivia Library</h1>
       </header>
       
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Sidebar */}
-        <aside className="w-full md:w-1/4">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* LEFT SIDEBAR (25% width) */}
+        <aside className="w-full md:w-1/4 flex-shrink-0">
             <FilterSidebar 
                 filters={availableFilters} 
                 selectedFilters={selectedFilters}
@@ -107,7 +108,7 @@ export default function Home() {
             />
         </aside>
 
-        {/* Main Content */}
+        {/* MAIN CONTENT (75% width) */}
         <div className="w-full md:w-3/4">
             <DocumentList 
               documents={documents} 
