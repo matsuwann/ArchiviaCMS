@@ -1,5 +1,5 @@
 const documentModel = require('../models/documentModel');
-const analyticsModel = require('../models/analyticsModel'); // <--- IMPORT
+const analyticsModel = require('../models/analyticsModel');
 const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service'); 
@@ -8,16 +8,24 @@ const path = require('path');
 const upload = fileUploadService.upload;
 
 // === SIMPLE IN-MEMORY CACHE FOR TRENDS ===
-let trendsCache = {
-  data: [],
-  lastUpdated: 0
-};
+let trendsCache = { data: [], lastUpdated: 0 };
 const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
+
+// HELPER: Hide PDF link if user is not logged in
+const sanitizeDocuments = (req, documents) => {
+  if (req.user) return documents; // Logged in? Show everything
+  
+  // Guest? Remove filepath
+  return documents.map(doc => {
+    const { filepath, ...rest } = doc;
+    return rest;
+  });
+};
 
 exports.getAllDocuments = async (req, res) => {
   try {
     const rows = await documentModel.findAll();
-    res.json(rows);
+    res.json(sanitizeDocuments(req, rows));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -31,49 +39,41 @@ exports.searchDocuments = async (req, res) => {
     if (!term) {
         rows = await documentModel.findAll();
     } else {
-        // Log search asynchronously
-        analyticsModel.logSearch(term).catch(e => console.error("Analytics logging failed:", e));
+        analyticsModel.logSearch(term).catch(e => console.error("Analytics error:", e));
         rows = await documentModel.findByTerm(term);
     }
-    res.json(rows);
+    res.json(sanitizeDocuments(req, rows));
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 };
 
-// === NEW: AI-POWERED POPULAR SEARCHES ===
+exports.filterDocuments = async (req, res) => {
+  try {
+    const { authors, keywords, year, journal, dateRange } = req.body;
+    const rows = await documentModel.filterByFacets({ authors, keywords, year, journal, dateRange });
+    res.json(sanitizeDocuments(req, rows));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 exports.getPopularSearches = async (req, res) => {
   try {
-    // 1. Check Cache
     const now = Date.now();
     if (trendsCache.data.length > 0 && (now - trendsCache.lastUpdated < CACHE_DURATION)) {
         return res.json(trendsCache.data);
     }
-
-    console.log("Cache stale. Generating new AI insights...");
-
-    // 2. Fetch raw data
     const rawTerms = await analyticsModel.getTopSearches(50);
+    if (rawTerms.length === 0) return res.json([]);
 
-    if (rawTerms.length === 0) {
-        return res.json([]);
-    }
-
-    // 3. Ask AI to cluster/summarize
     const smartTrends = await aiService.generateSearchInsights(rawTerms);
-
-    // 4. Update Cache
-    trendsCache = {
-        data: smartTrends,
-        lastUpdated: now
-    };
-
+    trendsCache = { data: smartTrends, lastUpdated: now };
     res.json(smartTrends);
-
   } catch (err) {
     console.error(err.message);
-    // If AI fails, return cached data if available
     if (trendsCache.data.length > 0) return res.json(trendsCache.data);
     res.status(500).send('Server error fetching analytics');
   }
@@ -82,7 +82,6 @@ exports.getPopularSearches = async (req, res) => {
 exports.getFilters = async (req, res) => {
   try {
     const rows = await documentModel.getAllMetadata();
-    
     const authorsSet = new Set();
     const keywordsSet = new Set();
     const yearsSet = new Set();
@@ -101,7 +100,6 @@ exports.getFilters = async (req, res) => {
         const match = doc.ai_date_created.match(/\d{4}/);
         if (match) yearsSet.add(match[0]);
       }
-
       if (doc.ai_journal && doc.ai_journal !== 'Unknown Source') {
         journalsSet.add(doc.ai_journal.trim());
       }
@@ -119,36 +117,18 @@ exports.getFilters = async (req, res) => {
   }
 };
 
-exports.filterDocuments = async (req, res) => {
-  try {
-    const { authors, keywords, year, journal, dateRange } = req.body;
-    const rows = await documentModel.filterByFacets({ authors, keywords, year, journal, dateRange });
-    res.json(rows);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error filtering documents');
-  }
-};
-
 exports.uploadDocument = (req, res) => {
   upload.single('file')(req, res, async function (err) {
-    if (err) {
-        if (err.message === 'Invalid file type. Only PDF documents are accepted.') {
-            return res.status(400).json({ message: err.message });
-        }
-        return res.status(500).json({ message: 'File upload error.' });
-    }
-
-    const file = req.file;
-    if (!file) { return res.status(400).send('A file is required.'); }
+    if (err) return res.status(400).json({ message: err.message });
+    if (!req.file) return res.status(400).send('A file is required.');
     
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
+    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(req.file.originalname);
     const userId = req.user.userId;
 
     try {
-        const metadata = await aiService.analyzeDocument(file.buffer);
-        const fileUrl = await s3Service.uploadToS3(file, filename);
+        const metadata = await aiService.analyzeDocument(req.file.buffer);
+        const fileUrl = await s3Service.uploadToS3(req.file, filename);
 
         const documentData = {
           ...metadata,
@@ -159,13 +139,9 @@ exports.uploadDocument = (req, res) => {
 
         const newDocument = await documentModel.create(documentData);
         res.status(201).json(newDocument);
-
-    } catch (aiOrDbErr) {
-        console.error('Processing Error:', aiOrDbErr.message);
-        if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
-             return res.status(503).json({ message: 'The AI model is currently overloaded.' });
-        }
-        res.status(500).json({ message: 'Server error during processing.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error.' });
     }
   });
 };
@@ -186,12 +162,8 @@ exports.updateDocument = async (req, res) => {
     const { id } = req.params;
     const { title, ai_authors, ai_date_created } = req.body;
     const userId = req.user.userId;
-
     const updatedDoc = await documentModel.update(id, userId, { title, ai_authors, ai_date_created });
-
-    if (!updatedDoc) {
-      return res.status(404).json({ message: "Document not found or no permission." });
-    }
+    if (!updatedDoc) return res.status(404).json({ message: "Document not found." });
     res.json(updatedDoc);
   } catch (err) {
     console.error(err.message);
@@ -203,11 +175,8 @@ exports.deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-
     const file = await documentModel.findFileForUser(id, userId);
-    if (!file) {
-      return res.status(404).json({ message: "Document not found or no permission." });
-    }
+    if (!file) return res.status(404).json({ message: "Document not found." });
 
     const deletedCount = await documentModel.deleteByIdAndUser(id, userId);
     if (deletedCount > 0) {
