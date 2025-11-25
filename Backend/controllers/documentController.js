@@ -182,26 +182,21 @@ exports.uploadDocument = (req, res) => {
         try {
             const previewImages = await previewService.generatePreviews(file.buffer);
             
-            // 3. Upload Previews to S3
-            for (const img of previewImages) {
-                const previewName = `preview-${uniqueSuffix}-pg${img.page}.png`;
-                
-                // We pass an object mimicking a file to reuse s3Service
-                const url = await s3Service.uploadToS3({ 
-                    buffer: img.buffer, 
-                    mimetype: 'image/png' 
-                }, previewName);
-                
-                previewUrls.push(url);
-            }
-        } catch (previewErr) {
-            console.error("Warning: Preview generation failed, but continuing upload.", previewErr);
-            previewUrls = []; // Continue even if previews fail
+           // 3. Upload Previews to S3
+        for (const img of previewImages) {
+            const previewName = `previews/preview-${uniqueSuffix}-pg${img.page}.png`; // Added 'previews/' folder prefix
+            
+            // Pass 'true' as the 3rd argument to get the Public URL
+            const url = await s3Service.uploadToS3({ 
+                buffer: img.buffer, 
+                mimetype: 'image/png' 
+            }, previewName, true); 
+            
+            previewUrls.push(url);
         }
 
-        // 4. Upload Original PDF to S3
-        // This returns the Key (filename) for private storage
-        const fileKey = await s3Service.uploadToS3(file, filename);
+        // 4. Upload Original PDF to S3 (Private - no 3rd arg)
+        const fileKey = await s3Service.uploadToS3(req.file, `documents/${filename}`);
 
         // 5. Save EVERYTHING to DB
         const documentData = {
