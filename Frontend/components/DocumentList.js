@@ -21,6 +21,11 @@ const getSafeList = (data) => {
 export default function DocumentList({ documents, isLoading, searchPerformed, onSearch, popularSearches }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDoc, setSelectedDoc] = useState(null);
+    
+    if (!Array.isArray(documents)) {
+        console.error("DocumentList Error: 'documents' is not an array", documents);
+        return null; // Render nothing if data is bad
+    }
 
     const handleFormSubmit = (e) => {
         e.preventDefault();

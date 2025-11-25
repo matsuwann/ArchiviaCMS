@@ -2,13 +2,12 @@
 import { useState } from 'react';
 
 export default function FilterSidebar({ filters, selectedFilters, onFilterChange }) {
-  // Default open state mimicking Mendeley's default view
   const [openSections, setOpenSections] = useState({
     dateRange: true,
     journals: true,
     years: true,
     authors: true,
-    keywords: false, // Closed by default to save space
+    keywords: false, 
   });
 
   const toggleSection = (section) => {
@@ -20,11 +19,9 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     const isSelected = current.includes(value);
     let updated;
 
-    // Single Select Logic for Year and Date Range
     if (category === 'year' || category === 'dateRange') {
         updated = isSelected ? null : value;
     } else {
-        // Multi Select Logic for Authors, Keywords, Journals
         updated = isSelected
         ? current.filter(item => item !== value)
         : [...current, value];
@@ -32,6 +29,7 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     onFilterChange(category, updated);
   };
 
+  // [FIX] Defensive Rendering: Ensure 'items' is an array before mapping
   const renderSection = (title, category, items, isSingleSelect = false) => (
     <div className="mb-4 border-b border-gray-200 pb-4">
       <button 
@@ -44,35 +42,39 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
       
       {openSections[category] && (
         <div className="max-h-48 overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-300">
-          {items.map((item) => {
-             const label = item.label || item;
-             const value = item.value || item;
-             
-             const isChecked = isSingleSelect 
-                ? selectedFilters[category] === value
-                : (selectedFilters[category] || []).includes(value);
+          {/* SAFETY CHECK: Check if items is valid array */}
+          {Array.isArray(items) && items.length > 0 ? (
+            items.map((item) => {
+               const label = item.label || item;
+               const value = item.value || item;
+               
+               const isChecked = isSingleSelect 
+                  ? selectedFilters[category] === value
+                  : (selectedFilters[category] || []).includes(value);
 
-             return (
-              <label key={value} className="flex items-center text-sm text-gray-600 hover:bg-gray-50 p-1 rounded cursor-pointer transition-colors group">
-                <input
-                  type={isSingleSelect ? "radio" : "checkbox"}
-                  checked={isChecked}
-                  onChange={() => handleCheckboxChange(category, value)}
-                  onClick={(e) => {
-                      if(isSingleSelect && isChecked) {
-                          e.preventDefault();
-                          handleCheckboxChange(category, value);
-                      }
-                  }}
-                  className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                />
-                <span className={`truncate group-hover:text-indigo-600 ${isChecked ? 'font-medium text-indigo-700' : ''}`} title={label}>
-                    {label}
-                </span>
-              </label>
-            );
-          })}
-          {items.length === 0 && <p className="text-xs text-gray-400 italic ml-6">No options available</p>}
+               return (
+                <label key={value} className="flex items-center text-sm text-gray-600 hover:bg-gray-50 p-1 rounded cursor-pointer transition-colors group">
+                  <input
+                    type={isSingleSelect ? "radio" : "checkbox"}
+                    checked={isChecked || false}
+                    onChange={() => handleCheckboxChange(category, value)}
+                    onClick={(e) => {
+                        if(isSingleSelect && isChecked) {
+                            e.preventDefault();
+                            handleCheckboxChange(category, value);
+                        }
+                    }}
+                    className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span className={`truncate group-hover:text-indigo-600 ${isChecked ? 'font-medium text-indigo-700' : ''}`} title={label}>
+                      {label}
+                  </span>
+                </label>
+              );
+            })
+          ) : (
+            <p className="text-xs text-gray-400 italic ml-6">No options available</p>
+          )}
         </div>
       )}
     </div>
@@ -83,6 +85,9 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     { label: 'Last 30 Days', value: '30days' },
     { label: 'This Year', value: 'thisYear' },
   ];
+
+  // Safely handle potential null/undefined filters object
+  const safeFilters = filters || {};
 
   return (
     <div className="w-full bg-white p-5 rounded-lg shadow-sm border border-gray-200 h-fit sticky top-4">
@@ -97,10 +102,10 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
       </div>
 
       {renderSection('Date Added', 'dateRange', dateAddedOptions, true)}
-      {renderSection('Journal / Source', 'journal', filters.journals || [])}
-      {renderSection('Publication Year', 'year', filters.years || [], true)}
-      {renderSection('Authors', 'authors', filters.authors || [])}
-      {renderSection('Keywords', 'keywords', filters.keywords || [])}
+      {renderSection('Journal / Source', 'journal', safeFilters.journals || [])}
+      {renderSection('Publication Year', 'year', safeFilters.years || [], true)}
+      {renderSection('Authors', 'authors', safeFilters.authors || [])}
+      {renderSection('Keywords', 'keywords', safeFilters.keywords || [])}
     </div>
   );
 }
