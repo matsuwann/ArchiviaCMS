@@ -3,18 +3,17 @@ import { useState } from 'react';
 import Link from 'next/link';
 import PreviewModal from './PreviewModal';
 
-// [Fix] Helper function to safely parse JSON strings from the DB
+// 1. ADD THIS HELPER FUNCTION
+// This functions checks if 'data' is a string (like "['John']") and converts it to a real array.
 const getSafeList = (data) => {
-    if (Array.isArray(data)) return data;
+    if (!data) return [];
+    if (Array.isArray(data)) return data; // It's already an array, return it.
+    
     if (typeof data === 'string') {
-        try {
-            // Try to parse "['Author A', 'Author B']" string back to array
-            const parsed = JSON.parse(data);
-            if (Array.isArray(parsed)) return parsed;
-        } catch (e) {
-            // If parse fails, treat the string as a single item
-            return [data];
-        }
+        // Remove brackets [] and quotes "" if they exist to clean up the string
+        // This handles cases like "['John Doe']" turning into "John Doe"
+        let cleaned = data.replace(/[\[\]"]/g, '');
+        return [cleaned]; 
     }
     return [];
 };
@@ -61,9 +60,8 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                 <div>
                     {isLoading ? (
                         <p className="text-center text-gray-500 py-10 italic">Loading library...</p>
-                    ) : !searchPerformed && documents.length === 0 ? ( 
-                        /* [Fix] Logic adjusted to show prompt only if truly empty/no search */
-                        <div className="text-center py-16">
+                    ) : !searchPerformed && documents.length === 0 ? (
+                         <div className="text-center py-16">
                             <p className="text-gray-400 text-lg">Enter a keyword above to search the Archivia repository.</p>
                         </div>
                     ) : documents.length === 0 ? (
@@ -73,7 +71,7 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                     ) : (
                         <ul className="divide-y divide-gray-100">
                             {documents.map((doc) => {
-                                // [Fix] Use the helper to prevent .join() crash
+                                // 2. USE THE HELPER FUNCTION HERE
                                 const aiAuthors = getSafeList(doc.ai_authors);
                                 
                                 return (
@@ -89,6 +87,7 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                                     <span>{doc.ai_date_created || 'Unknown Date'}</span>
                                                 </div>
                                                 <p className="text-sm text-gray-700 italic mb-2 line-clamp-1">
+                                                    {/* 3. NOW .join() WILL WORK SAFELY */}
                                                     {aiAuthors.join(', ')}
                                                 </p>
                                                 <p className="text-sm text-gray-500 line-clamp-2">
