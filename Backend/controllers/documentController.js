@@ -2,7 +2,7 @@ const documentModel = require('../models/documentModel');
 const analyticsModel = require('../models/analyticsModel');
 const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
-const s3Service = require('../services/s3Service'); 
+const s3Service = require('../services/s3Service');
 const path = require('path');
 
 const upload = fileUploadService.upload;
@@ -117,35 +117,6 @@ exports.getFilters = async (req, res) => {
   }
 };
 
-exports.uploadDocument = (req, res) => {
-  upload.single('file')(req, res, async function (err) {
-    if (err) return res.status(400).json({ message: err.message });
-    if (!req.file) return res.status(400).send('A file is required.');
-    
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(req.file.originalname);
-    const userId = req.user.userId;
-
-    try {
-        const metadata = await aiService.analyzeDocument(req.file.buffer);
-        const fileUrl = await s3Service.uploadToS3(req.file, filename);
-
-        const documentData = {
-          ...metadata,
-          filename: filename,
-          filepath: fileUrl, 
-          user_id: userId
-        };
-
-        const newDocument = await documentModel.create(documentData);
-        res.status(201).json(newDocument);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error.' });
-    }
-  });
-};
-
 exports.getUserUploads = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -199,6 +170,28 @@ exports.uploadDocument = (req, res) => {
         res.status(500).json({ message: 'Server error during processing.' });
     }
   });
+};
+
+exports.updateDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, ai_authors, ai_date_created } = req.body;
+    const userId = req.user.userId;
+
+    const updatedDoc = await documentModel.update(id, userId, { 
+      title, 
+      ai_authors, 
+      ai_date_created 
+    });
+
+    if (!updatedDoc) {
+      return res.status(404).json({ message: "Document not found or unauthorized." });
+    }
+    res.json(updatedDoc);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 };
 
 exports.deleteDocument = async (req, res) => {
