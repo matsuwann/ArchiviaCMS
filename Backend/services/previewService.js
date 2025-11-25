@@ -1,4 +1,3 @@
-// Backend/services/previewService.js
 const { fromBuffer } = require('pdf2pic');
 const sharp = require('sharp');
 const fs = require('fs').promises;
@@ -6,36 +5,28 @@ const path = require('path');
 
 exports.generatePreviews = async (pdfBuffer) => {
   try {
-    // Configure pdf2pic to save to the temporary directory
     const options = {
       density: 100,
       saveFilename: "temp_preview",
-      savePath: "/tmp", // Render allows writing here
+      savePath: "/tmp", 
       format: "png",
       width: 800,
       height: 1100
     };
 
-    // Initialize converter
     const convert = fromBuffer(pdfBuffer, options);
     const processedBuffers = [];
 
-    // Process Pages 1, 2, and 3
-    for (let pageNum = 1; pageNum <= 5; pageNum++) {
+    // MODIFIED: Loop through pages 1 to 6 (5 Clear + 1 Blurred)
+    for (let pageNum = 1; pageNum <= 6; pageNum++) {
       try {
-        // 1. Convert PDF Page to Image File
         const result = await convert(pageNum, { responseType: "image" });
-        
-        // 'result' contains the path to the saved image
-        const imagePath = result.path; 
-        
-        // 2. Read the image back into a buffer
-        const imageBuffer = await fs.readFile(imagePath);
+        if (!result || !result.path) continue;
 
-        // 3. Apply Blur using Sharp (if not page 1)
+        const imageBuffer = await fs.readFile(result.path);
         let imagePipeline = sharp(imageBuffer);
-        
-        // Page 1 (pageNum === 1) is clear. Pages 2+ are blurred.
+
+        // MODIFIED LOGIC: Pages 1-5 are clear. Page 6+ are blurred.
         if (pageNum > 5) {
           imagePipeline = imagePipeline.blur(15); 
         }
@@ -45,15 +36,13 @@ exports.generatePreviews = async (pdfBuffer) => {
         processedBuffers.push({
           page: pageNum,
           buffer: finalBuffer,
-          isBlurred: pageNum > 1
+          isBlurred: pageNum > 5 // Mark true only if page > 5
         });
 
-        // Cleanup: Delete the temp file
-        await fs.unlink(imagePath).catch(err => console.error("Temp delete error:", err));
+        await fs.unlink(result.path).catch(() => {});
 
       } catch (pageErr) {
-        // Stop loop if page doesn't exist (e.g., 1-page document)
-        break; 
+        break; // Stop if document has fewer than 6 pages
       }
     }
 
@@ -61,7 +50,6 @@ exports.generatePreviews = async (pdfBuffer) => {
 
   } catch (err) {
     console.error("Preview Service Error:", err);
-    // Return empty array so the document upload still succeeds even if previews fail
     return []; 
   }
 };

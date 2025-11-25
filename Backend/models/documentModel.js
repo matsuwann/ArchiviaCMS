@@ -24,12 +24,15 @@ exports.findByTerm = async (term) => {
   return rows;
 };
 
-exports.create = async ({ title, filename, filepath, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id }) => {
+exports.create = async ({ title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id }) => {
+  // Ensure preview_urls is an array (Postgres stores it as text[])
+  const safePreviewUrls = preview_urls || [];
+
   const { rows } = await db.query(
       `INSERT INTO documents 
-        (title, filename, filepath, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [title, filename, filepath, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id]
+        (title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [title, filename, filepath, safePreviewUrls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id]
   );
   return rows[0];
 };

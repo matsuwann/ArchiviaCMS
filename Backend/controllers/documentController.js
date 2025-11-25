@@ -3,8 +3,8 @@ const analyticsModel = require('../models/analyticsModel');
 const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service');
+const previewService = require('../services/previewService'); // Import the preview logic
 const path = require('path');
-// const previewService = require('../services/previewService'); // Keep commented if you disabled previews
 
 const upload = fileUploadService.upload;
 
@@ -13,6 +13,7 @@ let trendsCache = { data: [], lastUpdated: 0 };
 const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
 
 // HELPER: Hide PDF link if user is not logged in
+// This generates a secure, temporary link for logged-in users
 const sanitizeDocuments = async (req, documents) => {
   // Map over documents to add secure links if authorized
   const processedDocs = await Promise.all(documents.map(async (doc) => {
@@ -21,18 +22,18 @@ const sanitizeDocuments = async (req, documents) => {
     // If user is logged in, generate a fresh secure link
     if (req.user) {
       try {
-        // Ensure s3Service.getPresignedUrl exists!
+        // Ensure the function exists and we have a filepath
         if (s3Service.getPresignedUrl && doc.filepath) {
             cleanDoc.downloadLink = await s3Service.getPresignedUrl(doc.filepath);
         } else {
-            cleanDoc.downloadLink = null; // Fallback if function missing
+            cleanDoc.downloadLink = null;
         }
       } catch (e) {
         console.error("Error signing URL", e);
         cleanDoc.downloadLink = null;
       }
     } else {
-      // If guest, remove the file path entirely
+      // If guest, remove the file path entirely so they can't access it
       delete cleanDoc.filepath;
       delete cleanDoc.downloadLink;
     }
@@ -45,7 +46,7 @@ const sanitizeDocuments = async (req, documents) => {
 exports.getAllDocuments = async (req, res) => {
   try {
     const rows = await documentModel.findAll();
-    // FIX: Added 'await' here
+    // FIX: Added 'await' so the frontend receives actual data, not a Promise
     const data = await sanitizeDocuments(req, rows);
     res.json(data);
   } catch (err) {
@@ -64,7 +65,7 @@ exports.searchDocuments = async (req, res) => {
         analyticsModel.logSearch(term).catch(e => console.error("Analytics error:", e));
         rows = await documentModel.findByTerm(term);
     }
-    // FIX: Added 'await' here
+    // FIX: Added 'await'
     const data = await sanitizeDocuments(req, rows);
     res.json(data);
   } catch (err) {
@@ -77,7 +78,7 @@ exports.filterDocuments = async (req, res) => {
   try {
     const { authors, keywords, year, journal, dateRange } = req.body;
     const rows = await documentModel.filterByFacets({ authors, keywords, year, journal, dateRange });
-    // FIX: Added 'await' here
+    // FIX: Added 'await'
     const data = await sanitizeDocuments(req, rows);
     res.json(data);
   } catch (err) {
@@ -168,17 +169,46 @@ exports.uploadDocument = (req, res) => {
     if (!file) { return res.status(400).send('A file is required.'); }
     
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
+    const filename = `doc-${uniqueSuffix}${path.extname(file.originalname)}`;
     const userId = req.user.userId;
 
     try {
+        // 1. Analyze Metadata (AI)
         const metadata = await aiService.analyzeDocument(file.buffer);
-        const fileUrl = await s3Service.uploadToS3(file, filename);
+        
+        // 2. Generate Previews (First 5 clear, 6th blurred)
+        // This requires your previewService.js to be using pdf2pic
+        let previewUrls = [];
+        try {
+            const previewImages = await previewService.generatePreviews(file.buffer);
+            
+            // 3. Upload Previews to S3
+            for (const img of previewImages) {
+                const previewName = `preview-${uniqueSuffix}-pg${img.page}.png`;
+                
+                // We pass an object mimicking a file to reuse s3Service
+                const url = await s3Service.uploadToS3({ 
+                    buffer: img.buffer, 
+                    mimetype: 'image/png' 
+                }, previewName);
+                
+                previewUrls.push(url);
+            }
+        } catch (previewErr) {
+            console.error("Warning: Preview generation failed, but continuing upload.", previewErr);
+            previewUrls = []; // Continue even if previews fail
+        }
 
+        // 4. Upload Original PDF to S3
+        // This returns the Key (filename) for private storage
+        const fileKey = await s3Service.uploadToS3(file, filename);
+
+        // 5. Save EVERYTHING to DB
         const documentData = {
           ...metadata,
           filename: filename,
-          filepath: fileUrl, 
+          filepath: fileKey,
+          preview_urls: previewUrls, 
           user_id: userId
         };
 
@@ -186,7 +216,7 @@ exports.uploadDocument = (req, res) => {
         res.status(201).json(newDocument);
 
     } catch (aiOrDbErr) {
-        console.error('AI Processing or S3 Error:', aiOrDbErr.message);
+        console.error('Processing Error:', aiOrDbErr.message);
         if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
              return res.status(503).json({ message: 'The AI model is currently overloaded.' });
         }
@@ -226,7 +256,10 @@ exports.deleteDocument = async (req, res) => {
 
     const deletedCount = await documentModel.deleteByIdAndUser(id, userId);
     if (deletedCount > 0) {
-      await s3Service.deleteFromS3(file.filename); 
+      // If s3Service supports deletion, call it
+      if (s3Service.deleteFromS3) {
+          await s3Service.deleteFromS3(file.filename); 
+      }
       res.json({ message: `Document '${file.filename}' deleted.` });
     } else {
       return res.status(404).json({ message: "Document not found." });
