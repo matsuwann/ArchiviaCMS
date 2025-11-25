@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.929.0",
+    "@aws-sdk/s3-request-presigner": "^3.939.0",
     "@google/genai": "^1.29.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -21,9 +22,11 @@
     "jwt-decode": "^4.0.0",
     "multer": "^2.0.2",
     "nodemailer": "^6.9.13",
+    "pdf-img-convert": "^2.0.0",
     "pdf-parse": "npm:@cedrugs/pdf-parse@^1.0.0",
     "pg": "^8.16.3",
-    "react-colorful": "^5.6.1"
+    "react-colorful": "^5.6.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
