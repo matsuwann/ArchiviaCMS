@@ -79,7 +79,8 @@ exports.adminDeleteDocument = async (req, res) => {
 
     const deletedCount = await documentModel.adminDeleteById(id);
     if (deletedCount > 0) {
-      await aiService.deleteFile(file.filepath); 
+ 
+      await s3Service.deleteFromS3(file.filename); 
       res.json({ message: `Document '${file.filename}' deleted successfully.` });
     }
   } catch (err) {
