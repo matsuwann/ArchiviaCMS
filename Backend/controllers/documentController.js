@@ -4,7 +4,7 @@ const aiService = require('../services/aiService');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service');
 const path = require('path');
-const previewService = require('../services/previewService');
+// const previewService = require('../services/previewService'); // Keep commented if you disabled previews
 
 const upload = fileUploadService.upload;
 
@@ -12,8 +12,7 @@ const upload = fileUploadService.upload;
 let trendsCache = { data: [], lastUpdated: 0 };
 const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
 
-// Backend/controllers/documentController.js
-
+// HELPER: Hide PDF link if user is not logged in
 const sanitizeDocuments = async (req, documents) => {
   // Map over documents to add secure links if authorized
   const processedDocs = await Promise.all(documents.map(async (doc) => {
@@ -22,10 +21,15 @@ const sanitizeDocuments = async (req, documents) => {
     // If user is logged in, generate a fresh secure link
     if (req.user) {
       try {
-        // Assuming doc.filepath is the S3 Key (e.g., "documents/file.pdf")
-        cleanDoc.downloadLink = await s3Service.getPresignedUrl(doc.filepath);
+        // Ensure s3Service.getPresignedUrl exists!
+        if (s3Service.getPresignedUrl && doc.filepath) {
+            cleanDoc.downloadLink = await s3Service.getPresignedUrl(doc.filepath);
+        } else {
+            cleanDoc.downloadLink = null; // Fallback if function missing
+        }
       } catch (e) {
         console.error("Error signing URL", e);
+        cleanDoc.downloadLink = null;
       }
     } else {
       // If guest, remove the file path entirely
@@ -41,7 +45,9 @@ const sanitizeDocuments = async (req, documents) => {
 exports.getAllDocuments = async (req, res) => {
   try {
     const rows = await documentModel.findAll();
-    res.json(sanitizeDocuments(req, rows));
+    // FIX: Added 'await' here
+    const data = await sanitizeDocuments(req, rows);
+    res.json(data);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -58,7 +64,9 @@ exports.searchDocuments = async (req, res) => {
         analyticsModel.logSearch(term).catch(e => console.error("Analytics error:", e));
         rows = await documentModel.findByTerm(term);
     }
-    res.json(sanitizeDocuments(req, rows));
+    // FIX: Added 'await' here
+    const data = await sanitizeDocuments(req, rows);
+    res.json(data);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -69,7 +77,9 @@ exports.filterDocuments = async (req, res) => {
   try {
     const { authors, keywords, year, journal, dateRange } = req.body;
     const rows = await documentModel.filterByFacets({ authors, keywords, year, journal, dateRange });
-    res.json(sanitizeDocuments(req, rows));
+    // FIX: Added 'await' here
+    const data = await sanitizeDocuments(req, rows);
+    res.json(data);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -146,49 +156,41 @@ exports.getUserUploads = async (req, res) => {
 
 exports.uploadDocument = (req, res) => {
   upload.single('file')(req, res, async function (err) {
-    if (err) return res.status(500).json({ message: 'Upload error' });
-    if (!req.file) return res.status(400).send('File required.');
+    if (err) {
+        if (err.message === 'Invalid file type. Only PDF documents are accepted.') {
+            return res.status(400).json({ message: err.message });
+        }
+        console.error('Multer/Upload Error:', err.message);
+        return res.status(500).json({ message: 'File upload error.' });
+    }
 
-    const userId = req.user.userId;
+    const file = req.file;
+    if (!file) { return res.status(400).send('A file is required.'); }
+    
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = `doc-${uniqueSuffix}.pdf`;
+    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
+    const userId = req.user.userId;
 
     try {
-      // 1. Analyze Metadata (AI)
-      const metadata = await aiService.analyzeDocument(req.file.buffer);
+        const metadata = await aiService.analyzeDocument(file.buffer);
+        const fileUrl = await s3Service.uploadToS3(file, filename);
 
-      // 2. Generate Previews (Blur Logic)
-      const previewImages = await previewService.generatePreviews(req.file.buffer);
-      const previewUrls = [];
+        const documentData = {
+          ...metadata,
+          filename: filename,
+          filepath: fileUrl, 
+          user_id: userId
+        };
 
-      // 3. Upload Previews to S3 (Public Folder)
-      for (const img of previewImages) {
-        const previewName = `preview-${uniqueSuffix}-pg${img.page}.png`;
-        const url = await s3Service.uploadToS3(img.buffer, previewName, 'previews', 'image/png');
-        previewUrls.push(url);
-      }
+        const newDocument = await documentModel.create(documentData);
+        res.status(201).json(newDocument);
 
-      // 4. Upload Original PDF to S3 (Private Folder)
-      // Note: We store the 'Key' now, not the full URL, for security
-      const s3Key = await s3Service.uploadToS3(req.file.buffer, filename, 'documents', 'application/pdf');
-
-      // 5. Save to DB
-      const documentData = {
-        ...metadata,
-        filename: filename,
-        filepath: s3Key, // Stores "documents/doc-123.pdf"
-        preview_urls: previewUrls, // Stores ["https://.../preview-pg1.png", ...]
-        user_id: userId
-      };
-
-      // Ensure your model supports preview_urls!
-      // You might need to update documentModel.create to accept this new field
-      const newDocument = await documentModel.create(documentData);
-      res.status(201).json(newDocument);
-
-    } catch (error) {
-      console.error("Upload failed:", error);
-      res.status(500).json({ message: 'Server error processing document.' });
+    } catch (aiOrDbErr) {
+        console.error('AI Processing or S3 Error:', aiOrDbErr.message);
+        if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
+             return res.status(503).json({ message: 'The AI model is currently overloaded.' });
+        }
+        res.status(500).json({ message: 'Server error during processing.' });
     }
   });
 };

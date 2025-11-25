@@ -1,6 +1,6 @@
-// Backend/services/s3Service.js
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const path = require("path");
 
 const s3Client = new S3Client({
   region: process.env.AWS_BUCKET_REGION,
@@ -12,43 +12,44 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
-// Modified to accept a specific folder
-exports.uploadToS3 = async (fileBuffer, filename, folder = 'documents', mimeType = 'application/pdf') => {
-  const key = `${folder}/${filename}`;
-  
+exports.uploadToS3 = async (file, filename) => {
+  // If file has .buffer use it (multer), otherwise it might be a raw buffer
+  const body = file.buffer ? file.buffer : file;
+  const contentType = file.mimetype ? file.mimetype : 'application/pdf';
+
   const params = {
     Bucket: BUCKET_NAME,
-    Key: key,
-    Body: fileBuffer,
-    ContentType: mimeType,
-    // content-disposition: inline allows viewing in browser
-    ContentDisposition: 'inline' 
+    Key: filename,
+    Body: body,
+    ContentType: contentType,
   };
 
   await s3Client.send(new PutObjectCommand(params));
 
-  // If it's a preview, we return the public URL (Assuming you set up Bucket Policy for /previews)
-  // If it's a document, we return the KEY to generate a signed URL later
-  if (folder === 'previews') {
-    return `https://${BUCKET_NAME}.s3.${process.env.AWS_BUCKET_REGION}.amazonaws.com/${key}`;
-  }
-  return key; // Return the KEY for private documents
+  // Return the KEY (filename), not the full URL, so we can sign it later
+  return filename;
 };
 
-// NEW: Generate a temporary secure link for logged-in users
-exports.getPresignedUrl = async (fileKey) => {
+// NEW FUNCTION: Generates a secure, temporary link
+exports.getPresignedUrl = async (filename) => {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
-    Key: fileKey,
+    Key: filename,
   });
   // Link expires in 1 hour (3600 seconds)
   return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 };
 
 exports.deleteFromS3 = async (filename) => {
-    // Logic to delete both original and previews would go here
-    // For now, keeping your existing logic
-    const params = { Bucket: BUCKET_NAME, Key: filename };
-    try { await s3Client.send(new DeleteObjectCommand(params)); } 
-    catch (err) { console.error("S3 Delete Error:", err); }
+  const params = {
+    Bucket: BUCKET_NAME,
+    Key: filename,
+  };
+
+  try {
+    await s3Client.send(new DeleteObjectCommand(params));
+    console.log(`Successfully deleted ${filename} from S3.`);
+  } catch (err) {
+    console.error("Error deleting file from S3:", err);
+  }
 };
