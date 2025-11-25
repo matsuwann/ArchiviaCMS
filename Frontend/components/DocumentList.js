@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import PreviewModal from './PreviewModal'; // <--- Import the new modal
+import PreviewModal from './PreviewModal';
 
 export default function DocumentList({ documents, isLoading, searchPerformed, onSearch, popularSearches }) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedDoc, setSelectedDoc] = useState(null); // State for modal
+    const [selectedDoc, setSelectedDoc] = useState(null);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -30,6 +30,7 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                         </button>
                     </form>
                     
+                    {/* ANALYTICS / TRENDING SECTION: Kept visible constantly */}
                     {popularSearches && popularSearches.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-gray-500 font-semibold uppercase">Trending:</span>
@@ -45,11 +46,16 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                 <div>
                     {isLoading ? (
                         <p className="text-center text-gray-500 py-10 italic">Loading library...</p>
-                    ) : !searchPerformed && documents.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                            <p className="text-gray-600">Library is empty.</p>
+                    ) : !searchPerformed ? (
+                        // MODIFIED: If no search is active, hide the list and show a prompt.
+                        <div className="text-center py-16">
+                            <p className="text-gray-400 text-lg">Enter a keyword above to search the Archivia repository.</p>
                         </div>
-                    ) : documents.length > 0 ? (
+                    ) : documents.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                            <p className="text-gray-600">No results found for your search.</p>
+                        </div>
+                    ) : (
                         <ul className="divide-y divide-gray-100">
                             {documents.map((doc) => {
                                 const aiAuthors = doc.ai_authors || [];
@@ -73,20 +79,15 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                                                     {doc.ai_abstract || "Click to preview abstract..."}
                                                 </p>
                                             </div>
-                                            
-                               
                                         </div>
                                     </li>
                                 );
                             })}
                         </ul>
-                    ) : (
-                        <p className="text-center py-10 text-gray-600">No documents found.</p>
                     )}
                 </div>
             </div>
 
-            {/* Render Modal if a doc is selected */}
             {selectedDoc && (
                 <PreviewModal 
                     document={selectedDoc} 
