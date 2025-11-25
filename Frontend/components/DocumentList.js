@@ -3,6 +3,22 @@ import { useState } from 'react';
 import Link from 'next/link';
 import PreviewModal from './PreviewModal';
 
+// [Fix] Helper function to safely parse JSON strings from the DB
+const getSafeList = (data) => {
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') {
+        try {
+            // Try to parse "['Author A', 'Author B']" string back to array
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) return parsed;
+        } catch (e) {
+            // If parse fails, treat the string as a single item
+            return [data];
+        }
+    }
+    return [];
+};
+
 export default function DocumentList({ documents, isLoading, searchPerformed, onSearch, popularSearches }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDoc, setSelectedDoc] = useState(null);
@@ -30,7 +46,6 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                         </button>
                     </form>
                     
-                    {/* ANALYTICS / TRENDING SECTION: Kept visible constantly */}
                     {popularSearches && popularSearches.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-gray-500 font-semibold uppercase">Trending:</span>
@@ -46,8 +61,8 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                 <div>
                     {isLoading ? (
                         <p className="text-center text-gray-500 py-10 italic">Loading library...</p>
-                    ) : !searchPerformed ? (
-                        // MODIFIED: If no search is active, hide the list and show a prompt.
+                    ) : !searchPerformed && documents.length === 0 ? ( 
+                        /* [Fix] Logic adjusted to show prompt only if truly empty/no search */
                         <div className="text-center py-16">
                             <p className="text-gray-400 text-lg">Enter a keyword above to search the Archivia repository.</p>
                         </div>
@@ -58,7 +73,8 @@ export default function DocumentList({ documents, isLoading, searchPerformed, on
                     ) : (
                         <ul className="divide-y divide-gray-100">
                             {documents.map((doc) => {
-                                const aiAuthors = doc.ai_authors || [];
+                                // [Fix] Use the helper to prevent .join() crash
+                                const aiAuthors = getSafeList(doc.ai_authors);
                                 
                                 return (
                                     <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
