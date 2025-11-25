@@ -1,10 +1,22 @@
-// Frontend/components/PreviewModal.js
 'use client';
+
+// Helper to ensure we always have an array
+const getSafeList = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') {
+        // Clean string like "{url1,url2}" or "['url1','url2']"
+        const cleaned = data.replace(/[\[\]"'{}]/g, '');
+        return cleaned.split(',').map(s => s.trim()).filter(s => s);
+    }
+    return [];
+};
 
 export default function PreviewModal({ document, onClose }) {
   if (!document) return null;
 
-  const previewUrls = document.preview_urls || [];
+  // USE HELPER HERE
+  const previewUrls = getSafeList(document.preview_urls);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex justify-center items-center z-50 p-4">
@@ -24,22 +36,22 @@ export default function PreviewModal({ document, onClose }) {
           {previewUrls.length > 0 ? (
             previewUrls.map((url, index) => (
               <div key={index} className="relative shadow-lg group w-full max-w-[700px]">
+                {/* Image */}
                 <img 
                   src={url} 
                   alt={`Page ${index + 1}`} 
-                  className="w-full h-auto bg-white rounded-sm" 
+                  className="w-full h-auto bg-white rounded-sm min-h-[200px] object-contain" 
+                  // Add fallback for broken images
+                  onError={(e) => {e.target.style.display='none'}}
                 />
                 
-                {/* OVERLAY LOGIC:
-                   - Index 0,1,2,3,4 (Pages 1-5) = CLEAR (No Overlay)
-                   - Index 5+ (Page 6+) = BLURRED + OVERLAY
-                */}
-                {index > 4 && !document.downloadLink && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px]">
+                {/* BLUR OVERLAY (Only on Page 6) */}
+                {index === 5 && !document.downloadLink && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
                       <p className="font-bold text-gray-900 text-xl mb-2">End of Free Preview</p>
                       <p className="text-sm text-gray-600 mb-6">
-                        This document continues. Log in to your account to download and view the full research paper.
+                        Log in to your account to download and view the full research paper.
                       </p>
                       <a href="/login" className="inline-block w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md">
                         Login to Access Full File
@@ -53,7 +65,7 @@ export default function PreviewModal({ document, onClose }) {
             <div className="bg-white p-10 rounded-lg shadow text-center max-w-md mt-10">
               <p className="text-gray-800 font-medium mb-2">Preview not available</p>
               <p className="text-sm text-gray-500">
-                This document does not have a visual preview. You can download the file directly below if you are logged in.
+                This document does not have a visual preview.
               </p>
             </div>
           )}
