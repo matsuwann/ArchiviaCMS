@@ -1,13 +1,14 @@
 'use client'; 
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
 import { useAuth } from '../context/AuthContext'; 
 import { useState } from 'react'; 
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter(); // Initialize router
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   
   // Checks if we are on /login or /register
@@ -21,6 +22,8 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setIsDropdownOpen(false);
+    router.push('/login'); // Redirect to login page
+    router.refresh(); // Refresh the router to ensure all server components update
   };
 
   if (authLoading) {
