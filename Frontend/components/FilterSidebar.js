@@ -29,7 +29,6 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     onFilterChange(category, updated);
   };
 
-  // [FIX] Defensive Rendering: Ensure 'items' is an array before mapping
   const renderSection = (title, category, items, isSingleSelect = false) => (
     <div className="mb-4 border-b border-gray-200 pb-4">
       <button 
@@ -42,7 +41,7 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
       
       {openSections[category] && (
         <div className="max-h-48 overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-300">
-          {/* SAFETY CHECK: Check if items is valid array */}
+          {/* SAFETY FIX: Check if items is a valid array before mapping */}
           {Array.isArray(items) && items.length > 0 ? (
             items.map((item) => {
                const label = item.label || item;
@@ -86,7 +85,7 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     { label: 'This Year', value: 'thisYear' },
   ];
 
-  // Safely handle potential null/undefined filters object
+  // SAFETY FIX: Ensure safeFilters is never null
   const safeFilters = filters || {};
 
   return (
