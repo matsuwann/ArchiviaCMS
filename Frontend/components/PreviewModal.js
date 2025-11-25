@@ -1,10 +1,9 @@
+// Frontend/components/PreviewModal.js
 'use client';
 
 export default function PreviewModal({ document, onClose }) {
-  // 1. Safety check: If no document is passed, don't render anything
   if (!document) return null;
 
-  // 2. Get the preview URLs (default to empty array if missing)
   const previewUrls = document.preview_urls || [];
 
   return (
@@ -22,7 +21,6 @@ export default function PreviewModal({ document, onClose }) {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto bg-slate-200 p-4 flex flex-col items-center gap-4 relative">
           
-          {/* Logic: If we have preview images, show them. Otherwise show a fallback message. */}
           {previewUrls.length > 0 ? (
             previewUrls.map((url, index) => (
               <div key={index} className="relative shadow-lg group w-full max-w-[700px]">
@@ -32,17 +30,16 @@ export default function PreviewModal({ document, onClose }) {
                   className="w-full h-auto bg-white rounded-sm" 
                 />
                 
-                {/* BLUR OVERLAY LOGIC:
-                    Show this overlay ONLY if:
-                    1. It is Page 6 or later (index > 4)
-                    2. AND the user does NOT have a download link (not logged in)
+                {/* OVERLAY LOGIC:
+                   - Index 0,1,2,3,4 (Pages 1-5) = CLEAR (No Overlay)
+                   - Index 5+ (Page 6+) = BLURRED + OVERLAY
                 */}
                 {index > 4 && !document.downloadLink && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[4px]">
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
                       <p className="font-bold text-gray-900 text-xl mb-2">End of Free Preview</p>
                       <p className="text-sm text-gray-600 mb-6">
-                        This document has more pages. Log in to your account to download the full PDF.
+                        This document continues. Log in to your account to download and view the full research paper.
                       </p>
                       <a href="/login" className="inline-block w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md">
                         Login to Access Full File
@@ -53,7 +50,6 @@ export default function PreviewModal({ document, onClose }) {
               </div>
             ))
           ) : (
-            // Fallback if no preview images exist (e.g. old uploads)
             <div className="bg-white p-10 rounded-lg shadow text-center max-w-md mt-10">
               <p className="text-gray-800 font-medium mb-2">Preview not available</p>
               <p className="text-sm text-gray-500">
@@ -70,7 +66,6 @@ export default function PreviewModal({ document, onClose }) {
             </p>
             
             {document.downloadLink ? (
-               // Logged In: Show Download Button
                <a 
                  href={document.downloadLink} 
                  target="_blank" 
@@ -81,7 +76,6 @@ export default function PreviewModal({ document, onClose }) {
                  Download Full PDF
                </a>
             ) : (
-               // Guest: Show Login Button
                <a href="/login" className="px-6 py-2 bg-slate-900 text-white font-bold rounded-md hover:bg-slate-800 shadow-md transition-colors">
                  Login to Download
                </a>

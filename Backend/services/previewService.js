@@ -1,55 +1,57 @@
-const { fromBuffer } = require('pdf2pic');
-const sharp = require('sharp');
-const fs = require('fs').promises;
-const path = require('path');
+// Backend/services/previewService.js
+const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
 
-exports.generatePreviews = async (pdfBuffer) => {
-  try {
-    const options = {
-      density: 100,
-      saveFilename: "temp_preview",
-      savePath: "/tmp", 
-      format: "png",
-      width: 800,
-      height: 1100
-    };
+// Configure Cloudinary with your credentials
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-    const convert = fromBuffer(pdfBuffer, options);
-    const processedBuffers = [];
+exports.generatePreviews = async (pdfBuffer, filename) => {
+  return new Promise((resolve, reject) => {
+    // 1. Create a unique ID for Cloudinary (remove extension)
+    const publicId = `previews/${filename.replace(/\.[^/.]+$/, "")}`;
 
-    // MODIFIED: Loop through pages 1 to 6 (5 Clear + 1 Blurred)
-    for (let pageNum = 1; pageNum <= 6; pageNum++) {
-      try {
-        const result = await convert(pageNum, { responseType: "image" });
-        if (!result || !result.path) continue;
-
-        const imageBuffer = await fs.readFile(result.path);
-        let imagePipeline = sharp(imageBuffer);
-
-        // MODIFIED LOGIC: Pages 1-5 are clear. Page 6+ are blurred.
-        if (pageNum > 5) {
-          imagePipeline = imagePipeline.blur(15); 
+    // 2. Upload the PDF to Cloudinary
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { 
+        resource_type: 'image', // Important: Treat PDF as a set of images
+        public_id: publicId,
+        format: 'png'           // Convert pages to PNG
+      },
+      (error, result) => {
+        if (error) {
+            console.error("Cloudinary Upload Error:", error);
+            return resolve([]); // Return empty array so main upload doesn't fail
         }
 
-        const finalBuffer = await imagePipeline.png().toBuffer();
+        const previewUrls = [];
 
-        processedBuffers.push({
-          page: pageNum,
-          buffer: finalBuffer,
-          isBlurred: pageNum > 5 // Mark true only if page > 5
-        });
+        // 3. Generate URLs for Pages 1 to 6
+        // Page 1-5: Clear
+        // Page 6: Blurred
+        for (let i = 1; i <= 6; i++) {
+          // Apply blur transformation ONLY if page > 5
+          const transformation = i > 5 ? [{ effect: "blur:1500" }] : [];
 
-        await fs.unlink(result.path).catch(() => {});
+          const url = cloudinary.url(result.public_id, {
+            page: i,
+            resource_type: 'image',
+            format: 'png',
+            transformation: transformation,
+            secure: true // Force HTTPS
+          });
+          
+          previewUrls.push(url);
+        }
 
-      } catch (pageErr) {
-        break; // Stop if document has fewer than 6 pages
+        resolve(previewUrls);
       }
-    }
+    );
 
-    return processedBuffers;
-
-  } catch (err) {
-    console.error("Preview Service Error:", err);
-    return []; 
-  }
+    // Pipe the file buffer to the upload stream
+    streamifier.createReadStream(pdfBuffer).pipe(uploadStream);
+  });
 };
