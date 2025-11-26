@@ -130,3 +130,21 @@ export const forgotPassword = (email) => {
 export const resetPassword = (token, password) => {
   return api.post('/auth/reset-password', { token, password });
 };
+
+// User Side
+export const requestDeletion = (id, reason) => {
+  return api.post(`/documents/${id}/request-delete`, { reason });
+};
+
+// Admin Side
+export const getDeletionRequests = () => {
+  return api.get('/admin/requests');
+};
+
+export const adminApproveDeletion = (id) => {
+  return api.delete(`/admin/requests/${id}/approve`);
+};
+
+export const adminRejectDeletion = (id) => {
+  return api.put(`/admin/requests/${id}/reject`);
+};

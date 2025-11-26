@@ -210,3 +210,46 @@ exports.removeBrandIcon = async (req, res) => {
     res.status(500).json({ message: 'Failed to remove brand icon.' });
   }
 };
+
+exports.getDeletionRequests = async (req, res) => {
+  try {
+    const requests = await documentModel.findAllDeletionRequests();
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.approveDeletion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 1. Get file info to delete from S3
+    const file = await documentModel.adminFindFileById(id);
+    if (!file) return res.status(404).json({ message: "Document not found." });
+
+    // 2. Delete from DB
+    const deletedCount = await documentModel.adminDeleteById(id);
+    
+    // 3. Delete from S3
+    if (deletedCount > 0) {
+      await s3Service.deleteFromS3(file.filename);
+      res.json({ message: "Request approved. Document deleted." });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.rejectDeletion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await documentModel.revokeDeletionRequest(id);
+    res.json({ message: "Request rejected. Document kept." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};

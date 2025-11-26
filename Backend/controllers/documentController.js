@@ -239,3 +239,38 @@ exports.deleteDocument = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// 1. User submits a request
+exports.submitDeletionRequest = async (id, userId, reason) => {
+  const { rows } = await db.query(
+    `UPDATE documents 
+     SET deletion_requested = TRUE, deletion_reason = $1 
+     WHERE id = $2 AND user_id = $3 
+     RETURNING *`,
+    [reason, id, userId]
+  );
+  return rows[0];
+};
+
+// 2. Admin fetches all pending requests
+exports.findAllDeletionRequests = async () => {
+  const { rows } = await db.query(
+    `SELECT id, title, filename, user_id, deletion_reason, created_at, ai_authors 
+     FROM documents 
+     WHERE deletion_requested = TRUE 
+     ORDER BY created_at ASC`
+  );
+  return rows;
+};
+
+// 3. Admin rejects request (Clear flags)
+exports.revokeDeletionRequest = async (id) => {
+  const { rows } = await db.query(
+    `UPDATE documents 
+     SET deletion_requested = FALSE, deletion_reason = NULL 
+     WHERE id = $1 
+     RETURNING *`,
+    [id]
+  );
+  return rows[0];
+};

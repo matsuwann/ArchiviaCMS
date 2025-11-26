@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import EditDocumentModal from './EditDocumentModal'; 
-import { getMyUploads, deleteDocument, updateDocument } from '../services/apiService';
+// Added requestDeletion to imports
+import { getMyUploads, deleteDocument, updateDocument, requestDeletion } from '../services/apiService';
 import { toast } from 'react-hot-toast'; 
 
 export default function MyUploadsList() {
@@ -12,6 +13,11 @@ export default function MyUploadsList() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
+
+  // --- NEW STATE FOR DELETION REQUEST ---
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   useEffect(() => {
     fetchUploads();
@@ -29,50 +35,6 @@ export default function MyUploadsList() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDelete = async (docId) => {
-    toast((t) => (
-      <span className="flex flex-col gap-2">
-        Are you sure you want to delete this?
-        <div className="flex gap-2">
-          <button
-            className="w-full py-1 px-3 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-700"
-            onClick={() => {
-              toast.dismiss(t.id);
-              performDelete(docId);
-            }}
-          >
-            Delete
-          </button>
-          <button
-            className="w-full py-1 px-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
-            onClick={() => toast.dismiss(t.id)}
-          >
-            Cancel
-          </button>
-        </div>
-      </span>
-    ), { duration: 6000 });
-  };
-
-  const performDelete = async (docId) => {
-    const deletePromise = deleteDocument(docId);
-    
-    toast.promise(
-      deletePromise,
-      {
-        loading: 'Deleting document...',
-        success: () => {
-          setDocuments(documents.filter(doc => doc.id !== docId));
-          return 'Document deleted successfully.';
-        },
-        error: (err) => {
-          console.error(err);
-          return 'Failed to delete document.';
-        }
-      }
-    );
   };
 
   const handleEdit = (doc) => {
@@ -97,6 +59,41 @@ export default function MyUploadsList() {
       await fetchUploads();
     } catch (error) {
       console.error("Failed to save:", error);
+    }
+  };
+
+  // --- NEW DELETION LOGIC ---
+
+  const handleDeleteClick = (doc) => {
+    if (doc.deletion_requested) {
+        toast("Deletion already requested for this file. Waiting for admin approval.");
+        return;
+    }
+    setDocToDelete(doc);
+    setDeleteReason("");
+    setIsDeleteModalOpen(true);
+  };
+
+  const submitDeleteRequest = async (e) => {
+    e.preventDefault();
+    if (!deleteReason.trim()) return toast.error("Please provide a reason.");
+
+    const promise = requestDeletion(docToDelete.id, deleteReason);
+    
+    toast.promise(promise, {
+        loading: 'Sending request...',
+        success: 'Request sent to admin!',
+        error: 'Failed to send request.'
+    });
+
+    try {
+        await promise;
+        setIsDeleteModalOpen(false);
+        setDocToDelete(null);
+        // Refresh list to update the button status to "Pending..."
+        await fetchUploads(); 
+    } catch (err) {
+        console.error(err);
     }
   };
   
@@ -138,11 +135,18 @@ export default function MyUploadsList() {
                     >
                       Edit
                     </button>
+                    
+                    {/* Updated Delete Button */}
                     <button
-                      onClick={() => handleDelete(doc.id)}
-                      className="py-1 px-3 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-700"
+                      onClick={() => handleDeleteClick(doc)}
+                      disabled={doc.deletion_requested}
+                      className={`py-1 px-3 text-sm font-semibold rounded-lg shadow-md transition-colors ${
+                        doc.deletion_requested 
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                          : "bg-red-600 text-white hover:bg-red-700"
+                      }`}
                     >
-                      Delete
+                      {doc.deletion_requested ? "Pending..." : "Delete"}
                     </button>
                   </div>
                 </li>
@@ -152,12 +156,49 @@ export default function MyUploadsList() {
         )}
       </div>
       
+      {/* Edit Modal */}
       {isModalOpen && (
         <EditDocumentModal 
           document={selectedDocument} 
           onClose={() => setIsModalOpen(false)}
           onSave={handleSave}
         />
+      )}
+
+      {/* Request Deletion Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+                <h3 className="text-lg font-bold mb-2">Request Deletion</h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                    Please tell the admin why you want to delete <span className="font-semibold">{docToDelete?.title}</span>.
+                </p>
+                <form onSubmit={submitDeleteRequest}>
+                    <textarea
+                        className="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 ring-indigo-500 outline-none min-h-[100px]"
+                        placeholder="Reason for deletion..."
+                        value={deleteReason}
+                        onChange={(e) => setDeleteReason(e.target.value)}
+                        required
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button 
+                            type="button"
+                            onClick={() => setIsDeleteModalOpen(false)} 
+                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            className="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 shadow-sm"
+                        >
+                            Send Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
       )}
     </>
   );

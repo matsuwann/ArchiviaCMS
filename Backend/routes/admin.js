@@ -27,4 +27,8 @@ router.post('/remove-brand-icon', adminController.removeBrandIcon);
 
 router.post('/settings/reset', adminController.resetSettings);
 
+router.get('/requests', adminMiddleware, adminController.getDeletionRequests);
+router.delete('/requests/:id/approve', adminMiddleware, adminController.approveDeletion);
+router.put('/requests/:id/reject', adminMiddleware, adminController.rejectDeletion);
+
 module.exports = router;
