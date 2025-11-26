@@ -32,11 +32,12 @@ export function AuthProvider({ children }) {
               firstName: decodedUser.firstName, 
               lastName: decodedUser.lastName, 
               email: decodedUser.email,
-              is_admin: decodedUser.is_admin // <--- MODIFIED
+              is_admin: decodedUser.is_admin,
+              // ADDED: Ensure this field is restored from the token
+              is_super_admin: decodedUser.is_super_admin 
           });
           setToken(storedToken);
          
-
           setAuthToken(storedToken);
         }
       } catch (error) {
@@ -51,7 +52,8 @@ export function AuthProvider({ children }) {
   const login = (userData, receivedToken) => {
     localStorage.setItem('token', receivedToken);
     setToken(receivedToken);
-    setUser(userData); // userData from API now includes 'is_admin'
+    // userData comes from the login API response, which already has the field
+    setUser(userData); 
     
     setAuthToken(receivedToken);
   };
