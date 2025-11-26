@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
 // Helper to safely parse authors
@@ -18,20 +18,25 @@ export default function DocumentList({
     isLoading = false, 
     searchPerformed = false, 
     onSearch = () => {}, 
-    popularSearches = [] 
+    popularSearches = [],
+    initialSearchTerm = '' // NEW: Accepts term from parent
 }) {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [selectedDoc, setSelectedDoc] = useState(null);
+
+    // NEW: Sync local state if parent passes a new term (e.g. from Hero page)
+    useEffect(() => {
+        if (typeof initialSearchTerm === 'string') {
+            setSearchTerm(initialSearchTerm);
+        }
+    }, [initialSearchTerm]);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
         onSearch(searchTerm);
     };
 
-    // Force popularSearches to be an array
     const safePopularSearches = Array.isArray(popularSearches) ? popularSearches : [];
-    
-    // Force documents to be an array. If it's not, use empty array [] to prevent crash.
     const safeDocuments = Array.isArray(documents) ? documents : [];
     const isDataError = documents && !Array.isArray(documents);
 
@@ -39,7 +44,7 @@ export default function DocumentList({
         <>
             <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="mb-6">
-                    {/* SEARCH BAR - ALWAYS VISIBLE */}
+                    {/* SEARCH BAR */}
                     <form onSubmit={handleFormSubmit} className="flex gap-2 mb-3">
                         <input
                             type="text"
@@ -48,12 +53,12 @@ export default function DocumentList({
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
-                        <button type="submit" className="py-2 px-6 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700">
+                        <button type="submit" className="py-2 px-6 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 transition">
                             Search
                         </button>
                     </form>
                     
-                    {/* TRENDING - SAFE RENDER */}
+                    {/* TRENDING */}
                     {safePopularSearches.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs text-gray-500 font-semibold uppercase">Trending:</span>
@@ -61,7 +66,7 @@ export default function DocumentList({
                                 <button 
                                     key={item.term || idx} 
                                     onClick={() => onSearch(item.term)} 
-                                    className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-md border border-indigo-100 hover:bg-indigo-100"
+                                    className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-md border border-indigo-100 hover:bg-indigo-100 transition"
                                 >
                                     {item.term}
                                 </button>
@@ -70,7 +75,7 @@ export default function DocumentList({
                     )}
                 </div>
 
-                {/* DOCUMENT LIST */}
+                {/* LIST VIEW */}
                 <div>
                     {isLoading ? (
                         <p className="text-center text-gray-500 py-10 italic">Loading library...</p>
@@ -116,7 +121,7 @@ export default function DocumentList({
                                         </li>
                                     );
                                 } catch (err) {
-                                    return null; // Skip individual bad rows
+                                    return null;
                                 }
                             })}
                         </ul>

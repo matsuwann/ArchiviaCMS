@@ -19,19 +19,26 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { is_admin } = req.body; 
+    // UPDATED: Extract all fields sent by the frontend
+    const { first_name, last_name, email, is_admin } = req.body; 
 
     if (typeof is_admin !== 'boolean') {
       return res.status(400).json({ message: 'Invalid admin status specified. Must be true or false.' });
     }
 
-    const updatedUser = await userModel.updateAdminStatus(id, is_admin);
+    // UPDATED: Call the new model method
+    const updatedUser = await userModel.updateUserDetails(id, { first_name, last_name, email, is_admin });
+    
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found.' });
     }
     res.json(updatedUser);
   } catch (err) {
     console.error(err.message);
+    // Check for unique constraint violation (e.g. duplicate email)
+    if (err.code === '23505') {
+        return res.status(400).json({ message: 'Email already in use.' });
+    }
     res.status(500).send('Server error');
   }
 };
@@ -250,6 +257,21 @@ exports.rejectDeletion = async (req, res) => {
     res.json({ message: "Request rejected. Document kept." });
   } catch (err) {
     console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.reactivateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reactivatedUser = await userModel.reactivate(id);
+
+    if (!reactivatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json({ message: 'User reactivated successfully.' });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server error');
   }
 };

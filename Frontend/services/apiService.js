@@ -14,6 +14,8 @@ export const setAuthToken = (token) => {
   }
 };
 
+export const adminReactivateUser = (id) => api.put(`/admin/users/${id}/reactivate`);
+
 export const login = (email, password) => {
   return api.post('/auth/login', { email, password });
 };

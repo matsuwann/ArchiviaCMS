@@ -49,6 +49,18 @@ exports.updateAdminStatus = async (userId, isAdminBoolean) => {
   return rows[0];
 };
 
+// NEW: Function to update full user details
+exports.updateUserDetails = async (userId, { first_name, last_name, email, is_admin }) => {
+  const { rows } = await db.query(
+    `UPDATE users 
+     SET first_name = $1, last_name = $2, email = $3, is_admin = $4 
+     WHERE id = $5 
+     RETURNING id, first_name, last_name, email, is_admin, is_active`,
+    [first_name, last_name, email, is_admin, userId]
+  );
+  return rows[0];
+};
+
 // CHANGED: This checks for soft-deletion now
 exports.deactivate = async (userId) => {
   const { rows } = await db.query(
@@ -96,4 +108,12 @@ exports.updatePassword = async (userId, passwordHash) => {
     'UPDATE users SET password_hash = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2',
     [passwordHash, userId]
   );
+};
+
+exports.reactivate = async (userId) => {
+  const { rows } = await db.query(
+    'UPDATE users SET is_active = TRUE WHERE id = $1 RETURNING id', 
+    [userId]
+  );
+  return rows[0];
 };

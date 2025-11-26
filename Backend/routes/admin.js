@@ -11,6 +11,7 @@ router.use(adminMiddleware);
 router.get('/users', adminController.getAllUsers);
 router.put('/users/:id', adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
+router.put('/users/:id/reactivate', adminController.reactivateUser);
 
 // Document 
 router.put('/documents/:id', adminController.adminUpdateDocument);
@@ -26,6 +27,7 @@ router.post('/upload-brand-icon', adminController.uploadBrandIcon);
 router.post('/remove-brand-icon', adminController.removeBrandIcon);
 
 router.post('/settings/reset', adminController.resetSettings);
+
 
 router.get('/requests', adminMiddleware, adminController.getDeletionRequests);
 router.delete('/requests/:id/approve', adminMiddleware, adminController.approveDeletion);

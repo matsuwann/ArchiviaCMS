@@ -1,20 +1,20 @@
 'use client'; 
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
+import { usePathname, useRouter } from 'next/navigation'; 
 import { useAuth } from '../context/AuthContext'; 
 import { useState } from 'react'; 
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, authLoading } = useAuth();
   const pathname = usePathname();
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
   
   // Checks if we are on /login or /register
   const isAuthPage = pathname === '/login' || pathname === '/register';
   
-  // Logic for Sign In link (already existed)
+  // Logic for Sign In link
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
@@ -22,8 +22,8 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setIsDropdownOpen(false);
-    router.push('/login'); // Redirect to login page
-    router.refresh(); // Refresh the router to ensure all server components update
+    router.push('/login'); 
+    router.refresh(); 
   };
 
   if (authLoading) {
@@ -110,6 +110,14 @@ export default function Navbar() {
                         >
                           Manage Documents
                         </Link>
+                        {/* ADDED: Link to Deletion Requests Page */}
+                        <Link 
+                          href="/admin/requests" 
+                          onClick={() => setIsDropdownOpen(false)} 
+                          className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200"
+                        >
+                          Deletion Requests
+                        </Link>
                          <Link 
                           href="/admin/theme" 
                           onClick={() => setIsDropdownOpen(false)} 
@@ -146,7 +154,6 @@ export default function Navbar() {
               </li>
             ) : (
               <>
-                {/* Only show Sign In if NOT on login/register pages */}
                 {shouldShowLoginLink && (
                   <li>
                     <Link href="/login" style={linkStyle} className="hover:opacity-80">
@@ -155,7 +162,6 @@ export default function Navbar() {
                   </li>
                 )}
                 
-                {/* MODIFIED: Only show Create Account if NOT on login/register pages */}
                 {!isAuthPage && (
                   <li>
                     <Link href="/register" style={linkStyle} className="hover:opacity-80">
