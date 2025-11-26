@@ -1,4 +1,3 @@
-// Backend/controllers/documentController.js
 const documentModel = require('../models/documentModel');
 const analyticsModel = require('../models/analyticsModel');
 const aiService = require('../services/aiService');
@@ -162,7 +161,6 @@ exports.uploadDocument = (req, res) => {
         const metadata = await aiService.analyzeDocument(req.file.buffer);
         
         // 2. Generate Previews (Via Cloudinary)
-        // We pass the buffer and the filename. The service handles the upload and returns URLs.
         let previewUrls = [];
         try {
             previewUrls = await previewService.generatePreviews(req.file.buffer, filename);
@@ -240,37 +238,27 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-// 1. User submits a request
-exports.submitDeletionRequest = async (id, userId, reason) => {
-  const { rows } = await db.query(
-    `UPDATE documents 
-     SET deletion_requested = TRUE, deletion_reason = $1 
-     WHERE id = $2 AND user_id = $3 
-     RETURNING *`,
-    [reason, id, userId]
-  );
-  return rows[0];
-};
+// === FIXED: Added missing controller function ===
+exports.requestDeleteDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body; 
+    const userId = req.user.userId;
 
-// 2. Admin fetches all pending requests
-exports.findAllDeletionRequests = async () => {
-  const { rows } = await db.query(
-    `SELECT id, title, filename, user_id, deletion_reason, created_at, ai_authors 
-     FROM documents 
-     WHERE deletion_requested = TRUE 
-     ORDER BY created_at ASC`
-  );
-  return rows;
-};
+    if (!reason) {
+      return res.status(400).json({ message: "A reason for deletion is required." });
+    }
 
-// 3. Admin rejects request (Clear flags)
-exports.revokeDeletionRequest = async (id) => {
-  const { rows } = await db.query(
-    `UPDATE documents 
-     SET deletion_requested = FALSE, deletion_reason = NULL 
-     WHERE id = $1 
-     RETURNING *`,
-    [id]
-  );
-  return rows[0];
+    // Call the model function
+    const result = await documentModel.submitDeletionRequest(id, userId, reason);
+
+    if (!result) {
+      return res.status(404).json({ message: "Document not found or unauthorized." });
+    }
+
+    res.json({ message: "Deletion request submitted successfully.", request: result });
+  } catch (err) {
+    console.error("Error requesting deletion:", err.message);
+    res.status(500).send('Server error');
+  }
 };

@@ -62,7 +62,7 @@ export default function AdminRequestsPage() {
                     <p className="text-xs text-gray-400 mb-2">{req.filename}</p>
                     <div className="bg-red-50 p-3 rounded border border-red-100">
                         <p className="text-sm text-red-800 font-semibold">Reason provided:</p>
-                        <p className="text-gray-700 italic">"{req.deletion_reason}"</p>
+                        <p className="text-gray-700 italic">&quot;{req.deletion_reason}&quot;</p>
                     </div>
                 </div>
                 
