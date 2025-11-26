@@ -1,7 +1,7 @@
 const db = require('../db');
 
 exports.findAll = async () => {
-  // Added preview_urls to the select list
+  // Added preview_urls
   const { rows } = await db.query(
     `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id 
      FROM documents ORDER BY created_at DESC`
@@ -11,7 +11,7 @@ exports.findAll = async () => {
 
 exports.findByTerm = async (term) => {
   const searchQuery = `%${term}%`;
-  // Added preview_urls to the select list
+  // Added preview_urls
   const { rows } = await db.query(
       `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
        FROM documents 
@@ -26,12 +26,12 @@ exports.findByTerm = async (term) => {
   return rows;
 };
 
-// === THIS IS THE CRITICAL FIX ===
+// === THIS IS THE FIXED FUNCTION ===
 exports.create = async ({ title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id }) => {
-  // Ensure preview_urls is an array (Postgres stores it as text[])
-  // If it's missing/null, default to empty array []
+  // 1. Handle missing preview_urls safely
   const safePreviewUrls = preview_urls || [];
 
+  // 2. Insert with preview_urls (10 items)
   const { rows } = await db.query(
       `INSERT INTO documents 
         (title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id) 
@@ -40,7 +40,7 @@ exports.create = async ({ title, filename, filepath, preview_urls, ai_keywords, 
   );
   return rows[0];
 };
-// ================================
+// =================================
 
 exports.getAllMetadata = async () => {
   const { rows } = await db.query(
@@ -50,7 +50,6 @@ exports.getAllMetadata = async () => {
 };
 
 exports.filterByFacets = async ({ authors, keywords, year, journal, dateRange }) => {
-  // Added preview_urls to select * (which it does by default, but good to know)
   let query = `SELECT * FROM documents WHERE 1=1`;
   const params = [];
   let paramIndex = 1;

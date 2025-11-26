@@ -15,7 +15,6 @@ const getSafeList = (data) => {
 export default function PreviewModal({ document, onClose }) {
   if (!document) return null;
 
-  // USE HELPER HERE
   const previewUrls = getSafeList(document.preview_urls);
 
   return (
@@ -45,7 +44,7 @@ export default function PreviewModal({ document, onClose }) {
                   onError={(e) => {e.target.style.display='none'}}
                 />
                 
-                {/* BLUR OVERLAY (Only on Page 6) */}
+                {/* BLUR OVERLAY (Only on Page 6, which is index 5) */}
                 {index === 5 && !document.downloadLink && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
