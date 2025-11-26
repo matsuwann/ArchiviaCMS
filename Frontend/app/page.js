@@ -16,7 +16,7 @@ export default function Home() {
   
   // Selection State
   const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
-a
+
   useEffect(() => {
     // Load EVERYTHING on initial page load
     Promise.all([
