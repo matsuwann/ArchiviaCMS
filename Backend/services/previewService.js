@@ -28,8 +28,8 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { 
         resource_type: 'image', 
-        public_id: publicId,
-        format: 'png'
+        public_id: publicId
+        // format: 'png' REMOVED to ensure the file is stored as a PDF, preserving all pages
       },
       (error, result) => {
         if (error) {
@@ -59,7 +59,7 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
           const url = cloudinary.url(result.public_id, {
             page: i,
             resource_type: 'image',
-            format: 'png',
+            format: 'png', // Convert to PNG on retrieval
             transformation: transformation,
             secure: true 
           });
