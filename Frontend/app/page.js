@@ -1,117 +1,124 @@
-"use client";
-import React, { useState } from 'react';
-import Image from 'next/image';
-// Import your existing components for the "Updated UI"
+'use client';
+
+import { useState, useEffect } from 'react';
 import DocumentList from '../components/DocumentList';
 import FilterSidebar from '../components/FilterSidebar';
+import { searchDocuments, getFilters, filterDocuments, getPopularSearches } from '../services/apiService';
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  
+  // Data State
+  const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
+  const [popularSearches, setPopularSearches] = useState([]);
+  
+  // Selection State
+  const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+a
+  useEffect(() => {
+    // Load EVERYTHING on initial page load
+    Promise.all([
+      searchDocuments(''),      
+      getFilters(),             
+      getPopularSearches()      
+    ]).then(([docsRes, filtersRes, popRes]) => {
+      setDocuments(docsRes.data);
+      setAvailableFilters(filtersRes.data);
+      setPopularSearches(popRes.data);
+      setIsLoading(false);
+    }).catch(err => {
+      console.error("Init failed:", err);
+      setIsLoading(false);
+    });
+  }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setHasSearched(true);
+  const handleSearch = async (searchTerm) => {
+    setIsLoading(true);
+    setSearchPerformed(!!searchTerm);
+    // Reset filters on new search text
+    setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+
+    try {
+      const response = await searchDocuments(searchTerm);
+      setDocuments(response.data);
+      
+      if(searchTerm) {
+          // Refresh analytics after search
+          setTimeout(() => {
+             getPopularSearches().then(res => setPopularSearches(res.data));
+          }, 1000);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      setDocuments([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // --- VIEW 1: UPDATED SEARCH UI (Only shown after search) ---
-  if (hasSearched) {
-    return (
-      <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-        {/* Sidebar for filters */}
-        <div className="w-full md:w-64 flex-shrink-0">
-          <FilterSidebar />
-        </div>
+  const handleFilterChange = async (category, value) => {
+    if (category === 'reset') {
+        setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+        const res = await searchDocuments('');
+        setDocuments(res.data);
+        return;
+    }
 
-        {/* Main Content Area */}
-        <div className="flex-1 p-6">
-          {/* Search bar at top of results to allow searching again */}
-          <form onSubmit={handleSearch} className="mb-6 flex gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search documents..."
-              className="flex-1 p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            <button 
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Search
-            </button>
-            <button 
-              type="button"
-              onClick={() => { setSearchQuery(''); setHasSearched(false); }}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Clear
-            </button>
-          </form>
+    const newFilters = { ...selectedFilters, [category]: value };
+    setSelectedFilters(newFilters);
+    setIsLoading(true);
 
-          <DocumentList query={searchQuery} />
-        </div>
-      </div>
-    );
-  }
+    try {
+      // If filters cleared, load all
+      const isEmpty = newFilters.authors.length === 0 && 
+                      newFilters.keywords.length === 0 && 
+                      newFilters.journal.length === 0 && 
+                      !newFilters.year && 
+                      !newFilters.dateRange;
 
-  // --- VIEW 2: LANDING PAGE (Default - Matches your Image) ---
+      if (isEmpty) {
+         const res = await searchDocuments('');
+         setDocuments(res.data);
+      } else {
+         const response = await filterDocuments(newFilters);
+         setDocuments(response.data);
+      }
+    } catch (error) {
+      console.error("Filter failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <main className="flex flex-col items-center justify-center min-h-[85vh] bg-white px-4">
+    <main className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Archivia Library</h1>
+      </header>
       
-      {/* 1. Large Central Logo/Icon */}
-      <div className="mb-8 transform hover:scale-105 transition-transform duration-300">
-        {/* Using window.svg as seen in your file list, or swap for system-brand-icon.png */}
-        <Image 
-          src="/window.svg" 
-          alt="Archivia Brand" 
-          width={120} 
-          height={120} 
-          className="opacity-90"
-          priority
-        />
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* LEFT SIDEBAR (25% width) */}
+        <aside className="w-full md:w-1/4 flex-shrink-0">
+            <FilterSidebar 
+                filters={availableFilters} 
+                selectedFilters={selectedFilters}
+                onFilterChange={handleFilterChange}
+            />
+        </aside>
+
+        {/* MAIN CONTENT (75% width) */}
+        <div className="w-full md:w-3/4">
+            <DocumentList 
+              documents={documents} 
+              isLoading={isLoading}
+              searchPerformed={searchPerformed || documents.length > 0}
+              onSearch={handleSearch}
+              popularSearches={popularSearches}
+            />
+        </div>
       </div>
-
-      {/* 2. Brand Name */}
-      <h1 className="text-5xl font-bold text-gray-800 mb-12 tracking-tight">
-        Archivia
-      </h1>
-
-      {/* 3. Central Search Bar */}
-      <div className="w-full max-w-2xl">
-        <form onSubmit={handleSearch} className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <svg 
-              className="h-6 w-6 text-gray-400 group-focus-within:text-blue-500 transition-colors" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-full text-lg placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 focus:ring-opacity-50 transition-all shadow-sm hover:shadow-md"
-            placeholder="Search for a document..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button 
-            type="submit"
-            className="absolute inset-y-2 right-2 bg-blue-600 text-white px-6 rounded-full font-medium hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            Search
-          </button>
-        </form>
-      </div>
-
-      {/* Optional: Footer Text */}
-      <p className="mt-8 text-gray-400 text-sm">
-        Manage, archive, and discover your documents efficiently.
-      </p>
     </main>
   );
 }

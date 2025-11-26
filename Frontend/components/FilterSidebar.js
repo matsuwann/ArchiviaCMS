@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-// FIX: Added default value selectedFilters = {} to prevent "t is undefined" crash
-export default function FilterSidebar({ filters, selectedFilters = {}, onFilterChange }) {
+export default function FilterSidebar({ filters, selectedFilters, onFilterChange }) {
   const [openSections, setOpenSections] = useState({
     dateRange: true,
     journals: true,
@@ -16,7 +15,6 @@ export default function FilterSidebar({ filters, selectedFilters = {}, onFilterC
   };
 
   const handleCheckboxChange = (category, value) => {
-    // Safe access now guaranteed by default prop
     const current = selectedFilters[category] || [];
     const isSelected = current.includes(value);
     let updated;
@@ -43,12 +41,12 @@ export default function FilterSidebar({ filters, selectedFilters = {}, onFilterC
       
       {openSections[category] && (
         <div className="max-h-48 overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-300">
+          {/* SAFETY FIX: Check if items is a valid array before mapping */}
           {Array.isArray(items) && items.length > 0 ? (
             items.map((item) => {
                const label = item.label || item;
                const value = item.value || item;
                
-               // FIX: Safe access to selectedFilters[category]
                const isChecked = isSingleSelect 
                   ? selectedFilters[category] === value
                   : (selectedFilters[category] || []).includes(value);
@@ -87,6 +85,7 @@ export default function FilterSidebar({ filters, selectedFilters = {}, onFilterC
     { label: 'This Year', value: 'thisYear' },
   ];
 
+  // SAFETY FIX: Ensure safeFilters is never null
   const safeFilters = filters || {};
 
   return (
