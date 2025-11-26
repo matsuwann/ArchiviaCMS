@@ -28,6 +28,10 @@ export const verifyEmail = (email, otp) => {
   return api.post('/auth/verify', { email, otp });
 };
 
+export const adminArchiveDocument = (id, reason) => {
+  return api.post(`/admin/documents/${id}/archive`, { reason });
+};
+
 export const searchDocuments = (term) => {
   if (!term) {
     return api.get('/documents');

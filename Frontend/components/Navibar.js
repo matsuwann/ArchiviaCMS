@@ -17,6 +17,9 @@ export default function Navbar() {
   // Logic for Sign In link
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
 
+  // Check if user is super admin
+  const isSuperAdmin = user?.is_super_admin;
+
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
 
   const handleLogout = () => {
@@ -69,13 +72,16 @@ export default function Navbar() {
                 </Link>
               </li>
             )}
-            {isAuthenticated && (
+            
+            {/* HIDE Upload link for Super Admins */}
+            {isAuthenticated && !isSuperAdmin && (
               <li>
                 <Link href="/upload" style={linkStyle} className="hover:opacity-80">
                   Upload Paper
                 </Link>
               </li>
             )}
+
             {isAuthenticated ? (
               <li className="relative">
                 <button
@@ -84,6 +90,7 @@ export default function Navbar() {
                   style={{ color: 'var(--navbar-text-color)' }}
                 >
                   Welcome, {user?.firstName}!
+                  {isSuperAdmin && <span className="ml-2 text-xs bg-red-500 text-white px-1 rounded">SA</span>}
                   <svg className={`ml-2 h-4 w-4 transform transition-transform ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -110,7 +117,6 @@ export default function Navbar() {
                         >
                           Manage Documents
                         </Link>
-                        {/* ADDED: Link to Deletion Requests Page */}
                         <Link 
                           href="/admin/requests" 
                           onClick={() => setIsDropdownOpen(false)} 
@@ -128,13 +134,16 @@ export default function Navbar() {
                       </div>
                     )}
                     
-                    <Link 
-                      href="/my-uploads" 
-                      onClick={() => setIsDropdownOpen(false)} 
-                      className="block px-4 py-2 hover:bg-slate-200"
-                    >
-                      My Submissions
-                    </Link>
+                    {/* Hide My Submissions for Super Admin since they can't upload */}
+                    {!isSuperAdmin && (
+                        <Link 
+                        href="/my-uploads" 
+                        onClick={() => setIsDropdownOpen(false)} 
+                        className="block px-4 py-2 hover:bg-slate-200"
+                        >
+                        My Submissions
+                        </Link>
+                    )}
 
                     <Link 
                       href="/profile" 

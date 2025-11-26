@@ -155,3 +155,14 @@ exports.revokeDeletionRequest = async (id) => {
   );
   return rows[0];
 };
+
+exports.adminSubmitDeletionRequest = async (id, reason) => {
+  const { rows } = await db.query(
+    `UPDATE documents 
+     SET deletion_requested = TRUE, deletion_reason = $1 
+     WHERE id = $2 
+     RETURNING *`,
+    [reason, id]
+  );
+  return rows[0];
+};

@@ -148,6 +148,11 @@ exports.getUserUploads = async (req, res) => {
 };
 
 exports.uploadDocument = (req, res) => {
+  // NEW CHECK: Prevent Super Admins from uploading
+  if (req.user && req.user.is_super_admin) {
+      return res.status(403).json({ message: "Super Admins are restricted from uploading documents." });
+  }
+
   upload.single('file')(req, res, async function (err) {
     if (err) return res.status(500).json({ message: 'File upload error.' });
     if (!req.file) return res.status(400).send('A file is required.');
@@ -238,7 +243,6 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-// === FIXED: Added missing controller function ===
 exports.requestDeleteDocument = async (req, res) => {
   try {
     const { id } = req.params;

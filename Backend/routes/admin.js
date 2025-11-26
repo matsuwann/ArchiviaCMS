@@ -1,10 +1,8 @@
-
 const express = require('express');
 const adminController = require('../controllers/adminController');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const router = express.Router();
 
-// Protection
 router.use(adminMiddleware);
 
 // User 
@@ -15,20 +13,19 @@ router.put('/users/:id/reactivate', adminController.reactivateUser);
 
 // Document 
 router.put('/documents/:id', adminController.adminUpdateDocument);
-router.delete('/documents/:id', adminController.adminDeleteDocument);
+router.delete('/documents/:id', adminController.adminDeleteDocument); 
+router.post('/documents/:id/archive', adminController.adminRequestArchive); // NEW ROUTE
 
 // Theme/Settings 
 router.put('/settings', adminController.updateSettings);
 router.post('/icon-upload', adminController.uploadIcon);
-
 router.post('/upload-bg-image', adminController.uploadBgImage);
 router.post('/remove-bg-image', adminController.removeBgImage);
 router.post('/upload-brand-icon', adminController.uploadBrandIcon);
 router.post('/remove-brand-icon', adminController.removeBrandIcon);
-
 router.post('/settings/reset', adminController.resetSettings);
 
-
+// Requests
 router.get('/requests', adminMiddleware, adminController.getDeletionRequests);
 router.delete('/requests/:id/approve', adminMiddleware, adminController.approveDeletion);
 router.put('/requests/:id/reject', adminMiddleware, adminController.rejectDeletion);

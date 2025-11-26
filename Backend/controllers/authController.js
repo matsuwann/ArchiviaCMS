@@ -5,9 +5,6 @@ const userModel = require('../models/userModel');
 const emailService = require('../services/emailService');
 const crypto = require('crypto');
 
-
-
-
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -33,7 +30,6 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
- 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
 
@@ -48,11 +44,9 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-
     emailService.sendOTP(email, otp).catch(err => {
         console.error("BACKGROUND EMAIL ERROR:", err);
     });
-
    
     res.status(201).json({
         message: 'Registration successful. Please verify your email.',
@@ -84,11 +78,9 @@ exports.verifyEmail = async (req, res) => {
         return res.status(400).json({ message: 'User not found.' });
     }
     
-   
     if (user.is_verified) {
         return res.status(200).json({ message: 'User is already verified.' });
     }
-
 
     if (user.otp_code !== otp) {
         return res.status(400).json({ message: 'Invalid OTP.' });
@@ -97,7 +89,6 @@ exports.verifyEmail = async (req, res) => {
     if (new Date() > new Date(user.otp_expires)) {
         return res.status(400).json({ message: 'OTP has expired. Please register again to generate a new one.' });
     }
-
   
     await userModel.markVerified(user.id);
     
@@ -122,7 +113,6 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // NEW CHECK: Block inactive users
     if (user.is_active === false) {
       return res.status(403).json({ message: 'This account has been deactivated. Please contact support.' });
     }
@@ -136,13 +126,15 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
+    // UPDATED: Include is_super_admin in token
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_super_admin: user.is_super_admin || false // Default false
       },
       JWT_SECRET,
       { expiresIn: '1h' }
@@ -154,7 +146,8 @@ exports.login = async (req, res) => {
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_super_admin: user.is_super_admin || false
       } 
     });
 
@@ -181,18 +174,19 @@ exports.googleLogin = async (req, res) => {
       lastName: family_name || 'User'
     });
 
-    // NEW CHECK: Block inactive Google users
     if (user.is_active === false) {
       return res.status(403).json({ message: 'This account has been deactivated.' });
     }
 
+    // UPDATED: Include is_super_admin in token
     const appToken = jwt.sign(
       { 
         userId: user.id, 
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_super_admin: user.is_super_admin || false
       },
       JWT_SECRET,
       { expiresIn: '1h' }
@@ -204,7 +198,8 @@ exports.googleLogin = async (req, res) => {
         email: user.email, 
         firstName: user.first_name, 
         lastName: user.last_name,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        is_super_admin: user.is_super_admin || false
       } 
     });
 
@@ -219,17 +214,14 @@ exports.forgotPassword = async (req, res) => {
   try {
     const user = await userModel.findByEmail(email);
     if (!user) {
-      // We return success even if user doesn't exist to prevent email enumeration
       return res.json({ message: 'If that email exists, a reset link has been sent.' });
     }
 
-    // Generate Token
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600000); // 1 hour from now
+    const expires = new Date(Date.now() + 3600000); 
 
     await userModel.saveResetToken(email, token, expires);
     
-    // Send Email (Background)
     emailService.sendPasswordReset(email, token).catch(err => console.error("Reset Email Error:", err));
 
     res.json({ message: 'If that email exists, a reset link has been sent.' });

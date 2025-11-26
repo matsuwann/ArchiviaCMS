@@ -1,14 +1,26 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext'; 
 import UploadForm from '../../components/UploadForm';
 
 export default function UploadPage() {
   const router = useRouter();
+  const { user, authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user?.is_super_admin) {
+        router.push('/'); // Redirect Super Admins to home
+    }
+  }, [user, authLoading, router]);
 
   const handleUploadSuccess = () => {
     router.push('/'); 
   };
+
+  // Prevent flashing the form while redirecting
+  if (authLoading || user?.is_super_admin) return null; 
 
   return (
     <main className="container mx-auto p-4 md:p-8">

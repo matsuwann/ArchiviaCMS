@@ -6,6 +6,8 @@ const settingsModel = require('../models/settingsModel');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service');
 
+// ... (Keep getAllUsers, updateUser, deleteUser, adminUpdateDocument as they are)
+
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await userModel.findAll();
@@ -19,14 +21,12 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    // UPDATED: Extract all fields sent by the frontend
     const { first_name, last_name, email, is_admin } = req.body; 
 
     if (typeof is_admin !== 'boolean') {
       return res.status(400).json({ message: 'Invalid admin status specified. Must be true or false.' });
     }
 
-    // UPDATED: Call the new model method
     const updatedUser = await userModel.updateUserDetails(id, { first_name, last_name, email, is_admin });
     
     if (!updatedUser) {
@@ -35,7 +35,6 @@ exports.updateUser = async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     console.error(err.message);
-    // Check for unique constraint violation (e.g. duplicate email)
     if (err.code === '23505') {
         return res.status(400).json({ message: 'Email already in use.' });
     }
@@ -46,14 +45,27 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // Changed from deleteById to deactivate
     const deactivatedUser = await userModel.deactivate(id);
 
     if (!deactivatedUser) {
       return res.status(404).json({ message: 'User not found.' });
     }
     res.json({ message: 'User deactivated successfully.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.reactivateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reactivatedUser = await userModel.reactivate(id);
+
+    if (!reactivatedUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json({ message: 'User reactivated successfully.' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -77,8 +89,14 @@ exports.adminUpdateDocument = async (req, res) => {
   }
 };
 
+// MODIFIED: Only Super Admins can permanently delete
 exports.adminDeleteDocument = async (req, res) => {
   try {
+    // Check if the requester is a super admin
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Only Super Admins can permanently delete documents." });
+    }
+
     const { id } = req.params;
 
     const file = await documentModel.adminFindFileById(id);
@@ -88,7 +106,6 @@ exports.adminDeleteDocument = async (req, res) => {
 
     const deletedCount = await documentModel.adminDeleteById(id);
     if (deletedCount > 0) {
- 
       await s3Service.deleteFromS3(file.filename); 
       res.json({ message: `Document '${file.filename}' deleted successfully.` });
     }
@@ -98,20 +115,44 @@ exports.adminDeleteDocument = async (req, res) => {
   }
 };
 
+// NEW: Allows regular admins to request deletion (Archive)
+exports.adminRequestArchive = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason) return res.status(400).json({ message: "A reason is required to archive this document." });
+
+        // We reuse the 'submitDeletionRequest' but bypass the user check since admins can archive any doc
+        // Or we can create a new model method if strict ownership is not needed.
+        // For now, we will assume the document exists and flag it.
+        
+        // We need a new model function or reuse existing with a tweak.
+        // Let's use a specific admin method to avoid 'userId' mismatch issues.
+        const archivedDoc = await documentModel.adminSubmitDeletionRequest(id, reason);
+
+        if (!archivedDoc) {
+            return res.status(404).json({ message: "Document not found." });
+        }
+
+        res.json({ message: "Document archived/flagged for deletion successfully." });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// ... (Keep settings functions and existing request handlers)
+
 exports.updateSettings = async (req, res) => {
   try {
     const newSettings = req.body;
-    console.log('[Backend Controller] Received settings to update:', newSettings);
-    
     const updatedSettingsArray = await settingsModel.updateSettings(newSettings);
-    
-    console.log('[Backend Controller] Sending updated settings to frontend.');
-
     const settingsObject = updatedSettingsArray.reduce((acc, item) => {
       acc[item.setting_key] = item.setting_value;
       return acc;
     }, {});
-
     res.json(settingsObject);
   } catch (err) {
     console.error(err.message);
@@ -121,15 +162,11 @@ exports.updateSettings = async (req, res) => {
 
 exports.resetSettings = async (req, res) => {
   try {
-    console.log('[Backend Controller] Resetting settings to default...');
     const defaultSettingsArray = await settingsModel.resetToDefault();
-    
     const settingsObject = defaultSettingsArray.reduce((acc, item) => {
       acc[item.setting_key] = item.setting_value;
       return acc;
     }, {});
-
-    console.log('[Backend Controller] Settings reset.');
     res.json(settingsObject);
   } catch (err) {
     console.error(err.message);
@@ -143,14 +180,9 @@ exports.uploadIcon = (req, res) => {
     if (!req.file) return res.status(400).send('An icon file is required.');
 
     try {
-      // Upload to S3 instead of local disk
       const filename = `favicon-${Date.now()}${path.extname(req.file.originalname)}`;
-      const iconUrl = await s3Service.uploadToS3(req.file, filename);
-      
-      // NOTE: For the favicon to update dynamically, you'd need to store this URL 
-      // in your settings table and update your Frontend layout to read it.
-      // For now, we just return success.
-      res.status(200).json({ message: 'Icon uploaded to S3 (Update frontend to use dynamic favicon URL).' });
+      await s3Service.uploadToS3(req.file, filename);
+      res.status(200).json({ message: 'Icon uploaded to S3.' });
     } catch (dbErr) {
       console.error(dbErr);
       res.status(500).json({ message: 'Failed to upload icon to S3.'});
@@ -166,7 +198,6 @@ exports.uploadBgImage = (req, res) => {
     try {
       const filename = `system-background-${Date.now()}${path.extname(req.file.originalname)}`;
       const imageUrl = await s3Service.uploadToS3(req.file, filename);
-      
       await settingsModel.updateSettings({ backgroundImage: `url(${imageUrl})` });
       res.status(200).json({ 
         message: 'Background image updated!',
@@ -187,7 +218,6 @@ exports.uploadBrandIcon = (req, res) => {
     try {
       const filename = `brand-icon-${Date.now()}${path.extname(req.file.originalname)}`;
       const iconUrl = await s3Service.uploadToS3(req.file, filename);
-      
       await settingsModel.updateSettings({ brandIconUrl: `url(${iconUrl})` });
       res.status(200).json({ 
         message: 'Brand icon updated!',
@@ -228,18 +258,20 @@ exports.getDeletionRequests = async (req, res) => {
   }
 };
 
+// APPROVE (Super Admin Only logic should probably be here too, or check inside)
 exports.approveDeletion = async (req, res) => {
   try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Only Super Admins can approve deletions." });
+    }
+
     const { id } = req.params;
     
-    // 1. Get file info to delete from S3
     const file = await documentModel.adminFindFileById(id);
     if (!file) return res.status(404).json({ message: "Document not found." });
 
-    // 2. Delete from DB
     const deletedCount = await documentModel.adminDeleteById(id);
     
-    // 3. Delete from S3
     if (deletedCount > 0) {
       await s3Service.deleteFromS3(file.filename);
       res.json({ message: "Request approved. Document deleted." });
@@ -252,26 +284,12 @@ exports.approveDeletion = async (req, res) => {
 
 exports.rejectDeletion = async (req, res) => {
   try {
+    // Regular admins CAN reject/restore requests
     const { id } = req.params;
     await documentModel.revokeDeletionRequest(id);
     res.json({ message: "Request rejected. Document kept." });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Server error');
-  }
-};
-
-exports.reactivateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const reactivatedUser = await userModel.reactivate(id);
-
-    if (!reactivatedUser) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
-    res.json({ message: 'User reactivated successfully.' });
-  } catch (err) {
-    console.error(err.message);
     res.status(500).send('Server error');
   }
 };
