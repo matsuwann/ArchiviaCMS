@@ -39,12 +39,14 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedCount = await userModel.deleteById(id);
+    
+    // Changed from deleteById to deactivate
+    const deactivatedUser = await userModel.deactivate(id);
 
-    if (deletedCount === 0) {
+    if (!deactivatedUser) {
       return res.status(404).json({ message: 'User not found.' });
     }
-    res.json({ message: 'User deleted successfully.' });
+    res.json({ message: 'User deactivated successfully.' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

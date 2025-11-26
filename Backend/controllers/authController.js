@@ -122,6 +122,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
+    // NEW CHECK: Block inactive users
+    if (user.is_active === false) {
+      return res.status(403).json({ message: 'This account has been deactivated. Please contact support.' });
+    }
+
     if (!user.is_verified) {
         return res.status(403).json({ message: 'Please verify your email address before logging in.' });
     }
@@ -175,6 +180,11 @@ exports.googleLogin = async (req, res) => {
       firstName: given_name || 'Google',
       lastName: family_name || 'User'
     });
+
+    // NEW CHECK: Block inactive Google users
+    if (user.is_active === false) {
+      return res.status(403).json({ message: 'This account has been deactivated.' });
+    }
 
     const appToken = jwt.sign(
       { 

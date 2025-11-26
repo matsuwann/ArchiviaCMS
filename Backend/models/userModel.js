@@ -1,8 +1,9 @@
 const db = require('../db');
 
 exports.findByEmail = async (email) => {
+  // Added is_active to the select list
   const { rows } = await db.query(
-    'SELECT id, first_name, last_name, email, password_hash, is_admin, is_verified, otp_code, otp_expires FROM users WHERE email = $1', 
+    'SELECT id, first_name, last_name, email, password_hash, is_admin, is_verified, otp_code, otp_expires, is_active FROM users WHERE email = $1', 
     [email]
   );
   return rows[0];
@@ -10,18 +11,18 @@ exports.findByEmail = async (email) => {
 
 exports.createWithOTP = async ({ firstName, lastName, email, passwordHash, otp, otpExpires }) => {
   const { rows } = await db.query(
-    `INSERT INTO users (first_name, last_name, email, password_hash, otp_code, otp_expires, is_verified) 
-     VALUES ($1, $2, $3, $4, $5, $6, FALSE) 
+    // Added is_active = TRUE by default
+    `INSERT INTO users (first_name, last_name, email, password_hash, otp_code, otp_expires, is_verified, is_active) 
+     VALUES ($1, $2, $3, $4, $5, $6, FALSE, TRUE) 
      RETURNING id, first_name, last_name, email, is_admin`,
     [firstName, lastName, email, passwordHash, otp, otpExpires]
   );
   return rows[0];
 };
 
-// Kept for backward compatibility if needed, but createWithOTP is preferred now
 exports.create = async ({ firstName, lastName, email, passwordHash }) => {
   const { rows } = await db.query(
-    'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, first_name, last_name, email, is_admin',
+    'INSERT INTO users (first_name, last_name, email, password_hash, is_active) VALUES ($1, $2, $3, $4, TRUE) RETURNING id, first_name, last_name, email, is_admin',
     [firstName, lastName, email, passwordHash]
   );
   return rows[0];
@@ -35,7 +36,8 @@ exports.markVerified = async (userId) => {
 };
 
 exports.findAll = async () => {
-  const { rows } = await db.query('SELECT id, first_name, last_name, email, is_admin, is_verified FROM users ORDER BY last_name');
+  // Added is_active to selection
+  const { rows } = await db.query('SELECT id, first_name, last_name, email, is_admin, is_verified, is_active FROM users ORDER BY last_name');
   return rows;
 };
 
@@ -47,24 +49,26 @@ exports.updateAdminStatus = async (userId, isAdminBoolean) => {
   return rows[0];
 };
 
-exports.deleteById = async (userId) => {
-  const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [userId]);
-  return rowCount;
+// CHANGED: This checks for soft-deletion now
+exports.deactivate = async (userId) => {
+  const { rows } = await db.query(
+    'UPDATE users SET is_active = FALSE WHERE id = $1 RETURNING id', 
+    [userId]
+  );
+  return rows[0];
 };
 
 exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
-
   const existingUser = await exports.findByEmail(email);
   
   if (existingUser) {
     return existingUser;
   }
 
-
   const { rows } = await db.query(
     `INSERT INTO users 
-     (first_name, last_name, email, password_hash, is_verified) 
-     VALUES ($1, $2, $3, $4, TRUE) 
+     (first_name, last_name, email, password_hash, is_verified, is_active) 
+     VALUES ($1, $2, $3, $4, TRUE, TRUE) 
      RETURNING id, first_name, last_name, email, is_admin`,
     [firstName, lastName, email, 'GOOGLE_AUTH_USER'] 
   );
