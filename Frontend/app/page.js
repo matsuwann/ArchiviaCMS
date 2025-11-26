@@ -118,7 +118,7 @@ function HomeContent() {
         >
             <div className="max-w-3xl w-full z-10 space-y-8">
                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2">
-                    Discover Research.
+                    Archivia
                 </h1>
                 <p className="text-xl text-indigo-100 font-light mb-8">
                     Access thousands of academic papers, journals, and articles in one place.
