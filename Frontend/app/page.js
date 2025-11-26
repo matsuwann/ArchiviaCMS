@@ -1,71 +1,82 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DocumentList from '../components/DocumentList';
 import FilterSidebar from '../components/FilterSidebar';
 import { searchDocuments, getFilters, filterDocuments, getPopularSearches } from '../services/apiService';
 
-export default function Home() {
-  // App State
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // URL-Driven State
+  // If 'q' param exists (even empty), we are in "App Mode". If null, we are in "Hero Mode".
+  const currentSearchTerm = searchParams.get('q');
+  const isHeroMode = currentSearchTerm === null;
+
+  // App Data State
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
   
-  // Data State
+  // Filter/Data State
   const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
   const [popularSearches, setPopularSearches] = useState([]);
-  
-  // Selection State
   const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
+  // Initial Data Load
   useEffect(() => {
-    // Load initial data
     Promise.all([
-      searchDocuments(''),      
       getFilters(),             
       getPopularSearches()      
-    ]).then(([docsRes, filtersRes, popRes]) => {
-      setDocuments(docsRes.data);
+    ]).then(([filtersRes, popRes]) => {
       setAvailableFilters(filtersRes.data);
       setPopularSearches(popRes.data);
-      setIsLoading(false);
-    }).catch(err => {
-      console.error("Init failed:", err);
-      setIsLoading(false);
-    });
+    }).catch(console.error);
   }, []);
 
-  const handleSearch = async (searchTerm) => {
-    setIsLoading(true);
-    setSearchPerformed(true); // Switch to list view
-    setCurrentSearchTerm(searchTerm); // Pass term to list view input
-    
-    // Reset filters on new search text
-    setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
-
-    try {
-      const response = await searchDocuments(searchTerm);
-      setDocuments(response.data);
-      
-      if(searchTerm) {
-          setTimeout(() => {
-             getPopularSearches().then(res => setPopularSearches(res.data));
-          }, 1000);
+  // Trigger Search when URL changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // If we are in Hero mode, we don't strictly need to fetch docs, but we can preload or just wait.
+        // If we are in App mode (currentSearchTerm !== null):
+        if (!isHeroMode) {
+            const term = currentSearchTerm || ''; // Convert null to empty string if needed (though logic prevents null here)
+            const response = await searchDocuments(term);
+            setDocuments(response.data);
+        } else {
+            // Optional: Clear documents when going back to hero
+            setDocuments([]); 
+        }
+      } catch (error) {
+        console.error("Search failed:", error);
+        setDocuments([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Search failed:", error);
-      setDocuments([]);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    fetchData();
+  }, [currentSearchTerm, isHeroMode]);
+
+  // HANDLERS
+  const handleSearch = (term) => {
+    // Instead of setting state, we push to URL. This triggers the useEffect above.
+    router.push(`/?q=${encodeURIComponent(term)}`);
+  };
+
+  const handleBrowseAll = () => {
+    router.push('/?q='); // Empty q param triggers list view
   };
 
   const handleFilterChange = async (category, value) => {
     if (category === 'reset') {
         setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
-        const res = await searchDocuments('');
-        setDocuments(res.data);
+        // Re-run search with current term
+        const response = await searchDocuments(currentSearchTerm || '');
+        setDocuments(response.data);
         return;
     }
 
@@ -81,7 +92,7 @@ export default function Home() {
                       !newFilters.dateRange;
 
       if (isEmpty) {
-         const res = await searchDocuments('');
+         const res = await searchDocuments(currentSearchTerm || '');
          setDocuments(res.data);
       } else {
          const response = await filterDocuments(newFilters);
@@ -94,13 +105,10 @@ export default function Home() {
     }
   };
 
-  // --- RENDER ---
-
-  // 1. Landing Page View (Hero)
-  if (!searchPerformed && !isLoading && documents.length >= 0 && currentSearchTerm === '') {
+  // --- VIEW: LANDING PAGE (HERO) ---
+  if (isHeroMode) {
     return (
-      <main className="min-h-screen flex flex-col bg-white">
-        {/* Hero Section */}
+      <main className="min-h-screen flex flex-col bg-white animate-fade-in">
         <div 
             className="flex-grow flex flex-col items-center justify-center px-4 text-center relative"
             style={{
@@ -109,15 +117,15 @@ export default function Home() {
             }}
         >
             <div className="max-w-3xl w-full z-10 space-y-8">
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2">
                     Discover Research.
                 </h1>
-                <p className="text-xl text-indigo-100 font-light">
+                <p className="text-xl text-indigo-100 font-light mb-8">
                     Access thousands of academic papers, journals, and articles in one place.
                 </p>
 
                 {/* Hero Search Bar */}
-                <div className="bg-white p-2 rounded-full shadow-2xl flex items-center max-w-2xl mx-auto">
+                <div className="bg-white p-2 rounded-full shadow-2xl flex items-center max-w-2xl mx-auto transition-transform hover:scale-[1.02] duration-200">
                     <span className="pl-4 text-gray-400">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </span>
@@ -130,7 +138,7 @@ export default function Home() {
                         }}
                     />
                     <button 
-                        className="bg-indigo-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-700 transition transform hover:scale-105"
+                        className="bg-indigo-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-700 transition"
                         onClick={(e) => handleSearch(e.target.previousSibling.value)}
                     >
                         Search
@@ -138,7 +146,7 @@ export default function Home() {
                 </div>
 
                 {/* Quick Stats / Popular */}
-                <div className="pt-8">
+                <div className="pt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                     <p className="text-sm text-indigo-200 mb-4 uppercase tracking-widest">Popular Searches</p>
                     <div className="flex flex-wrap justify-center gap-3">
                         {popularSearches.slice(0, 5).map((item, idx) => (
@@ -156,7 +164,6 @@ export default function Home() {
 
             {/* Background Decorative Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-                 {/* You can add an <img> here for the system-background.png if you want it blended */}
                  <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500 rounded-full blur-[100px]"></div>
                  <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[100px]"></div>
             </div>
@@ -166,7 +173,7 @@ export default function Home() {
         <div className="bg-gray-50 py-12 border-t border-gray-200 text-center">
             <p className="text-gray-600 mb-4">Want to browse the full repository?</p>
             <button 
-                onClick={() => { setSearchPerformed(true); handleSearch(''); }}
+                onClick={handleBrowseAll}
                 className="text-indigo-600 font-bold hover:underline"
             >
                 View All Documents &rarr;
@@ -176,16 +183,16 @@ export default function Home() {
     );
   }
 
-  // 2. Results View (Standard Library Interface)
+  // --- VIEW: RESULTS LIST (APP MODE) ---
   return (
-    <main className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen">
+    <main className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen animate-fade-in">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Archivia Library</h1>
         <button 
-            onClick={() => { setSearchPerformed(false); setCurrentSearchTerm(''); }}
-            className="text-sm text-gray-500 hover:text-indigo-600 underline"
+            onClick={() => router.push('/')}
+            className="text-sm text-gray-500 hover:text-indigo-600 underline flex items-center gap-1"
         >
-            &larr; Back to Home
+            <span>&larr;</span> Back to Home
         </button>
       </div>
       
@@ -204,13 +211,21 @@ export default function Home() {
             <DocumentList 
               documents={documents} 
               isLoading={isLoading}
-              searchPerformed={searchPerformed || documents.length > 0}
+              searchPerformed={true} // Always true in this mode
               onSearch={handleSearch}
               popularSearches={popularSearches}
-              initialSearchTerm={currentSearchTerm} // Pass term from Hero search
+              initialSearchTerm={currentSearchTerm || ''}
             />
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Loading Archivia...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

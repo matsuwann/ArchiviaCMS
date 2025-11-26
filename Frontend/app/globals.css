@@ -71,3 +71,27 @@ input::-ms-reveal,
 input::-ms-clear {
   display: none;
 }
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOutSlideUp {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOutSlideUp 0.3s ease-in forwards;
+}
+
+/* Smooth transition for layout changes */
+main {
+  transition: all 0.3s ease-in-out;
+}
