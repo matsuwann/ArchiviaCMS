@@ -105,7 +105,8 @@ export default function AdminArchiveRequestsPage() {
                     <div>
                         <h3 className="font-bold text-lg text-gray-900">{req.title}</h3>
                         <p className="text-xs text-gray-400 mb-1">{req.filename}</p>
-                        <p className="text-sm text-gray-600">Reason: <span className="italic text-gray-800">"{req.archive_reason}"</span></p>
+                        {/* FIXED: Replaced " with &quot; */}
+                        <p className="text-sm text-gray-600">Reason: <span className="italic text-gray-800">&quot;{req.archive_reason}&quot;</span></p>
                     </div>
                     <div className="flex gap-3">
                         <button onClick={() => handleRejectDoc(req.id)} className="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300">Keep</button>
@@ -129,7 +130,8 @@ export default function AdminArchiveRequestsPage() {
                     <div>
                         <h3 className="font-bold text-lg text-gray-900">{req.first_name} {req.last_name}</h3>
                         <p className="text-xs text-gray-400 mb-1">{req.email}</p>
-                        <p className="text-sm text-gray-600">Reason: <span className="italic text-gray-800">"{req.archive_reason}"</span></p>
+                        {/* FIXED: Replaced " with &quot; */}
+                        <p className="text-sm text-gray-600">Reason: <span className="italic text-gray-800">&quot;{req.archive_reason}&quot;</span></p>
                     </div>
                     <div className="flex gap-3">
                         <button onClick={() => handleRejectUser(req.id)} className="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300">Keep Active</button>
