@@ -1,7 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const pdfModule = require('pdf-parse'); 
-const pdfParse = pdfModule.default || pdfModule; 
+const { PDFDocument } = require('pdf-lib'); // Import pdf-lib
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -10,12 +9,13 @@ cloudinary.config({
 });
 
 exports.generatePreviews = async (pdfBuffer, filename) => {
-  // 1. Get Accurate Page Count using pdf-parse
+  // 1. Get Accurate Page Count using pdf-lib
   let detectedPages = 0;
   try {
-    const data = await pdfParse(pdfBuffer);
-    detectedPages = data.numpages;
-    console.log(`[Preview Service] Document has ${detectedPages} pages.`);
+    // Load the PDF to count pages (ignore encryption for speed if possible)
+    const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+    detectedPages = pdfDoc.getPageCount();
+    console.log(`[Preview Service] pdf-lib detected ${detectedPages} pages.`);
   } catch (err) {
     console.error("[Preview Service] Failed to count pages locally:", err.message);
   }
@@ -37,13 +37,14 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
             return resolve([]); 
         }
 
-        // 3. Determine Page Count (Prioritize local count, fallback to Cloudinary, then 1)
+        // 3. Determine Page Count
+        // Use detected pages from pdf-lib. If that failed, use Cloudinary's result. Default to 1.
         const totalPages = detectedPages || result.pages || 1;
         
         // Limit to MAX 6 pages (5 Clear + 1 Blurred)
         const limit = Math.min(totalPages, 6);
         
-        console.log(`[Preview Service] Generating ${limit} preview images.`);
+        console.log(`[Preview Service] Generating links for ${limit} pages.`);
 
         const previewUrls = [];
 
