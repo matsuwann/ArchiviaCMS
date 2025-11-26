@@ -1,7 +1,8 @@
 const db = require('../db');
 
+// ... (Keep existing findAll, findByTerm, create, getAllMetadata, filterByFacets, findByUser, update, findFileForUser, deleteByIdAndUser, adminUpdate, adminFindFileById, adminDeleteById)
+
 exports.findAll = async () => {
-  // Added preview_urls
   const { rows } = await db.query(
     `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id 
      FROM documents ORDER BY created_at DESC`
@@ -11,7 +12,6 @@ exports.findAll = async () => {
 
 exports.findByTerm = async (term) => {
   const searchQuery = `%${term}%`;
-  // Added preview_urls
   const { rows } = await db.query(
       `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
        FROM documents 
@@ -26,12 +26,8 @@ exports.findByTerm = async (term) => {
   return rows;
 };
 
-// === THIS IS THE FIXED FUNCTION ===
 exports.create = async ({ title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id }) => {
-  // 1. Handle missing preview_urls safely
   const safePreviewUrls = preview_urls || [];
-
-  // 2. Insert with preview_urls (10 items)
   const { rows } = await db.query(
       `INSERT INTO documents 
         (title, filename, filepath, preview_urls, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id) 
@@ -40,7 +36,6 @@ exports.create = async ({ title, filename, filepath, preview_urls, ai_keywords, 
   );
   return rows[0];
 };
-// =================================
 
 exports.getAllMetadata = async () => {
   const { rows } = await db.query(
@@ -121,7 +116,7 @@ exports.adminDeleteById = async (id) => {
     return rowCount;
 };
 
-// 1. User submits a request
+// 1. User submits a request (USER SIDE)
 exports.submitDeletionRequest = async (id, userId, reason) => {
   const { rows } = await db.query(
     `UPDATE documents 
@@ -133,7 +128,7 @@ exports.submitDeletionRequest = async (id, userId, reason) => {
   return rows[0];
 };
 
-// 2. Admin fetches all pending requests
+// 2. Find all User Deletion Requests
 exports.findAllDeletionRequests = async () => {
   const { rows } = await db.query(
     `SELECT id, title, filename, user_id, deletion_reason, created_at, ai_authors 
@@ -144,7 +139,7 @@ exports.findAllDeletionRequests = async () => {
   return rows;
 };
 
-// 3. Admin rejects request (Clear flags)
+// 3. Revoke User Deletion Request
 exports.revokeDeletionRequest = async (id) => {
   const { rows } = await db.query(
     `UPDATE documents 
@@ -156,13 +151,36 @@ exports.revokeDeletionRequest = async (id) => {
   return rows[0];
 };
 
-exports.adminSubmitDeletionRequest = async (id, reason) => {
+// === NEW: ADMIN ARCHIVE REQUESTS (SEPARATE FROM USERS) ===
+
+exports.submitArchiveRequest = async (id, reason) => {
   const { rows } = await db.query(
     `UPDATE documents 
-     SET deletion_requested = TRUE, deletion_reason = $1 
+     SET archive_requested = TRUE, archive_reason = $1 
      WHERE id = $2 
      RETURNING *`,
     [reason, id]
+  );
+  return rows[0];
+};
+
+exports.findAllArchiveRequests = async () => {
+  const { rows } = await db.query(
+    `SELECT id, title, filename, user_id, archive_reason, created_at, ai_authors 
+     FROM documents 
+     WHERE archive_requested = TRUE 
+     ORDER BY created_at ASC`
+  );
+  return rows;
+};
+
+exports.revokeArchiveRequest = async (id) => {
+  const { rows } = await db.query(
+    `UPDATE documents 
+     SET archive_requested = FALSE, archive_reason = NULL 
+     WHERE id = $1 
+     RETURNING *`,
+    [id]
   );
   return rows[0];
 };

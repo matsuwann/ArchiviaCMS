@@ -1,11 +1,22 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { getDeletionRequests, adminApproveDeletion, adminRejectDeletion } from '../../../services/apiService';
+import { useAuth } from '../../../context/AuthContext';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
 export default function AdminRequestsPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user, authLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect if not Super Admin
+  useEffect(() => {
+    if (!authLoading && (!user || !user.is_super_admin)) {
+        router.push('/admin/documents'); // Kick regular admins back to docs
+    }
+  }, [user, authLoading, router]);
 
   const fetchRequests = async () => {
     try {
@@ -19,8 +30,8 @@ export default function AdminRequestsPage() {
   };
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if(user?.is_super_admin) fetchRequests();
+  }, [user]);
 
   const handleApprove = async (id) => {
     if(!confirm("Are you sure you want to permanently delete this file?")) return;
@@ -43,15 +54,17 @@ export default function AdminRequestsPage() {
     }
   };
 
+  if (!user?.is_super_admin) return null;
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Deletion Requests</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">User Deletion Requests</h1>
       
       {loading ? (
         <p>Loading...</p>
       ) : requests.length === 0 ? (
         <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
-            No pending deletion requests.
+            No pending user requests.
         </div>
       ) : (
         <div className="grid gap-4">
@@ -61,7 +74,7 @@ export default function AdminRequestsPage() {
                     <h3 className="font-bold text-lg text-indigo-700">{req.title}</h3>
                     <p className="text-xs text-gray-400 mb-2">{req.filename}</p>
                     <div className="bg-red-50 p-3 rounded border border-red-100">
-                        <p className="text-sm text-red-800 font-semibold">Reason provided:</p>
+                        <p className="text-sm text-red-800 font-semibold">Reason provided by User:</p>
                         <p className="text-gray-700 italic">&quot;{req.deletion_reason}&quot;</p>
                     </div>
                 </div>

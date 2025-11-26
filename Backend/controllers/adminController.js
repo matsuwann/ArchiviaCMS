@@ -1,12 +1,36 @@
 const path = require('path');
 const userModel = require('../models/userModel');
 const documentModel = require('../models/documentModel');
-const aiService = require('../services/aiService');
+const analyticsModel = require('../models/analyticsModel'); // Import Analytics Model
 const settingsModel = require('../models/settingsModel');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service');
 
-// ... (Keep getAllUsers, updateUser, deleteUser, adminUpdateDocument as they are)
+// === NEW: DASHBOARD ANALYTICS ===
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const users = await userModel.findAll();
+    const documents = await documentModel.findAll();
+    const topSearches = await analyticsModel.getTopSearches(5); 
+
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.is_active).length;
+    const totalDocuments = documents.length;
+    // Count both types of requests
+    const pendingRequests = documents.filter(d => d.deletion_requested || d.archive_requested).length;
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      totalDocuments,
+      pendingRequests,
+      topSearches
+    });
+  } catch (err) {
+    console.error("Analytics Error:", err.message);
+    res.status(500).send('Server error fetching stats');
+  }
+};
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -45,12 +69,21 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const deactivatedUser = await userModel.deactivate(id);
-
-    if (!deactivatedUser) {
-      return res.status(404).json({ message: 'User not found.' });
+    
+    if (req.user.is_super_admin) {
+        const deactivatedUser = await userModel.deactivate(id);
+        if (!deactivatedUser) return res.status(404).json({ message: 'User not found.' });
+        return res.json({ message: 'User deactivated successfully.' });
     }
-    res.json({ message: 'User deactivated successfully.' });
+
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ message: "Reason required for archiving request." });
+
+    const requestedUser = await userModel.submitArchiveRequest(id, reason);
+    if (!requestedUser) return res.status(404).json({ message: 'User not found.' });
+
+    res.json({ message: 'User archive request submitted to Super Admin.' });
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -72,6 +105,45 @@ exports.reactivateUser = async (req, res) => {
   }
 };
 
+exports.getUserArchiveRequests = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) return res.status(403).json({ message: "Access Denied." });
+    const requests = await userModel.findAllArchiveRequests();
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.approveUserArchive = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) return res.status(403).json({ message: "Access Denied." });
+    
+    const { id } = req.params;
+    const user = await userModel.deactivate(id);
+    
+    if (!user) return res.status(404).json({ message: "User not found." });
+    res.json({ message: "User archive request approved." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.rejectUserArchive = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) return res.status(403).json({ message: "Access Denied." });
+
+    const { id } = req.params;
+    await userModel.revokeArchiveRequest(id);
+    res.json({ message: "User archive request rejected." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
 exports.adminUpdateDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -89,16 +161,13 @@ exports.adminUpdateDocument = async (req, res) => {
   }
 };
 
-// MODIFIED: Only Super Admins can permanently delete
 exports.adminDeleteDocument = async (req, res) => {
   try {
-    // Check if the requester is a super admin
     if (!req.user.is_super_admin) {
         return res.status(403).json({ message: "Only Super Admins can permanently delete documents." });
     }
 
     const { id } = req.params;
-
     const file = await documentModel.adminFindFileById(id);
     if (!file) {
       return res.status(404).json({ message: "Document not found." });
@@ -115,27 +184,20 @@ exports.adminDeleteDocument = async (req, res) => {
   }
 };
 
-// NEW: Allows regular admins to request deletion (Archive)
 exports.adminRequestArchive = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
 
-        if (!reason) return res.status(400).json({ message: "A reason is required to archive this document." });
+        if (!reason) return res.status(400).json({ message: "Reason required." });
 
-        // We reuse the 'submitDeletionRequest' but bypass the user check since admins can archive any doc
-        // Or we can create a new model method if strict ownership is not needed.
-        // For now, we will assume the document exists and flag it.
-        
-        // We need a new model function or reuse existing with a tweak.
-        // Let's use a specific admin method to avoid 'userId' mismatch issues.
-        const archivedDoc = await documentModel.adminSubmitDeletionRequest(id, reason);
+        const archivedDoc = await documentModel.submitArchiveRequest(id, reason);
 
         if (!archivedDoc) {
             return res.status(404).json({ message: "Document not found." });
         }
 
-        res.json({ message: "Document archived/flagged for deletion successfully." });
+        res.json({ message: "Document has been flagged for archive review." });
 
     } catch (err) {
         console.error(err.message);
@@ -143,7 +205,82 @@ exports.adminRequestArchive = async (req, res) => {
     }
 };
 
-// ... (Keep settings functions and existing request handlers)
+exports.getArchiveRequests = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Access Denied." });
+    }
+    const requests = await documentModel.findAllArchiveRequests();
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.rejectArchive = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Access Denied." });
+    }
+    const { id } = req.params;
+    await documentModel.revokeArchiveRequest(id);
+    res.json({ message: "Archive request rejected." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.getDeletionRequests = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Access Denied." });
+    }
+    const requests = await documentModel.findAllDeletionRequests();
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.approveDeletion = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Only Super Admins can approve deletions." });
+    }
+
+    const { id } = req.params;
+    
+    const file = await documentModel.adminFindFileById(id);
+    if (!file) return res.status(404).json({ message: "Document not found." });
+
+    const deletedCount = await documentModel.adminDeleteById(id);
+    
+    if (deletedCount > 0) {
+      await s3Service.deleteFromS3(file.filename);
+      res.json({ message: "Request approved. Document deleted." });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+exports.rejectDeletion = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Access Denied." });
+    }
+    const { id } = req.params;
+    await documentModel.revokeDeletionRequest(id);
+    res.json({ message: "Request rejected. Document kept." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+};
 
 exports.updateSettings = async (req, res) => {
   try {
@@ -245,51 +382,5 @@ exports.removeBrandIcon = async (req, res) => {
     res.status(200).json({ message: 'Brand icon removed.' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to remove brand icon.' });
-  }
-};
-
-exports.getDeletionRequests = async (req, res) => {
-  try {
-    const requests = await documentModel.findAllDeletionRequests();
-    res.json(requests);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
-};
-
-// APPROVE (Super Admin Only logic should probably be here too, or check inside)
-exports.approveDeletion = async (req, res) => {
-  try {
-    if (!req.user.is_super_admin) {
-        return res.status(403).json({ message: "Only Super Admins can approve deletions." });
-    }
-
-    const { id } = req.params;
-    
-    const file = await documentModel.adminFindFileById(id);
-    if (!file) return res.status(404).json({ message: "Document not found." });
-
-    const deletedCount = await documentModel.adminDeleteById(id);
-    
-    if (deletedCount > 0) {
-      await s3Service.deleteFromS3(file.filename);
-      res.json({ message: "Request approved. Document deleted." });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
-};
-
-exports.rejectDeletion = async (req, res) => {
-  try {
-    // Regular admins CAN reject/restore requests
-    const { id } = req.params;
-    await documentModel.revokeDeletionRequest(id);
-    res.json({ message: "Request rejected. Document kept." });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
   }
 };

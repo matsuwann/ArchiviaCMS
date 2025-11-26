@@ -1,7 +1,8 @@
 const db = require('../db');
 
+// ... (Keep existing findByEmail, createWithOTP, create, markVerified, findAll, updateAdminStatus, updateUserDetails)
+
 exports.findByEmail = async (email) => {
-  // ADDED: is_super_admin to the select list
   const { rows } = await db.query(
     'SELECT id, first_name, last_name, email, password_hash, is_admin, is_super_admin, is_verified, otp_code, otp_expires, is_active FROM users WHERE email = $1', 
     [email]
@@ -35,12 +36,12 @@ exports.markVerified = async (userId) => {
 };
 
 exports.findAll = async () => {
-  const { rows } = await db.query('SELECT id, first_name, last_name, email, is_admin, is_super_admin, is_verified, is_active FROM users ORDER BY last_name');
+  // ADDED: archive_requested to selection
+  const { rows } = await db.query('SELECT id, first_name, last_name, email, is_admin, is_super_admin, is_verified, is_active, archive_requested FROM users ORDER BY last_name');
   return rows;
 };
 
 exports.updateAdminStatus = async (userId, isAdminBoolean) => {
-  // NOTE: This function only toggles standard admin status
   const { rows } = await db.query(
     'UPDATE users SET is_admin = $1 WHERE id = $2 RETURNING id, first_name, last_name, email, is_admin, is_super_admin',
     [isAdminBoolean, userId]
@@ -59,9 +60,10 @@ exports.updateUserDetails = async (userId, { first_name, last_name, email, is_ad
   return rows[0];
 };
 
+// MODIFIED: Deactivating now also clears the request flags
 exports.deactivate = async (userId) => {
   const { rows } = await db.query(
-    'UPDATE users SET is_active = FALSE WHERE id = $1 RETURNING id', 
+    'UPDATE users SET is_active = FALSE, archive_requested = FALSE, archive_reason = NULL WHERE id = $1 RETURNING id', 
     [userId]
   );
   return rows[0];
@@ -75,12 +77,36 @@ exports.reactivate = async (userId) => {
   return rows[0];
 };
 
+// === NEW: USER ARCHIVE REQUESTS ===
+
+exports.submitArchiveRequest = async (id, reason) => {
+  const { rows } = await db.query(
+    'UPDATE users SET archive_requested = TRUE, archive_reason = $1 WHERE id = $2 RETURNING id',
+    [reason, id]
+  );
+  return rows[0];
+};
+
+exports.findAllArchiveRequests = async () => {
+  const { rows } = await db.query(
+    'SELECT id, first_name, last_name, email, archive_reason FROM users WHERE archive_requested = TRUE ORDER BY last_name'
+  );
+  return rows;
+};
+
+exports.revokeArchiveRequest = async (id) => {
+  const { rows } = await db.query(
+    'UPDATE users SET archive_requested = FALSE, archive_reason = NULL WHERE id = $1 RETURNING id',
+    [id]
+  );
+  return rows[0];
+};
+
+// ... (Keep findOrCreateByGoogle, saveResetToken, findByResetToken, updatePassword)
+
 exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
   const existingUser = await exports.findByEmail(email);
-  
-  if (existingUser) {
-    return existingUser;
-  }
+  if (existingUser) return existingUser;
 
   const { rows } = await db.query(
     `INSERT INTO users 
@@ -89,7 +115,6 @@ exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
      RETURNING id, first_name, last_name, email, is_admin, is_super_admin`,
     [firstName, lastName, email, 'GOOGLE_AUTH_USER'] 
   );
-  
   return rows[0];
 };
 

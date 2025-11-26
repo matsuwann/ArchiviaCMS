@@ -14,8 +14,6 @@ export const setAuthToken = (token) => {
   }
 };
 
-export const adminReactivateUser = (id) => api.put(`/admin/users/${id}/reactivate`);
-
 export const login = (email, password) => {
   return api.post('/auth/login', { email, password });
 };
@@ -26,10 +24,6 @@ export const register = (firstName, lastName, email, password) => {
 
 export const verifyEmail = (email, otp) => {
   return api.post('/auth/verify', { email, otp });
-};
-
-export const adminArchiveDocument = (id, reason) => {
-  return api.post(`/admin/documents/${id}/archive`, { reason });
 };
 
 export const searchDocuments = (term) => {
@@ -53,9 +47,7 @@ export const filterDocuments = (filters) => {
 
 export const uploadDocument = (formData) => {
   return api.post('/documents/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
@@ -79,9 +71,15 @@ export const adminUpdateUser = (id, userData) => {
   return api.put(`/admin/users/${id}`, userData);
 };
 
-export const adminDeleteUser = (id) => {
-  return api.delete(`/admin/users/${id}`);
+export const adminDeleteUser = (id, data = {}) => {
+  return api.delete(`/admin/users/${id}`, { data }); 
 };
+
+export const adminReactivateUser = (id) => api.put(`/admin/users/${id}/reactivate`);
+
+export const getUserArchiveRequests = () => api.get('/admin/user-archive-requests');
+export const adminApproveUserArchive = (id) => api.delete(`/admin/user-archive-requests/${id}/approve`);
+export const adminRejectUserArchive = (id) => api.put(`/admin/user-archive-requests/${id}/reject`);
 
 export const adminUpdateDocument = (id, data) => {
   return api.put(`/admin/documents/${id}`, data);
@@ -89,6 +87,15 @@ export const adminUpdateDocument = (id, data) => {
 
 export const adminDeleteDocument = (id) => {
   return api.delete(`/admin/documents/${id}`);
+};
+
+export const adminArchiveDocument = (id, reason) => {
+  return api.post(`/admin/documents/${id}/archive`, { reason });
+};
+
+// NEW: Analytics
+export const getAdminAnalytics = () => {
+  return api.get('/admin/analytics');
 };
 
 export const getSettings = () => {
@@ -137,12 +144,10 @@ export const resetPassword = (token, password) => {
   return api.post('/auth/reset-password', { token, password });
 };
 
-// User Side
 export const requestDeletion = (id, reason) => {
   return api.post(`/documents/${id}/request-delete`, { reason });
 };
 
-// Admin Side
 export const getDeletionRequests = () => {
   return api.get('/admin/requests');
 };
@@ -153,4 +158,16 @@ export const adminApproveDeletion = (id) => {
 
 export const adminRejectDeletion = (id) => {
   return api.put(`/admin/requests/${id}/reject`);
+};
+
+export const getArchiveRequests = () => {
+  return api.get('/admin/archive-requests');
+};
+
+export const adminApproveArchive = (id) => {
+  return api.delete(`/admin/archive-requests/${id}/approve`);
+};
+
+export const adminRejectArchive = (id) => {
+  return api.put(`/admin/archive-requests/${id}/reject`);
 };
