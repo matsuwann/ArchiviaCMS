@@ -63,6 +63,16 @@ export const deleteDocument = (id) => {
   return api.delete(`/documents/${id}`);
 };
 
+// === USER PROFILE ACTIONS ===
+export const updateUserProfile = (data) => {
+  return api.put('/auth/profile', data);
+};
+
+export const changeUserPassword = (currentPassword, newPassword) => {
+  return api.put('/auth/change-password', { currentPassword, newPassword });
+};
+// ============================
+
 export const getAllUsers = () => {
   return api.get('/admin/users');
 };

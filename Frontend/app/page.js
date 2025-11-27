@@ -121,7 +121,7 @@ function HomeContent() {
                     Archivia
                 </h1>
                 <p className="text-xl text-indigo-100 font-light mb-8">
-                    Access thousands of academic papers, journals, and articles in one place.
+                    Access academic papers, journals, and articles in one place.
                 </p>
 
                 {/* Hero Search Bar */}

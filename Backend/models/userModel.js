@@ -36,7 +36,6 @@ exports.markVerified = async (userId) => {
 };
 
 exports.findAll = async () => {
-  // ADDED: archive_requested to selection
   const { rows } = await db.query('SELECT id, first_name, last_name, email, is_admin, is_super_admin, is_verified, is_active, archive_requested FROM users ORDER BY last_name');
   return rows;
 };
@@ -60,7 +59,18 @@ exports.updateUserDetails = async (userId, { first_name, last_name, email, is_ad
   return rows[0];
 };
 
-// MODIFIED: Deactivating now also clears the request flags
+// === NEW: Update Profile (User Self-Service) ===
+exports.updateProfile = async (userId, { firstName, lastName, email }) => {
+  const { rows } = await db.query(
+    `UPDATE users 
+     SET first_name = $1, last_name = $2, email = $3
+     WHERE id = $4 
+     RETURNING id, first_name, last_name, email, is_admin, is_active, is_super_admin`,
+    [firstName, lastName, email, userId]
+  );
+  return rows[0];
+};
+
 exports.deactivate = async (userId) => {
   const { rows } = await db.query(
     'UPDATE users SET is_active = FALSE, archive_requested = FALSE, archive_reason = NULL WHERE id = $1 RETURNING id', 
@@ -76,8 +86,6 @@ exports.reactivate = async (userId) => {
   );
   return rows[0];
 };
-
-// === NEW: USER ARCHIVE REQUESTS ===
 
 exports.submitArchiveRequest = async (id, reason) => {
   const { rows } = await db.query(
@@ -101,8 +109,6 @@ exports.revokeArchiveRequest = async (id) => {
   );
   return rows[0];
 };
-
-// ... (Keep findOrCreateByGoogle, saveResetToken, findByResetToken, updatePassword)
 
 exports.findOrCreateByGoogle = async ({ email, firstName, lastName }) => {
   const existingUser = await exports.findByEmail(email);

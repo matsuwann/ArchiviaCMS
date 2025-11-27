@@ -11,6 +11,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 exports.register = async (req, res) => {
+  // ... (Keep existing code)
   const { firstName, lastName, email, password } = req.body;
 
   if (!firstName || !lastName || !email || !password) {
@@ -65,6 +66,7 @@ exports.register = async (req, res) => {
 };
 
 exports.verifyEmail = async (req, res) => {
+  // ... (Keep existing code)
   const { email, otp } = req.body;
 
   if (!email || !otp) {
@@ -101,6 +103,7 @@ exports.verifyEmail = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+  // ... (Keep existing code)
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -126,7 +129,6 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // UPDATED: Include is_super_admin in token
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -134,7 +136,7 @@ exports.login = async (req, res) => {
         firstName: user.first_name, 
         lastName: user.last_name,
         is_admin: user.is_admin,
-        is_super_admin: user.is_super_admin || false // Default false
+        is_super_admin: user.is_super_admin || false
       },
       JWT_SECRET,
       { expiresIn: '1h' }
@@ -158,6 +160,7 @@ exports.login = async (req, res) => {
 };
 
 exports.googleLogin = async (req, res) => {
+  // ... (Keep existing code)
   const { token } = req.body;
 
   try {
@@ -178,7 +181,6 @@ exports.googleLogin = async (req, res) => {
       return res.status(403).json({ message: 'This account has been deactivated.' });
     }
 
-    // UPDATED: Include is_super_admin in token
     const appToken = jwt.sign(
       { 
         userId: user.id, 
@@ -210,6 +212,7 @@ exports.googleLogin = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
+  // ... (Keep existing code)
   const { email } = req.body;
   try {
     const user = await userModel.findByEmail(email);
@@ -232,6 +235,7 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
+  // ... (Keep existing code)
   const { token, password } = req.body;
   
   if (!passwordRegex.test(password)) {
@@ -254,5 +258,81 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// === NEW METHODS ===
+
+exports.updateProfile = async (req, res) => {
+  const { firstName, lastName, email } = req.body;
+  const userId = req.user.userId; 
+
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  try {
+    // Check if email is being changed and if it's already taken
+    if (email) {
+      const existingUser = await userModel.findByEmail(email);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(409).json({ message: 'Email is already in use by another account.' });
+      }
+    }
+
+    const updatedUser = await userModel.updateProfile(userId, { firstName, lastName, email });
+    
+    res.json({ 
+      message: 'Profile updated successfully.', 
+      user: {
+        firstName: updatedUser.first_name,
+        lastName: updatedUser.last_name,
+        email: updatedUser.email
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error updating profile.' });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user.userId;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: 'Current and new passwords are required.' });
+  }
+
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      message: 'New password is too weak.',
+      details: 'Must be 8+ chars with uppercase, lowercase, number, and special char.'
+    });
+  }
+
+  try {
+    // 1. Get user to verify current password
+    const user = await userModel.findByEmail(req.user.email);
+
+    if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // 2. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect current password.' });
+    }
+
+    // 3. Hash new password and update
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+    await userModel.updatePassword(userId, newPasswordHash);
+
+    res.json({ message: 'Password changed successfully.' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error changing password.' });
   }
 };
