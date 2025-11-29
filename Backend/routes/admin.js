@@ -31,7 +31,8 @@ router.put('/requests/:id/reject', adminController.rejectDeletion);
 
 // Admin Archive Requests (Documents)
 router.get('/archive-requests', adminController.getArchiveRequests);
-router.delete('/archive-requests/:id/approve', adminController.approveDeletion);
+// UPDATED: Now points to the specific archive approval handler
+router.delete('/archive-requests/:id/approve', adminController.approveArchive);
 router.put('/archive-requests/:id/reject', adminController.rejectArchive);
 
 // Theme/Settings 

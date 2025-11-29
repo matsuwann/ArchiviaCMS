@@ -1,7 +1,5 @@
 const db = require('../db');
 
-// ... (Keep existing findAll, findByTerm, create, getAllMetadata, filterByFacets, findByUser, update, findFileForUser, deleteByIdAndUser, adminUpdate, adminFindFileById, adminDeleteById)
-
 exports.findAll = async () => {
   const { rows } = await db.query(
     `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id 
@@ -151,7 +149,7 @@ exports.revokeDeletionRequest = async (id) => {
   return rows[0];
 };
 
-// === NEW: ADMIN ARCHIVE REQUESTS (SEPARATE FROM USERS) ===
+// === ADMIN ARCHIVE REQUESTS ===
 
 exports.submitArchiveRequest = async (id, reason) => {
   const { rows } = await db.query(
@@ -183,4 +181,24 @@ exports.revokeArchiveRequest = async (id) => {
     [id]
   );
   return rows[0];
+};
+
+// === AUTO-ARCHIVE FUNCTION ===
+exports.autoArchiveOldDocuments = async () => {
+  try {
+    // Archives documents created > 10 years ago that aren't already flagged
+    const { rowCount } = await db.query(
+      `UPDATE documents 
+       SET archive_requested = TRUE, 
+           archive_reason = 'System Auto-Archive: Document is older than 10 years.'
+       WHERE created_at < NOW() - INTERVAL '10 years' 
+         AND archive_requested = FALSE` 
+    );
+    if (rowCount > 0) {
+        console.log(`Auto-Archiver: Flagged ${rowCount} documents older than 10 years.`);
+    }
+    return rowCount;
+  } catch (err) {
+    console.error("Auto-Archive Error:", err.message);
+  }
 };

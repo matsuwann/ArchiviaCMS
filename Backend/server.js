@@ -5,14 +5,16 @@ const authRoutes = require('./routes/auth');
 const documentRoutes = require('./routes/documents');
 const adminRoutes = require('./routes/admin'); 
 const settingsRoutes = require('./routes/settings'); 
-const app = express();
-const port = process.env.PORT || 3001; // Render uses a dynamic port
+// IMPORT MODEL
+const documentModel = require('./models/documentModel'); 
 
-// Allow requests from your Frontend Render URL and Localhost
+const app = express();
+const port = process.env.PORT || 3001; 
+
 app.use(cors({
   origin: [
     'http://localhost:3000', 
-    'https://archivia-frontend.onrender.com' // REPLACE THIS with your actual Render Frontend URL after deploying
+    'https://archivia-frontend.onrender.com' 
   ]
 }));
 
@@ -24,6 +26,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes); 
 app.use('/api/settings', settingsRoutes); 
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Backend server running on port ${port}`);
+  
+  // === RUN AUTO-ARCHIVE CHECK ON STARTUP ===
+  await documentModel.autoArchiveOldDocuments();
 });

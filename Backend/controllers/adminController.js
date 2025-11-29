@@ -66,6 +66,38 @@ exports.updateUser = async (req, res) => {
   }
 };
 
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const users = await userModel.findAll();
+    const documents = await documentModel.findAll();
+    const topSearches = await analyticsModel.getTopSearches(5); 
+
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.is_active).length;
+    const totalDocuments = documents.length;
+
+    // 1. Count Document Requests (now that the model returns these fields)
+    const documentRequests = documents.filter(d => d.deletion_requested || d.archive_requested).length;
+    
+    // 2. Count User Archive Requests (Account deletion requests)
+    const userRequests = users.filter(u => u.archive_requested).length;
+
+    // 3. Sum them up for the Dashboard Card
+    const pendingRequests = documentRequests + userRequests;
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      totalDocuments,
+      pendingRequests, // This will now be the accurate total
+      topSearches
+    });
+  } catch (err) {
+    console.error("Analytics Error:", err.message);
+    res.status(500).send('Server error fetching stats');
+  }
+};
+
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
