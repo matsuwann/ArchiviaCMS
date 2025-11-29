@@ -1,12 +1,12 @@
 const path = require('path');
 const userModel = require('../models/userModel');
 const documentModel = require('../models/documentModel');
-const analyticsModel = require('../models/analyticsModel'); // Import Analytics Model
+const analyticsModel = require('../models/analyticsModel');
 const settingsModel = require('../models/settingsModel');
 const fileUploadService = require('../services/fileUploadService');
 const s3Service = require('../services/s3Service');
 
-// === NEW: DASHBOARD ANALYTICS ===
+// === DASHBOARD ANALYTICS ===
 exports.getDashboardStats = async (req, res) => {
   try {
     const users = await userModel.findAll();
@@ -16,8 +16,15 @@ exports.getDashboardStats = async (req, res) => {
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.is_active).length;
     const totalDocuments = documents.length;
-    // Count both types of requests
-    const pendingRequests = documents.filter(d => d.deletion_requested || d.archive_requested).length;
+
+    // 1. Count Document Requests
+    const documentRequests = documents.filter(d => d.deletion_requested || d.archive_requested).length;
+    
+    // 2. Count User Archive Requests
+    const userRequests = users.filter(u => u.archive_requested).length;
+
+    // 3. Sum them up for the Dashboard Card
+    const pendingRequests = documentRequests + userRequests;
 
     res.json({
       totalUsers,
@@ -32,6 +39,7 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
+// === USER MANAGEMENT ===
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await userModel.findAll();
@@ -63,38 +71,6 @@ exports.updateUser = async (req, res) => {
         return res.status(400).json({ message: 'Email already in use.' });
     }
     res.status(500).send('Server error');
-  }
-};
-
-exports.getDashboardStats = async (req, res) => {
-  try {
-    const users = await userModel.findAll();
-    const documents = await documentModel.findAll();
-    const topSearches = await analyticsModel.getTopSearches(5); 
-
-    const totalUsers = users.length;
-    const activeUsers = users.filter(u => u.is_active).length;
-    const totalDocuments = documents.length;
-
-    // 1. Count Document Requests (now that the model returns these fields)
-    const documentRequests = documents.filter(d => d.deletion_requested || d.archive_requested).length;
-    
-    // 2. Count User Archive Requests (Account deletion requests)
-    const userRequests = users.filter(u => u.archive_requested).length;
-
-    // 3. Sum them up for the Dashboard Card
-    const pendingRequests = documentRequests + userRequests;
-
-    res.json({
-      totalUsers,
-      activeUsers,
-      totalDocuments,
-      pendingRequests, // This will now be the accurate total
-      topSearches
-    });
-  } catch (err) {
-    console.error("Analytics Error:", err.message);
-    res.status(500).send('Server error fetching stats');
   }
 };
 
@@ -137,9 +113,10 @@ exports.reactivateUser = async (req, res) => {
   }
 };
 
+// === USER ARCHIVE REQUESTS ===
 exports.getUserArchiveRequests = async (req, res) => {
   try {
-    if (!req.user.is_super_admin) return res.status(403).json({ message: "Access Denied." });
+    // Accessible to all admins
     const requests = await userModel.findAllArchiveRequests();
     res.json(requests);
   } catch (err) {
@@ -176,6 +153,7 @@ exports.rejectUserArchive = async (req, res) => {
   }
 };
 
+// === DOCUMENT MANAGEMENT ===
 exports.adminUpdateDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -237,15 +215,40 @@ exports.adminRequestArchive = async (req, res) => {
     }
 };
 
+// === DOCUMENT ARCHIVE REQUESTS ===
 exports.getArchiveRequests = async (req, res) => {
   try {
-    if (!req.user.is_super_admin) {
-        return res.status(403).json({ message: "Access Denied." });
-    }
+    // Accessible to all admins
     const requests = await documentModel.findAllArchiveRequests();
     res.json(requests);
   } catch (err) {
     console.error(err);
+    res.status(500).send('Server error');
+  }
+};
+
+// !!! THIS IS THE FUNCTION THAT WAS MISSING !!!
+exports.approveArchive = async (req, res) => {
+  try {
+    if (!req.user.is_super_admin) {
+        return res.status(403).json({ message: "Access Denied. Only Super Admins can approve archives." });
+    }
+
+    const { id } = req.params;
+    
+    // Get filename to delete from S3
+    const file = await documentModel.adminFindFileById(id);
+    if (!file) return res.status(404).json({ message: "Document not found." });
+
+    // Execute deletion (Archives are currently treated as deletions from active system)
+    const deletedCount = await documentModel.adminDeleteById(id);
+    
+    if (deletedCount > 0) {
+      await s3Service.deleteFromS3(file.filename);
+      res.json({ message: "Archive request approved. Document permanently deleted." });
+    }
+  } catch (err) {
+    console.error("Approve Archive Error:", err);
     res.status(500).send('Server error');
   }
 };
@@ -264,11 +267,10 @@ exports.rejectArchive = async (req, res) => {
   }
 };
 
+// === DOCUMENT DELETION REQUESTS ===
 exports.getDeletionRequests = async (req, res) => {
   try {
-    if (!req.user.is_super_admin) {
-        return res.status(403).json({ message: "Access Denied." });
-    }
+    // Accessible to all admins
     const requests = await documentModel.findAllDeletionRequests();
     res.json(requests);
   } catch (err) {
@@ -292,7 +294,7 @@ exports.approveDeletion = async (req, res) => {
     
     if (deletedCount > 0) {
       await s3Service.deleteFromS3(file.filename);
-      res.json({ message: "Request approved. Document deleted." });
+      res.json({ message: "Deletion request approved. Document deleted." });
     }
   } catch (err) {
     console.error(err);
@@ -314,6 +316,7 @@ exports.rejectDeletion = async (req, res) => {
   }
 };
 
+// === THEME & SETTINGS ===
 exports.updateSettings = async (req, res) => {
   try {
     const newSettings = req.body;
