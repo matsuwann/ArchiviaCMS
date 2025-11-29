@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { updateUserProfile, changeUserPassword } from '../services/apiService';
 
 export default function UserProfile() {
-  const { user, isAuthenticated, authLoading } = useAuth();
+  // Destructure 'login' to update context state
+  const { user, isAuthenticated, authLoading, login } = useAuth();
   const router = useRouter();
 
   // Editing State
@@ -44,10 +45,16 @@ export default function UserProfile() {
     setProfileMessage({ type: '', text: '' });
 
     try {
-      await updateUserProfile(editForm);
-      setProfileMessage({ type: 'success', text: 'Profile updated successfully! Reloading...' });
+      const response = await updateUserProfile(editForm);
+      
+      // Update auth context immediately if token is returned
+      if (response.data.token && response.data.user) {
+        login(response.data.user, response.data.token);
+      }
+
+      setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
       setIsEditing(false);
-      setTimeout(() => window.location.reload(), 1000); 
+      // No reload needed
     } catch (err) {
       setProfileMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update profile.' });
     } finally {

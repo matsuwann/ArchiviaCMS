@@ -13,6 +13,8 @@ export default function Navbar() {
   
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const shouldShowLoginLink = !isAuthenticated && pathname !== '/login' && pathname !== '/register';
+  
+  const isAdmin = user?.is_admin;
   const isSuperAdmin = user?.is_super_admin;
 
   const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
@@ -47,17 +49,19 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           
-          <Link href="/" style={brandStyle} className="hover:opacity-80 flex items-center">
+          <Link href={isAdmin ? "/admin" : "/"} style={brandStyle} className="hover:opacity-80 flex items-center">
             <div className="navbar-brand-icon"></div> 
             <span className="navbar-brand-text-from-css">Archivia</span>
           </Link>
 
           <ul className="flex space-x-6 items-center">
-            {!isAuthPage && ( 
+            {/* HIDE SEARCH FOR ADMINS */}
+            {!isAuthPage && !isAdmin && ( 
               <li><Link href="/" style={linkStyle} className="hover:opacity-80">Search & Browse</Link></li>
             )}
             
-            {isAuthenticated && !isSuperAdmin && (
+            {/* HIDE UPLOAD FOR ADMINS */}
+            {isAuthenticated && !isAdmin && (
               <li><Link href="/upload" style={linkStyle} className="hover:opacity-80">Upload Paper</Link></li>
             )}
 
@@ -78,12 +82,10 @@ export default function Navbar() {
                         <Link href="/admin/users" onClick={() => setIsDropdownOpen(false)} className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200">Manage Users</Link>
                         <Link href="/admin/documents" onClick={() => setIsDropdownOpen(false)} className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200">Manage Documents</Link>
                         
-                        {/* ONLY Super Admin sees Deletion Requests */}
                         {isSuperAdmin && (
                             <Link href="/admin/requests" onClick={() => setIsDropdownOpen(false)} className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200">Deletion Requests</Link>
                         )}
                         
-                        {/* ONLY Super Admin sees Archive Requests */}
                         {isSuperAdmin && (
                             <Link href="/admin/archive-requests" onClick={() => setIsDropdownOpen(false)} className="block px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-slate-200">Archive Requests</Link>
                         )}
@@ -92,7 +94,7 @@ export default function Navbar() {
                       </div>
                     )}
                     
-                    {!isSuperAdmin && (
+                    {!isAdmin && (
                         <Link href="/my-uploads" onClick={() => setIsDropdownOpen(false)} className="block px-4 py-2 hover:bg-slate-200">My Submissions</Link>
                     )}
 

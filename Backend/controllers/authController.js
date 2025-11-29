@@ -11,7 +11,6 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 exports.register = async (req, res) => {
-  // ... (Keep existing code)
   const { firstName, lastName, email, password } = req.body;
 
   if (!firstName || !lastName || !email || !password) {
@@ -66,7 +65,6 @@ exports.register = async (req, res) => {
 };
 
 exports.verifyEmail = async (req, res) => {
-  // ... (Keep existing code)
   const { email, otp } = req.body;
 
   if (!email || !otp) {
@@ -103,7 +101,6 @@ exports.verifyEmail = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  // ... (Keep existing code)
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -160,7 +157,6 @@ exports.login = async (req, res) => {
 };
 
 exports.googleLogin = async (req, res) => {
-  // ... (Keep existing code)
   const { token } = req.body;
 
   try {
@@ -212,7 +208,6 @@ exports.googleLogin = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-  // ... (Keep existing code)
   const { email } = req.body;
   try {
     const user = await userModel.findByEmail(email);
@@ -235,7 +230,6 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
-  // ... (Keep existing code)
   const { token, password } = req.body;
   
   if (!passwordRegex.test(password)) {
@@ -282,12 +276,29 @@ exports.updateProfile = async (req, res) => {
 
     const updatedUser = await userModel.updateProfile(userId, { firstName, lastName, email });
     
+    // Generate a NEW token with the updated information so the frontend can update immediately
+    const token = jwt.sign(
+      { 
+        userId: userId, 
+        email: updatedUser.email, 
+        firstName: updatedUser.first_name, 
+        lastName: updatedUser.last_name,
+        is_admin: updatedUser.is_admin,
+        is_super_admin: updatedUser.is_super_admin || false
+      },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
     res.json({ 
       message: 'Profile updated successfully.', 
+      token, 
       user: {
         firstName: updatedUser.first_name,
         lastName: updatedUser.last_name,
-        email: updatedUser.email
+        email: updatedUser.email,
+        is_admin: updatedUser.is_admin,
+        is_super_admin: updatedUser.is_super_admin
       }
     });
   } catch (err) {
