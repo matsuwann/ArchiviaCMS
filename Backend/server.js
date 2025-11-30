@@ -12,7 +12,11 @@ const app = express();
 const port = process.env.PORT || 3001; 
 
 app.use(cors({
-  origin: '*' // Allow any domain
+  origin: [
+    'http://localhost:3000',
+    'https://archivia-frontend.vercel.app'
+
+  ]
 }));
 
 app.use(express.json()); 
