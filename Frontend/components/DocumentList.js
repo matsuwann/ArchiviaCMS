@@ -24,12 +24,21 @@ export default function DocumentList({
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [selectedDoc, setSelectedDoc] = useState(null);
 
-    // NEW: Sync local state if parent passes a new term (e.g. from Hero page)
+    // === PAGINATION STATE ===
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
+    // Sync local state if parent passes a new term (e.g. from Hero page)
     useEffect(() => {
         if (typeof initialSearchTerm === 'string') {
             setSearchTerm(initialSearchTerm);
         }
     }, [initialSearchTerm]);
+
+    // Reset to Page 1 when the document list changes (e.g., new search results)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [documents]);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -39,6 +48,17 @@ export default function DocumentList({
     const safePopularSearches = Array.isArray(popularSearches) ? popularSearches : [];
     const safeDocuments = Array.isArray(documents) ? documents : [];
     const isDataError = documents && !Array.isArray(documents);
+
+    // === PAGINATION CALCULATION ===
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentDocuments = safeDocuments.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(safeDocuments.length / itemsPerPage);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        // Optional: Scroll to top of list container if needed
+    };
 
     return (
         <>
@@ -93,38 +113,67 @@ export default function DocumentList({
                             <p className="text-gray-600">No results found for your search.</p>
                         </div>
                     ) : (
-                        <ul className="divide-y divide-gray-100">
-                            {safeDocuments.map((doc) => {
-                                try {
-                                    const aiAuthors = getSafeList(doc.ai_authors);
-                                    
-                                    return (
-                                        <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
-                                            <div className="flex justify-between items-start">
-                                                <div className="w-full pr-4 cursor-pointer" onClick={() => setSelectedDoc(doc)}>
-                                                    <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
-                                                        {doc.title || "Untitled Document"}
-                                                    </h3>
-                                                    <div className="text-sm text-gray-600 mb-2">
-                                                        {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
-                                                        {doc.ai_journal && <span> • </span>}
-                                                        <span>{doc.ai_date_created || 'Unknown Date'}</span>
+                        <>
+                            <ul className="divide-y divide-gray-100">
+                                {currentDocuments.map((doc) => {
+                                    try {
+                                        const aiAuthors = getSafeList(doc.ai_authors);
+                                        
+                                        return (
+                                            <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="w-full pr-4 cursor-pointer" onClick={() => setSelectedDoc(doc)}>
+                                                        <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
+                                                            {doc.title || "Untitled Document"}
+                                                        </h3>
+                                                        
+                                                        {/* METADATA - Always Visible */}
+                                                        <div className="text-sm text-gray-600 mb-2">
+                                                            {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
+                                                            {doc.ai_journal && <span> • </span>}
+                                                            <span>{doc.ai_date_created || 'Unknown Date'}</span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-700 italic mb-2 line-clamp-1">
+                                                            {aiAuthors.join(', ')}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500 line-clamp-2">
+                                                            {doc.ai_abstract || "Click to preview abstract..."}
+                                                        </p>
                                                     </div>
-                                                    <p className="text-sm text-gray-700 italic mb-2 line-clamp-1">
-                                                        {aiAuthors.join(', ')}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500 line-clamp-2">
-                                                        {doc.ai_abstract || "Click to preview abstract..."}
-                                                    </p>
                                                 </div>
-                                            </div>
-                                        </li>
-                                    );
-                                } catch (err) {
-                                    return null;
-                                }
-                            })}
-                        </ul>
+                                            </li>
+                                        );
+                                    } catch (err) {
+                                        return null;
+                                    }
+                                })}
+                            </ul>
+
+                            {/* === PAGINATION CONTROLS === */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-4 mt-8 pt-6 border-t border-gray-100">
+                                    <button 
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+                                    
+                                    <span className="text-sm text-gray-600 font-medium">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+
+                                    <button 
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

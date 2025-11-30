@@ -44,8 +44,8 @@ export default function PreviewModal({ document, onClose }) {
                   onError={(e) => {e.target.style.display='none'}}
                 />
                 
-                {/* BLUR OVERLAY (Only on Page 6, which is index 5) */}
-                {index === 5 && !document.downloadLink && (
+                {/* BLUR OVERLAY (Now on Page 4, which is index 3) */}
+                {index === 3 && !document.downloadLink && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
                       <p className="font-bold text-gray-900 text-xl mb-2">End of Free Preview</p>
