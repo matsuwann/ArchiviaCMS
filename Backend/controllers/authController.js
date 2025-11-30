@@ -44,9 +44,13 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-    emailService.sendOTP(email, otp).catch(err => {
-        console.error("BACKGROUND EMAIL ERROR:", err);
-    });
+   try {
+    await emailService.sendOTP(email, otp); // AWAIT THIS
+  } catch (emailError) {
+    // If email fails, delete the user so they can try again
+    await db.query('DELETE FROM users WHERE id = $1', [user.id]); 
+    return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+  }
    
     res.status(201).json({
         message: 'Registration successful. Please verify your email.',

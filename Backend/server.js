@@ -1,3 +1,8 @@
+if (!process.env.JWT_SECRET || !process.env.DATABASE_URL) {
+  console.error("FATAL ERROR: Missing required environment variables.");
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

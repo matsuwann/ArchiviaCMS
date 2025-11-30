@@ -145,3 +145,11 @@ exports.updatePassword = async (userId, passwordHash) => {
     [passwordHash, userId]
   );
 };
+
+exports.findById = async (id) => {
+  const { rows } = await db.query(
+    'SELECT id, first_name, last_name, email, is_admin, is_super_admin, is_active FROM users WHERE id = $1', 
+    [id]
+  );
+  return rows[0];
+};

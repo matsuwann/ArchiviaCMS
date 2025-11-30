@@ -44,7 +44,7 @@ exports.sendOTP = async (email, otp) => {
 
 exports.sendPasswordReset = async (email, token) => {
  
-  const resetUrl = `https://archivia-frontend.onrender.com/reset-password?token=${token}`;
+  const resetUrl = `https://archivia-frontend.vercel.app/reset-password?token=${token}`;
   
   const mailOptions = {
    
