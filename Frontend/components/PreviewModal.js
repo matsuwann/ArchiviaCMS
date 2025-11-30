@@ -1,7 +1,6 @@
 'use client';
 import RelatedPapersWidget from './RelatedPapersWidget';
 
-// Helper to ensure we always have an array
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -12,7 +11,6 @@ const getSafeList = (data) => {
     return [];
 };
 
-// RENAMED prop 'document' to 'activeDoc' to avoid conflict with global 'document'
 export default function PreviewModal({ document: activeDoc, onClose, allDocs, onSelectDoc }) {
   if (!activeDoc) return null;
 
@@ -48,9 +46,6 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                   <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
                       <p className="font-bold text-gray-900 text-xl mb-2">End of Free Preview</p>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Log in to your account to download and view the full research paper.
-                      </p>
                       <a href="/login" className="inline-block w-full px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-md">
                         Login to Access Full File
                       </a>
@@ -62,9 +57,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
           ) : (
             <div className="bg-white p-10 rounded-lg shadow text-center max-w-md mt-10">
               <p className="text-gray-800 font-medium mb-2">Preview not available</p>
-              <p className="text-sm text-gray-500">
-                This document does not have a visual preview.
-              </p>
+              <p className="text-sm text-gray-500">This document does not have a visual preview.</p>
             </div>
           )}
 
@@ -73,7 +66,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
             currentDoc={activeDoc}
             allDocs={allDocs}
             onSelectDoc={(doc) => {
-              // Now this works because 'document' refers to the browser window
+              // Scroll to top when switching documents
               const scrollContainer = document.getElementById('modal-content');
               if(scrollContainer) scrollContainer.scrollTop = 0;
               onSelectDoc(doc);
@@ -84,17 +77,10 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
 
         {/* Footer */}
         <div className="p-4 border-t bg-white flex justify-between items-center shrink-0">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-                Preview Mode
-            </p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Preview Mode</p>
             
             {activeDoc.downloadLink ? (
-               <a 
-                 href={activeDoc.downloadLink} 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 className="px-6 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 shadow-md flex items-center gap-2 transition-colors"
-               >
+               <a href={activeDoc.downloadLink} target="_blank" rel="noopener noreferrer" className="px-6 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 shadow-md flex items-center gap-2 transition-colors">
                  Download Full PDF
                </a>
             ) : (

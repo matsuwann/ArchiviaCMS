@@ -6,17 +6,18 @@ export default function RelatedPapersWidget({ currentDoc, allDocs = [], onSelect
   const relatedDocs = useMemo(() => {
     if (!currentDoc || !allDocs || allDocs.length === 0) return [];
 
-    // Helper to safely get array of keywords
+    // Helper to safely get array of keywords from any format (string or array)
     const getKeywords = (doc) => {
       if (!doc || !doc.ai_keywords) return [];
       if (Array.isArray(doc.ai_keywords)) return doc.ai_keywords;
       if (typeof doc.ai_keywords === 'string') {
         try {
+          // Try parsing if it's a JSON string
           const parsed = JSON.parse(doc.ai_keywords);
           return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
-          // Fallback if not valid JSON
-          return [];
+          // If not JSON, maybe comma-separated?
+          return doc.ai_keywords.split(',').map(s => s.trim());
         }
       }
       return [];
@@ -25,13 +26,11 @@ export default function RelatedPapersWidget({ currentDoc, allDocs = [], onSelect
     const currentKeywords = getKeywords(currentDoc);
     if (currentKeywords.length === 0) return [];
 
-    // Score other documents
+    // Score other documents based on keyword overlap
     const scoredDocs = allDocs
-      .filter(doc => doc.id !== currentDoc.id)
+      .filter(doc => doc.id !== currentDoc.id) // Exclude current doc
       .map(doc => {
         const docKeywords = getKeywords(doc);
-        
-        // Calculate overlap
         const intersection = docKeywords.filter(k => currentKeywords.includes(k));
         
         return {
@@ -40,10 +39,10 @@ export default function RelatedPapersWidget({ currentDoc, allDocs = [], onSelect
           matchedKeywords: intersection
         };
       })
-      .filter(doc => doc.matchScore > 0)
-      .sort((a, b) => b.matchScore - a.matchScore); 
+      .filter(doc => doc.matchScore > 0) // Only keep docs with at least 1 match
+      .sort((a, b) => b.matchScore - a.matchScore); // Sort by highest score
 
-    return scoredDocs.slice(0, 3);
+    return scoredDocs.slice(0, 3); // Take top 3
   }, [currentDoc, allDocs]);
 
   if (relatedDocs.length === 0) return null;
@@ -61,12 +60,10 @@ export default function RelatedPapersWidget({ currentDoc, allDocs = [], onSelect
             className="p-4 bg-white border border-slate-200 rounded-lg hover:border-indigo-400 hover:shadow-md transition cursor-pointer group text-left"
           >
             <div className="text-sm font-bold text-indigo-700 group-hover:underline line-clamp-2 mb-1">
-              {/* Ensure title is a string */}
-              {String(doc.title || "Untitled Document")}
+              {doc.title || "Untitled Document"}
             </div>
             <div className="text-xs text-slate-500">
-              {/* Ensure matchScore is a number/string */}
-              {doc.matchScore} shared {doc.matchScore === 1 ? 'keyword' : 'keywords'}
+              Found {doc.matchScore} shared {doc.matchScore === 1 ? 'topic' : 'topics'}
             </div>
           </div>
         ))}

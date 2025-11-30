@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
-// Helper to safely parse authors
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -23,19 +22,15 @@ export default function DocumentList({
 }) {
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [selectedDoc, setSelectedDoc] = useState(null);
-
-    // === PAGINATION STATE ===
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // Sync local state if parent passes a new term
     useEffect(() => {
         if (typeof initialSearchTerm === 'string') {
             setSearchTerm(initialSearchTerm);
         }
     }, [initialSearchTerm]);
 
-    // Reset to Page 1 when the document list changes
     useEffect(() => {
         setCurrentPage(1);
     }, [documents]);
@@ -49,7 +44,6 @@ export default function DocumentList({
     const safeDocuments = Array.isArray(documents) ? documents : [];
     const isDataError = documents && !Array.isArray(documents);
 
-    // === PAGINATION CALCULATION ===
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentDocuments = safeDocuments.slice(indexOfFirstItem, indexOfLastItem);
@@ -117,7 +111,6 @@ export default function DocumentList({
                                 {currentDocuments.map((doc) => {
                                     try {
                                         const aiAuthors = getSafeList(doc.ai_authors);
-                                        
                                         return (
                                             <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
                                                 <div className="flex justify-between items-start">
@@ -125,8 +118,6 @@ export default function DocumentList({
                                                         <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
                                                             {doc.title || "Untitled Document"}
                                                         </h3>
-                                                        
-                                                        {/* METADATA */}
                                                         <div className="text-sm text-gray-600 mb-2">
                                                             {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
                                                             {doc.ai_journal && <span> • </span>}
@@ -148,7 +139,7 @@ export default function DocumentList({
                                 })}
                             </ul>
 
-                            {/* PAGINATION CONTROLS */}
+                            {/* PAGINATION */}
                             {totalPages > 1 && (
                                 <div className="flex justify-center items-center gap-4 mt-8 pt-6 border-t border-gray-100">
                                     <button 
@@ -158,11 +149,7 @@ export default function DocumentList({
                                     >
                                         Previous
                                     </button>
-                                    
-                                    <span className="text-sm text-gray-600 font-medium">
-                                        Page {currentPage} of {totalPages}
-                                    </span>
-
+                                    <span className="text-sm text-gray-600 font-medium">Page {currentPage} of {totalPages}</span>
                                     <button 
                                         onClick={() => handlePageChange(currentPage + 1)}
                                         disabled={currentPage === totalPages}
@@ -180,8 +167,8 @@ export default function DocumentList({
             {selectedDoc && (
                 <PreviewModal 
                     document={selectedDoc} 
-                    allDocs={safeDocuments}      // <--- NEW: Pass full list
-                    onSelectDoc={setSelectedDoc} // <--- NEW: Allow switching
+                    allDocs={safeDocuments}      // Passed full library for matching
+                    onSelectDoc={setSelectedDoc} // Allow modal to switch document
                     onClose={() => setSelectedDoc(null)} 
                 />
             )}
