@@ -2,12 +2,20 @@
 import { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
+// Improved helper to parse JSON strings from DB safely
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (typeof data === 'string') {
-        const cleaned = data.replace(/[\[\]"']/g, '');
-        return cleaned.split(',').map(s => s.trim()).filter(s => s);
+        try {
+            // Try actual JSON parsing first
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            // Fallback for simple comma-separated strings
+            const cleaned = data.replace(/[\[\]"'{}]/g, '');
+            return cleaned.split(',').map(s => s.trim()).filter(s => s);
+        }
     }
     return [];
 };
@@ -111,6 +119,8 @@ export default function DocumentList({
                                 {currentDocuments.map((doc) => {
                                     try {
                                         const aiAuthors = getSafeList(doc.ai_authors);
+                                        const aiKeywords = getSafeList(doc.ai_keywords).slice(0, 5); // Show first 5 keywords
+                                        
                                         return (
                                             <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
                                                 <div className="flex justify-between items-start">
@@ -118,17 +128,34 @@ export default function DocumentList({
                                                         <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
                                                             {doc.title || "Untitled Document"}
                                                         </h3>
+                                                        
+                                                        {/* METADATA ROW */}
                                                         <div className="text-sm text-gray-600 mb-2">
                                                             {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
                                                             {doc.ai_journal && <span> • </span>}
                                                             <span>{doc.ai_date_created || 'Unknown Date'}</span>
                                                         </div>
+
+                                                        {/* AUTHORS */}
                                                         <p className="text-sm text-gray-700 italic mb-2 line-clamp-1">
-                                                            {aiAuthors.join(', ')}
+                                                            {aiAuthors.length > 0 ? aiAuthors.join(', ') : 'Unknown Authors'}
                                                         </p>
-                                                        <p className="text-sm text-gray-500 line-clamp-2">
-                                                            {doc.ai_abstract || "Click to preview abstract..."}
+
+                                                        {/* ABSTRACT */}
+                                                        <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                                                            {doc.ai_abstract || "No abstract available."}
                                                         </p>
+
+                                                        {/* KEYWORDS TAGS (NEW) */}
+                                                        {aiKeywords.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {aiKeywords.map((k, i) => (
+                                                                    <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full border border-slate-200">
+                                                                        #{k}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </li>
@@ -167,8 +194,8 @@ export default function DocumentList({
             {selectedDoc && (
                 <PreviewModal 
                     document={selectedDoc} 
-                    allDocs={safeDocuments}      // Passed full library for matching
-                    onSelectDoc={setSelectedDoc} // Allow modal to switch document
+                    allDocs={safeDocuments}
+                    onSelectDoc={setSelectedDoc}
                     onClose={() => setSelectedDoc(null)} 
                 />
             )}
