@@ -32,6 +32,10 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/auth', authRoutes); 
 app.use('/api/admin', adminRoutes); 
 app.use('/api/settings', settingsRoutes); 
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: err.message || 'Internal Server Error' });
+});
 
 app.listen(port, async () => {
   console.log(`Backend server running on port ${port}`);
