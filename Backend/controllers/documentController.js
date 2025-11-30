@@ -148,7 +148,6 @@ exports.getUserUploads = async (req, res) => {
 };
 
 exports.uploadDocument = (req, res) => {
-  // NEW CHECK: Prevent Super Admins from uploading
   if (req.user && req.user.is_super_admin) {
       return res.status(403).json({ message: "Super Admins are restricted from uploading documents." });
   }
@@ -165,6 +164,19 @@ exports.uploadDocument = (req, res) => {
         // 1. Analyze Metadata (AI)
         const metadata = await aiService.analyzeDocument(req.file.buffer);
         
+        // === NEW: DUPLICATE CHECK ===
+        // Check if a document with this AI-extracted title already exists
+        if (metadata.title) {
+            const existingDoc = await documentModel.findByExactTitle(metadata.title);
+            if (existingDoc) {
+                // Return 409 Conflict immediately, preventing upload
+                return res.status(409).json({ 
+                    message: `Duplicate detected. A document with the title "${metadata.title}" already exists.` 
+                });
+            }
+        }
+        // ============================
+
         // 2. Generate Previews (Via Cloudinary)
         let previewUrls = [];
         try {

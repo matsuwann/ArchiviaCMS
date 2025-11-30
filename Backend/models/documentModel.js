@@ -8,6 +8,16 @@ exports.findAll = async () => {
   return rows;
 };
 
+// === NEW: DUPLICATE CHECK ===
+exports.findByExactTitle = async (title) => {
+  // Check for exact title match (case-insensitive)
+  const { rows } = await db.query(
+    'SELECT id FROM documents WHERE LOWER(title) = LOWER($1)',
+    [title]
+  );
+  return rows[0]; 
+};
+
 exports.findByTerm = async (term) => {
   const searchQuery = `%${term}%`;
   const { rows } = await db.query(
