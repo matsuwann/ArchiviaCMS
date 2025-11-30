@@ -41,8 +41,8 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
         // Use detected pages from pdf-lib. If that failed, use Cloudinary's result. Default to 1.
         const totalPages = detectedPages || result.pages || 1;
         
-        // Limit to MAX 6 pages (5 Clear + 1 Blurred)
-        const limit = Math.min(totalPages, 6);
+        // Limit to MAX 4 pages (3 Clear + 1 Blurred)
+        const limit = Math.min(totalPages, 4);
         
         console.log(`[Preview Service] Generating links for ${limit} pages.`);
 
@@ -50,8 +50,8 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
 
         // 4. Generate URLs
         for (let i = 1; i <= limit; i++) {
-          // Blur Logic: Only blur if it's Page 6
-          const isTeaserPage = (i === 6);
+          // Blur Logic: Only blur if it's Page 4
+          const isTeaserPage = (i === 4);
           
           // Cloudinary Transformation
           const transformation = isTeaserPage ? [{ effect: "blur:1500" }] : [];
