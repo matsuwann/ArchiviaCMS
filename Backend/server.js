@@ -14,9 +14,10 @@ const port = process.env.PORT || 3001;
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://archivia-frontend.vercel.app'
-
-  ]
+    'https://archivia-frontend.vercel.app' 
+    // Make sure this matches your Vercel URL exactly (no trailing slash)
+  ],
+  credentials: true // <--- ADD THIS LINE
 }));
 
 app.use(express.json()); 
