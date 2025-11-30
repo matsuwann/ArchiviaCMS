@@ -1,183 +1,35 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
-  baseURL: API_URL
+    baseURL: API_URL,
+    withCredentials: true 
 });
 
-export const setAuthToken = (token) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-  }
-};
+export const searchDocuments = (term) => api.get(`/documents/search?term=${term}`);
+export const getFilters = () => api.get('/documents/filters');
+export const filterDocuments = (filters) => api.post('/documents/filter', filters);
+export const getPopularSearches = () => api.get('/documents/popular');
+export const uploadDocument = (formData) => api.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const getMyUploads = () => api.get('/documents/my-uploads');
+export const updateDocument = (id, data) => api.put(`/documents/${id}`, data);
+export const deleteDocument = (id) => api.delete(`/documents/${id}`);
+export const requestDelete = (id, reason) => api.post(`/documents/${id}/request-delete`, { reason });
 
-export const login = (email, password) => {
-  return api.post('/auth/login', { email, password });
-};
+// === NEW: CITATION API ===
+export const getCitation = (document, style) => api.post('/documents/citation', { document, style });
 
-export const register = (firstName, lastName, email, password) => {
-  return api.post('/auth/register', { firstName, lastName, email, password });
-};
+// Auth
+export const login = (credentials) => api.post('/auth/login', credentials);
+export const register = (userData) => api.post('/auth/register', userData);
+export const logout = () => api.post('/auth/logout');
+export const getProfile = () => api.get('/auth/profile');
+export const updateProfile = (data) => api.put('/auth/profile', data);
+export const verifyEmail = (token) => api.get(`/auth/verify-email?token=${token}`);
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, newPassword) => api.post('/auth/reset-password', { token, newPassword });
 
-export const verifyEmail = (email, otp) => {
-  return api.post('/auth/verify', { email, otp });
-};
-
-export const searchDocuments = (term) => {
-  if (!term) {
-    return api.get('/documents');
-  }
-  return api.get(`/documents/search?term=${term}`);
-};
-
-export const getPopularSearches = () => {
-  return api.get('/documents/popular');
-};
-
-export const getFilters = () => {
-  return api.get('/documents/filters');
-};
-
-export const filterDocuments = (filters) => {
-  return api.post('/documents/filter', filters);
-};
-
-export const uploadDocument = (formData) => {
-  return api.post('/documents/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const getMyUploads = () => {
-  return api.get('/documents/my-uploads');
-};
-
-export const updateDocument = (id, data) => {
-  return api.put(`/documents/${id}`, data);
-};
-
-export const deleteDocument = (id) => {
-  return api.delete(`/documents/${id}`);
-};
-
-// === USER PROFILE ACTIONS ===
-export const updateUserProfile = (data) => {
-  return api.put('/auth/profile', data);
-};
-
-export const changeUserPassword = (currentPassword, newPassword) => {
-  return api.put('/auth/change-password', { currentPassword, newPassword });
-};
-// ============================
-
-export const getAllUsers = () => {
-  return api.get('/admin/users');
-};
-
-export const adminUpdateUser = (id, userData) => {
-  return api.put(`/admin/users/${id}`, userData);
-};
-
-export const adminDeleteUser = (id, data = {}) => {
-  return api.delete(`/admin/users/${id}`, { data }); 
-};
-
-export const adminReactivateUser = (id) => api.put(`/admin/users/${id}/reactivate`);
-
-export const getUserArchiveRequests = () => api.get('/admin/user-archive-requests');
-export const adminApproveUserArchive = (id) => api.delete(`/admin/user-archive-requests/${id}/approve`);
-export const adminRejectUserArchive = (id) => api.put(`/admin/user-archive-requests/${id}/reject`);
-
-export const adminUpdateDocument = (id, data) => {
-  return api.put(`/admin/documents/${id}`, data);
-};
-
-export const adminDeleteDocument = (id) => {
-  return api.delete(`/admin/documents/${id}`);
-};
-
-export const adminArchiveDocument = (id, reason) => {
-  return api.post(`/admin/documents/${id}/archive`, { reason });
-};
-
-// NEW: Analytics
-export const getAdminAnalytics = () => {
-  return api.get('/admin/analytics');
-};
-
-export const getSettings = () => {
-  return api.get('/settings');
-};
-
-export const adminUpdateSettings = (settingsData) => {
-  return api.put('/admin/settings', settingsData);
-};
-
-export const adminUploadIcon = (formData) => {
-  return api.post('/admin/icon-upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const adminUploadBgImage = (formData) => {
-  return api.post('/admin/upload-bg-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const adminRemoveBgImage = () => {
-  return api.post('/admin/remove-bg-image');
-};
-
-export const adminUploadBrandIcon = (formData) => {
-  return api.post('/admin/upload-brand-icon', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const adminRemoveBrandIcon = () => {
-  return api.post('/admin/remove-brand-icon');
-};
-
-export const adminResetSettings = () => {
-  return api.post('/admin/settings/reset');
-};
-
-export const forgotPassword = (email) => {
-  return api.post('/auth/forgot-password', { email });
-};
-
-export const resetPassword = (token, password) => {
-  return api.post('/auth/reset-password', { token, password });
-};
-
-export const requestDeletion = (id, reason) => {
-  return api.post(`/documents/${id}/request-delete`, { reason });
-};
-
-export const getDeletionRequests = () => {
-  return api.get('/admin/requests');
-};
-
-export const adminApproveDeletion = (id) => {
-  return api.delete(`/admin/requests/${id}/approve`);
-};
-
-export const adminRejectDeletion = (id) => {
-  return api.put(`/admin/requests/${id}/reject`);
-};
-
-export const getArchiveRequests = () => {
-  return api.get('/admin/archive-requests');
-};
-
-export const adminApproveArchive = (id) => {
-  return api.delete(`/admin/archive-requests/${id}/approve`);
-};
-
-export const adminRejectArchive = (id) => {
-  return api.put(`/admin/archive-requests/${id}/reject`);
-};
+export default api;

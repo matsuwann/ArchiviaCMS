@@ -1,22 +1,24 @@
 const express = require('express');
-const documentController = require('../controllers/documentController');
-const authMiddleware = require('../middleware/authMiddleware');
-const optionalAuthMiddleware = require('../middleware/optionalAuthMiddleware'); 
 const router = express.Router();
+const documentController = require('../controllers/documentController');
+const { requireAuth } = require('../middleware/authMiddleware');
+const { optionalAuth } = require('../middleware/optionalAuthMiddleware');
 
-// Public Routes (With Optional Auth for View Logic)
-router.get('/', optionalAuthMiddleware, documentController.getAllDocuments);
-router.get('/search', optionalAuthMiddleware, documentController.searchDocuments);
-router.post('/filter', optionalAuthMiddleware, documentController.filterDocuments);
-
-// Public Analytics
+// Public Routes
+router.get('/', optionalAuth, documentController.getAllDocuments);
+router.get('/search', optionalAuth, documentController.searchDocuments);
+router.post('/filter', optionalAuth, documentController.filterDocuments);
 router.get('/popular', documentController.getPopularSearches);
 router.get('/filters', documentController.getFilters);
 
+// === NEW: CITATION ROUTE (Public/Optional) ===
+router.post('/citation', optionalAuth, documentController.generateCitation);
+
 // Protected Routes
-router.post('/upload', authMiddleware, documentController.uploadDocument);
-router.get('/my-uploads', authMiddleware, documentController.getUserUploads);
-router.put('/:id', authMiddleware, documentController.updateDocument);
-router.post('/:id/request-delete', authMiddleware, documentController.requestDeleteDocument);
+router.get('/my-uploads', requireAuth, documentController.getUserUploads);
+router.post('/upload', requireAuth, documentController.uploadDocument);
+router.put('/:id', requireAuth, documentController.updateDocument);
+router.delete('/:id', requireAuth, documentController.deleteDocument);
+router.post('/:id/request-delete', requireAuth, documentController.requestDeleteDocument);
 
 module.exports = router;

@@ -8,11 +8,9 @@ const path = require('path');
 
 const upload = fileUploadService.upload;
 
-// === SIMPLE IN-MEMORY CACHE FOR TRENDS ===
 let trendsCache = { data: [], lastUpdated: 0 };
-const CACHE_DURATION = 60 * 60 * 1000; // 1 Hour
+const CACHE_DURATION = 60 * 60 * 1000; 
 
-// HELPER: Hide PDF link if user is not logged in
 const sanitizeDocuments = async (req, documents) => {
   const processedDocs = await Promise.all(documents.map(async (doc) => {
     const cleanDoc = { ...doc };
@@ -161,23 +159,17 @@ exports.uploadDocument = (req, res) => {
     const userId = req.user.userId;
 
     try {
-        // 1. Analyze Metadata (AI)
         const metadata = await aiService.analyzeDocument(req.file.buffer);
         
-        // === NEW: DUPLICATE CHECK ===
-        // Check if a document with this AI-extracted title already exists
         if (metadata.title) {
             const existingDoc = await documentModel.findByExactTitle(metadata.title);
             if (existingDoc) {
-                // Return 409 Conflict immediately, preventing upload
                 return res.status(409).json({ 
                     message: `Duplicate detected. A document with the title "${metadata.title}" already exists.` 
                 });
             }
         }
-        // ============================
 
-        // 2. Generate Previews (Via Cloudinary)
         let previewUrls = [];
         try {
             previewUrls = await previewService.generatePreviews(req.file.buffer, filename);
@@ -186,10 +178,8 @@ exports.uploadDocument = (req, res) => {
             previewUrls = [];
         }
 
-        // 3. Upload Original PDF to S3 (Private Storage)
         const fileKey = await s3Service.uploadToS3(req.file, `documents/${filename}`);
 
-        // 4. Save EVERYTHING to DB
         const documentData = {
           ...metadata,
           filename: filename,
@@ -265,7 +255,6 @@ exports.requestDeleteDocument = async (req, res) => {
       return res.status(400).json({ message: "A reason for deletion is required." });
     }
 
-    // Call the model function
     const result = await documentModel.submitDeletionRequest(id, userId, reason);
 
     if (!result) {
@@ -276,5 +265,18 @@ exports.requestDeleteDocument = async (req, res) => {
   } catch (err) {
     console.error("Error requesting deletion:", err.message);
     res.status(500).send('Server error');
+  }
+};
+
+// === NEW: GENERATE CITATION ===
+exports.generateCitation = async (req, res) => {
+  try {
+    const { document, style } = req.body;
+    if (!document || !style) return res.status(400).json({ message: "Missing data" });
+
+    const result = await aiService.formatCitation(document, style);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: "Server error generating citation" });
   }
 };

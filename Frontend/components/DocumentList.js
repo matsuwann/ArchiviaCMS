@@ -1,18 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
+import { getCitation } from '../services/apiService';
 
-// Improved helper to parse JSON strings from DB safely
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (typeof data === 'string') {
         try {
-            // Try actual JSON parsing first
             const parsed = JSON.parse(data);
             return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
-            // Fallback for simple comma-separated strings
             const cleaned = data.replace(/[\[\]"'{}]/g, '');
             return cleaned.split(',').map(s => s.trim()).filter(s => s);
         }
@@ -31,6 +29,11 @@ export default function DocumentList({
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    
+    // === CITATION STATE ===
+    const [activeCiteMenu, setActiveCiteMenu] = useState(null); // Stores ID of doc with open menu
+    const [copyFeedback, setCopyFeedback] = useState(null); // Stores "Copied!" message state
+
     const itemsPerPage = 5;
 
     useEffect(() => {
@@ -43,9 +46,56 @@ export default function DocumentList({
         setCurrentPage(1);
     }, [documents]);
 
+    // Close citation menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setActiveCiteMenu(null);
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
+
     const handleFormSubmit = (e) => {
         e.preventDefault();
         onSearch(searchTerm);
+    };
+
+    // === CITATION HANDLER ===
+    const handleCite = async (e, doc, style) => {
+        e.stopPropagation(); // Stop menu from closing immediately
+        
+        // Prepare clean metadata for AI
+        const meta = {
+            title: doc.title,
+            authors: getSafeList(doc.ai_authors).join(', '),
+            date: doc.ai_date_created,
+            journal: doc.ai_journal || "N/A"
+        };
+
+        try {
+            // Optimistic UI: "Copying..."
+            setCopyFeedback({ id: doc.id, text: 'Generating...' });
+            
+            const res = await getCitation(meta, style);
+            const citation = res.data.citation;
+
+            // Copy to clipboard
+            await navigator.clipboard.writeText(citation);
+            
+            setCopyFeedback({ id: doc.id, text: 'Copied!' });
+            setTimeout(() => {
+                setCopyFeedback(null);
+                setActiveCiteMenu(null);
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            setCopyFeedback({ id: doc.id, text: 'Error' });
+        }
+    };
+
+    // Toggle Menu
+    const toggleCiteMenu = (e, docId) => {
+        e.stopPropagation();
+        setActiveCiteMenu(activeCiteMenu === docId ? null : docId);
     };
 
     const safePopularSearches = Array.isArray(popularSearches) ? popularSearches : [];
@@ -119,34 +169,62 @@ export default function DocumentList({
                                 {currentDocuments.map((doc) => {
                                     try {
                                         const aiAuthors = getSafeList(doc.ai_authors);
-                                        const aiKeywords = getSafeList(doc.ai_keywords).slice(0, 5); // Show first 5 keywords
-                                        
+                                        const aiKeywords = getSafeList(doc.ai_keywords).slice(0, 5);
+                                        const isMenuOpen = activeCiteMenu === doc.id;
+
                                         return (
                                             <li key={doc.id} className="py-6 hover:bg-gray-50 transition duration-150 -mx-4 px-4 rounded-md">
                                                 <div className="flex justify-between items-start">
                                                     <div className="w-full pr-4 cursor-pointer" onClick={() => setSelectedDoc(doc)}>
-                                                        <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
-                                                            {doc.title || "Untitled Document"}
-                                                        </h3>
+                                                        <div className="flex justify-between items-start">
+                                                            <h3 className="text-lg font-bold text-indigo-700 leading-snug mb-1 hover:underline">
+                                                                {doc.title || "Untitled Document"}
+                                                            </h3>
+                                                            
+                                                            {/* === CITE BUTTON === */}
+                                                            <div className="relative shrink-0 ml-2">
+                                                                <button
+                                                                    onClick={(e) => toggleCiteMenu(e, doc.id)}
+                                                                    className="flex items-center gap-1 text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 hover:text-indigo-600 transition shadow-sm"
+                                                                >
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                                                    Cite
+                                                                </button>
+
+                                                                {/* DROPDOWN MENU */}
+                                                                {isMenuOpen && (
+                                                                    <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-xl border border-slate-200 z-50 overflow-hidden animate-fade-in">
+                                                                        {copyFeedback && copyFeedback.id === doc.id ? (
+                                                                            <div className="px-3 py-2 text-xs font-bold text-green-600 bg-green-50 text-center">
+                                                                                {copyFeedback.text}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <button onClick={(e) => handleCite(e, doc, 'APA')} className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Copy APA</button>
+                                                                                <button onClick={(e) => handleCite(e, doc, 'MLA')} className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Copy MLA</button>
+                                                                                <button onClick={(e) => handleCite(e, doc, 'BibTeX')} className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Copy BibTeX</button>
+                                                                                <button onClick={(e) => handleCite(e, doc, 'Harvard')} className="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">Copy Harvard</button>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                         
-                                                        {/* METADATA ROW */}
                                                         <div className="text-sm text-gray-600 mb-2">
                                                             {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
                                                             {doc.ai_journal && <span> • </span>}
                                                             <span>{doc.ai_date_created || 'Unknown Date'}</span>
                                                         </div>
 
-                                                        {/* AUTHORS */}
                                                         <p className="text-sm text-gray-700 italic mb-2 line-clamp-1">
                                                             {aiAuthors.length > 0 ? aiAuthors.join(', ') : 'Unknown Authors'}
                                                         </p>
 
-                                                        {/* ABSTRACT */}
                                                         <p className="text-sm text-gray-500 line-clamp-2 mb-3">
                                                             {doc.ai_abstract || "No abstract available."}
                                                         </p>
 
-                                                        {/* KEYWORDS TAGS (NEW) */}
                                                         {aiKeywords.length > 0 && (
                                                             <div className="flex flex-wrap gap-2 mt-2">
                                                                 {aiKeywords.map((k, i) => (

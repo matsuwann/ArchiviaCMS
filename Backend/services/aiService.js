@@ -104,3 +104,29 @@ exports.generateSearchInsights = async (rawSearchTerms) => {
     return rawSearchTerms.slice(0, 5).map(t => ({ term: t.term }));
   }
 };
+
+// === NEW: FORMAT CITATION ===
+exports.formatCitation = async (docData, style) => {
+  const prompt = `
+    You are a bibliographer. Format the following research paper metadata into a perfect ${style} citation. 
+    Return ONLY the citation string. No explanations.
+    
+    Metadata:
+    Title: ${docData.title}
+    Authors: ${docData.authors}
+    Date: ${docData.date}
+    Journal: ${docData.journal}
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+    
+    return { citation: response.text().trim() };
+  } catch (err) {
+    console.error("Citation Error:", err);
+    throw new Error("Failed to generate citation");
+  }
+};
