@@ -35,4 +35,4 @@ export const resetPassword = (token, newPassword) => api.post('/auth/reset-passw
     password: newPassword // Rename to match backend expectation
 });
 
-export default api;a
+export default api;
