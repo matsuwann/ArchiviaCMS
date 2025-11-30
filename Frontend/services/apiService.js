@@ -25,11 +25,14 @@ export const getCitation = (document, style) => api.post('/documents/citation', 
 // Auth
 export const login = (credentials) => api.post('/auth/login', credentials);
 export const register = (userData) => api.post('/auth/register', userData);
-export const logout = () => api.post('/auth/logout');
+export const logout = () => Promise.resolve();
 export const getProfile = () => api.get('/auth/profile');
 export const updateProfile = (data) => api.put('/auth/profile', data);
-export const verifyEmail = (token) => api.get(`/auth/verify-email?token=${token}`);
+export const verifyEmail = (email, otp) => api.post('/auth/verify', { email, otp });
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
-export const resetPassword = (token, newPassword) => api.post('/auth/reset-password', { token, newPassword });
+export const resetPassword = (token, newPassword) => api.post('/auth/reset-password', { 
+    token, 
+    password: newPassword // Rename to match backend expectation
+});
 
-export default api;
+export default api;a

@@ -307,6 +307,29 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+exports.getProfile = async (req, res) => {
+  try {
+    // req.user.userId comes from the authMiddleware
+    const user = await userModel.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Return only safe data (no passwords!)
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      is_admin: user.is_admin,
+      is_super_admin: user.is_super_admin
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 exports.changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const userId = req.user.userId;
