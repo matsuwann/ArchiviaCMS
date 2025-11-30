@@ -38,7 +38,7 @@ export default function LoginForm() {
     const toastId = toast.loading('Logging in...');
 
     try {
-      const response = await apiLogin(email, password);
+      const response = await apiLogin({ email, password });
       const userData = response.data.user;
 
       login(userData, response.data.token);
