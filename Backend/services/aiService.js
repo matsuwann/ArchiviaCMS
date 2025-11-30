@@ -124,7 +124,7 @@ exports.formatCitation = async (docData, style) => {
       contents: [{ role: 'user', parts: [{ text: prompt }] }]
     });
     
-    return { citation: response.text().trim() };
+    return { citation: response.text ? response.text.trim() : "" };
   } catch (err) {
     console.error("Citation Error:", err);
     throw new Error("Failed to generate citation");
