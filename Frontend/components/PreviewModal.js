@@ -1,18 +1,18 @@
 'use client';
+import RelatedPapersWidget from './RelatedPapersWidget'; // Import the new component
 
 // Helper to ensure we always have an array
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (typeof data === 'string') {
-        // Clean string like "{url1,url2}" or "['url1','url2']"
         const cleaned = data.replace(/[\[\]"'{}]/g, '');
         return cleaned.split(',').map(s => s.trim()).filter(s => s);
     }
     return [];
 };
 
-export default function PreviewModal({ document, onClose }) {
+export default function PreviewModal({ document, onClose, allDocs, onSelectDoc }) {
   if (!document) return null;
 
   const previewUrls = getSafeList(document.preview_urls);
@@ -22,9 +22,9 @@ export default function PreviewModal({ document, onClose }) {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-          <h2 className="text-lg font-bold text-slate-800 truncate">{document.title || "Untitled Document"}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-red-500 text-sm font-semibold px-2">
+        <div className="p-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
+          <h2 className="text-lg font-bold text-slate-800 truncate pr-4">{document.title || "Untitled Document"}</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-red-500 text-sm font-semibold px-2 shrink-0">
             ✕ Close
           </button>
         </div>
@@ -40,11 +40,10 @@ export default function PreviewModal({ document, onClose }) {
                   src={url} 
                   alt={`Page ${index + 1}`} 
                   className="w-full h-auto bg-white rounded-sm min-h-[200px] object-contain" 
-                  // Add fallback for broken images
                   onError={(e) => {e.target.style.display='none'}}
                 />
                 
-                {/* BLUR OVERLAY (Now on Page 4, which is index 3) */}
+                {/* BLUR OVERLAY (on Page 4) */}
                 {index === 3 && !document.downloadLink && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
                     <div className="bg-white/95 p-8 rounded-xl shadow-2xl text-center border border-gray-200 max-w-sm">
@@ -68,6 +67,20 @@ export default function PreviewModal({ document, onClose }) {
               </p>
             </div>
           )}
+
+          {/* === RELATED PAPERS WIDGET === */}
+          {/* We pass the props needed for the discovery logic */}
+          <RelatedPapersWidget 
+            currentDoc={document}
+            allDocs={allDocs}
+            onSelectDoc={(doc) => {
+              // Scroll to top when switching
+              const scrollContainer = document.querySelector('.overflow-y-auto');
+              if(scrollContainer) scrollContainer.scrollTop = 0;
+              onSelectDoc(doc);
+            }}
+          />
+
         </div>
 
         {/* Footer */}

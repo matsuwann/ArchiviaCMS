@@ -19,7 +19,7 @@ export default function DocumentList({
     searchPerformed = false, 
     onSearch = () => {}, 
     popularSearches = [],
-    initialSearchTerm = '' // NEW: Accepts term from parent
+    initialSearchTerm = '' 
 }) {
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [selectedDoc, setSelectedDoc] = useState(null);
@@ -28,14 +28,14 @@ export default function DocumentList({
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // Sync local state if parent passes a new term (e.g. from Hero page)
+    // Sync local state if parent passes a new term
     useEffect(() => {
         if (typeof initialSearchTerm === 'string') {
             setSearchTerm(initialSearchTerm);
         }
     }, [initialSearchTerm]);
 
-    // Reset to Page 1 when the document list changes (e.g., new search results)
+    // Reset to Page 1 when the document list changes
     useEffect(() => {
         setCurrentPage(1);
     }, [documents]);
@@ -57,7 +57,6 @@ export default function DocumentList({
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
-        // Optional: Scroll to top of list container if needed
     };
 
     return (
@@ -127,7 +126,7 @@ export default function DocumentList({
                                                             {doc.title || "Untitled Document"}
                                                         </h3>
                                                         
-                                                        {/* METADATA - Always Visible */}
+                                                        {/* METADATA */}
                                                         <div className="text-sm text-gray-600 mb-2">
                                                             {doc.ai_journal && <span className="font-semibold text-gray-800">{doc.ai_journal}</span>}
                                                             {doc.ai_journal && <span> • </span>}
@@ -149,7 +148,7 @@ export default function DocumentList({
                                 })}
                             </ul>
 
-                            {/* === PAGINATION CONTROLS === */}
+                            {/* PAGINATION CONTROLS */}
                             {totalPages > 1 && (
                                 <div className="flex justify-center items-center gap-4 mt-8 pt-6 border-t border-gray-100">
                                     <button 
@@ -181,6 +180,8 @@ export default function DocumentList({
             {selectedDoc && (
                 <PreviewModal 
                     document={selectedDoc} 
+                    allDocs={safeDocuments}      // <--- NEW: Pass full list
+                    onSelectDoc={setSelectedDoc} // <--- NEW: Allow switching
                     onClose={() => setSelectedDoc(null)} 
                 />
             )}
