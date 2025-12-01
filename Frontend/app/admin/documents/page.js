@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import EditDocumentModal from '../../../components/EditDocumentModal'; 
-import { searchDocuments, adminDeleteDocument, adminArchiveDocument } from '../../../services/apiService'; // Added adminArchiveDocument
+import { searchDocuments, adminDeleteDocument, adminArchiveDocument, adminUpdateDocument } from '../../../services/apiService'; // Added adminArchiveDocument
 import { useAuth } from '../../../context/AuthContext'; // Get auth info
 import { toast } from 'react-hot-toast';
 
