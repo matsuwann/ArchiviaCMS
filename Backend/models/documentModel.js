@@ -19,18 +19,43 @@ exports.findByExactTitle = async (title) => {
 };
 
 exports.findByTerm = async (term) => {
-  const searchQuery = `%${term}%`;
-  const { rows } = await db.query(
-      `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
-       FROM documents 
-       WHERE title ILIKE $1 
-       OR ai_keywords::text ILIKE $1 
-       OR ai_authors::text ILIKE $1 
-       OR ai_date_created ILIKE $1 
-       OR ai_journal ILIKE $1
-       ORDER BY created_at DESC`,
-      [searchQuery]
-  );
+  // 1. LENIENCY: Split the search phrase into individual words
+  const terms = term.trim().split(/\s+/).filter(t => t.length > 0);
+  
+  if (terms.length === 0) {
+      // If terms are empty after trimming, return all
+      const { rows } = await db.query(
+        `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
+         FROM documents ORDER BY created_at DESC`
+      );
+      return rows;
+  }
+
+  // 2. DYNAMIC QUERY: Build a query that ensures EACH word appears SOMEWHERE in the metadata
+  // This creates logic like: (Title has 'Medical' OR Abstract has 'Medical') AND (Title has '2024' OR Date has '2024')
+  const whereClauses = terms.map((_, i) => {
+      const idx = i + 1; // PostgreSQL params start at $1
+      return `(
+        title ILIKE $${idx} 
+        OR ai_keywords::text ILIKE $${idx} 
+        OR ai_authors::text ILIKE $${idx} 
+        OR ai_date_created ILIKE $${idx} 
+        OR ai_journal ILIKE $${idx}
+        OR ai_abstract ILIKE $${idx} 
+      )`; // Added ai_abstract for better results
+  });
+
+  const query = `
+      SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
+      FROM documents 
+      WHERE ${whereClauses.join(' AND ')} 
+      ORDER BY created_at DESC
+  `;
+
+  // 3. Add wildcards to every word
+  const params = terms.map(t => `%${t}%`);
+
+  const { rows } = await db.query(query, params);
   return rows;
 };
 
