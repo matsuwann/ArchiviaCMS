@@ -1,6 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const { PDFDocument } = require('pdf-lib'); // Import pdf-lib
+const { PDFDocument } = require('pdf-lib'); 
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -9,57 +9,64 @@ cloudinary.config({
 });
 
 exports.generatePreviews = async (pdfBuffer, filename) => {
-  // 1. Get Accurate Page Count using pdf-lib
+  let bufferToUpload = pdfBuffer; // Default to original file
   let detectedPages = 0;
+
+  // 1. Optimize PDF Size Locally
   try {
-    // Load the PDF to count pages (ignore encryption for speed if possible)
     const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
     detectedPages = pdfDoc.getPageCount();
-    console.log(`[Preview Service] pdf-lib detected ${detectedPages} pages.`);
+    console.log(`[Preview Service] Original PDF has ${detectedPages} pages.`);
+
+    // If PDF is larger than 4 pages, extract only the first 4 to save space
+    if (detectedPages > 4) {
+        console.log(`[Preview Service] Trimming PDF to first 4 pages to reduce upload size...`);
+        
+        const subDoc = await PDFDocument.create();
+        // Copy pages 0, 1, 2, 3
+        const pagesToCopy = await subDoc.copyPages(pdfDoc, [0, 1, 2, 3]);
+        pagesToCopy.forEach(page => subDoc.addPage(page));
+        
+        const pdfBytes = await subDoc.save();
+        bufferToUpload = Buffer.from(pdfBytes); // Update the buffer to the smaller version
+        
+        console.log(`[Preview Service] Optimized PDF size: ${(bufferToUpload.length / 1024 / 1024).toFixed(2)} MB`);
+    }
   } catch (err) {
-    console.error("[Preview Service] Failed to count pages locally:", err.message);
+    console.error("[Preview Service] PDF manipulation failed (using original file):", err.message);
   }
 
   return new Promise((resolve, reject) => {
-    // Clean filename for Cloudinary public_id
     const publicId = `previews/${filename.replace(/\.[^/.]+$/, "")}`;
 
-    // 2. Upload PDF to Cloudinary
+    // 2. Upload (Optimized) PDF to Cloudinary
     const uploadStream = cloudinary.uploader.upload_stream(
       { 
         resource_type: 'image', 
         public_id: publicId
-        // format: 'png' REMOVED to ensure the file is stored as a PDF, preserving all pages
       },
       (error, result) => {
         if (error) {
             console.error("Cloudinary Upload Error:", error);
+            // Return empty array so the main upload process doesn't crash
             return resolve([]); 
         }
 
-        // 3. Determine Page Count
-        // Use detected pages from pdf-lib. If that failed, use Cloudinary's result. Default to 1.
-        const totalPages = detectedPages || result.pages || 1;
-        
-        // Limit to MAX 4 pages (3 Clear + 1 Blurred)
+        // Use the detected pages or the result pages (which will be max 4 now)
+        const totalPages = result.pages || detectedPages || 1;
         const limit = Math.min(totalPages, 4);
         
-        console.log(`[Preview Service] Generating links for ${limit} pages.`);
-
         const previewUrls = [];
 
-        // 4. Generate URLs
+        // 3. Generate URLs
         for (let i = 1; i <= limit; i++) {
-          // Blur Logic: Only blur if it's Page 4
           const isTeaserPage = (i === 4);
-          
-          // Cloudinary Transformation
           const transformation = isTeaserPage ? [{ effect: "blur:1500" }] : [];
 
           const url = cloudinary.url(result.public_id, {
             page: i,
             resource_type: 'image',
-            format: 'png', // Convert to PNG on retrieval
+            format: 'png',
             transformation: transformation,
             secure: true 
           });
@@ -71,6 +78,7 @@ exports.generatePreviews = async (pdfBuffer, filename) => {
       }
     );
 
-    streamifier.createReadStream(pdfBuffer).pipe(uploadStream);
+    // IMPORTANT: Pipe the 'bufferToUpload' (which might be the smaller one), not 'pdfBuffer'
+    streamifier.createReadStream(bufferToUpload).pipe(uploadStream);
   });
 };
