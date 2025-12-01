@@ -160,26 +160,41 @@ exports.uploadDocument = (req, res) => {
     const userId = req.user.userId;
 
     try {
-        const metadata = await aiService.analyzeDocument(req.file.buffer);
+        // === SPEED OPTIMIZATION: Start all tasks simultaneously ===
         
+        // 1. Start AI Analysis
+        const analysisPromise = aiService.analyzeDocument(req.file.buffer);
+
+        // 2. Start Preview Generation (Fail-safe: returns [] on error)
+        const previewPromise = previewService.generatePreviews(req.file.buffer, filename)
+            .catch(err => {
+                console.error("Preview generation failed silently:", err.message);
+                return [];
+            });
+
+        // 3. Start S3 Upload
+        const s3Promise = s3Service.uploadToS3(req.file, `documents/${filename}`);
+
+        // Wait for ALL tasks to complete
+        const [metadata, previewUrls, fileKey] = await Promise.all([
+            analysisPromise,
+            previewPromise,
+            s3Promise
+        ]);
+
+        // === POST-PROCESS CHECKS ===
+
+        // Check for duplicates (now happens after upload, so we must cleanup if found)
         if (metadata.title) {
             const existingDoc = await documentModel.findByExactTitle(metadata.title);
             if (existingDoc) {
+                // Cleanup the S3 file we just uploaded since we are rejecting it
+                await s3Service.deleteFromS3(fileKey); 
                 return res.status(409).json({ 
                     message: `Duplicate detected. A document with the title "${metadata.title}" already exists.` 
                 });
             }
         }
-
-        let previewUrls = [];
-        try {
-            previewUrls = await previewService.generatePreviews(req.file.buffer, filename);
-        } catch (previewErr) {
-            console.error("Preview generation failed:", previewErr);
-            previewUrls = [];
-        }
-
-        const fileKey = await s3Service.uploadToS3(req.file, `documents/${filename}`);
 
         const documentData = {
           ...metadata,
@@ -192,9 +207,9 @@ exports.uploadDocument = (req, res) => {
         const newDocument = await documentModel.create(documentData);
         res.status(201).json(newDocument);
 
-    } catch (aiOrDbErr) {
-        console.error('Processing Error:', aiOrDbErr.message);
-        if (aiOrDbErr.message && aiOrDbErr.message.includes("overloaded")) {
+    } catch (error) {
+        console.error('Processing Error:', error.message);
+        if (error.message && error.message.includes("overloaded")) {
              return res.status(503).json({ message: 'The AI model is currently overloaded.' });
         }
         res.status(500).json({ message: 'Server error during processing.' });
