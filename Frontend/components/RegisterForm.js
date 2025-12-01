@@ -38,7 +38,8 @@ export default function RegisterForm() {
       hasUpper: /[A-Z]/.test(newPassword),
       hasLower: /[a-z]/.test(newPassword),
       hasNumber: /[0-9]/.test(newPassword),
-      hasSpecial: /[@$!%*?&]/.test(newPassword),
+      // FIXED: Added '_' to the regex so it counts as a special char
+      hasSpecial: /[@$!%*?&_]/.test(newPassword),
     });
   };
 
