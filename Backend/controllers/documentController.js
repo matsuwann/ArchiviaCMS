@@ -79,19 +79,20 @@ exports.filterDocuments = async (req, res) => {
 
 exports.getPopularSearches = async (req, res) => {
   try {
-    const now = Date.now();
-    if (trendsCache.data.length > 0 && (now - trendsCache.lastUpdated < CACHE_DURATION)) {
-        return res.json(trendsCache.data);
+    // 1. Fetch the actual top 10 terms directly from the DB
+    // (Skipping the AI Service "summarization" which hides real data)
+    const rawTerms = await analyticsModel.getTopSearches(10);
+    
+    if (rawTerms.length === 0) {
+        return res.json([]);
     }
-    const rawTerms = await analyticsModel.getTopSearches(50);
-    if (rawTerms.length === 0) return res.json([]);
 
-    const smartTrends = await aiService.generateSearchInsights(rawTerms);
-    trendsCache = { data: smartTrends, lastUpdated: now };
-    res.json(smartTrends);
+    // 2. Return them directly. 
+    // The structure matches what frontend expects: [{ term: 'abc', count: 12 }]
+    res.json(rawTerms);
+
   } catch (err) {
-    console.error(err.message);
-    if (trendsCache.data.length > 0) return res.json(trendsCache.data);
+    console.error("Analytics Error:", err.message);
     res.status(500).send('Server error fetching analytics');
   }
 };

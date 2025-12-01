@@ -79,31 +79,7 @@ exports.analyzeDocument = async (fileBuffer) => {
   }
 };
 
-exports.generateSearchInsights = async (rawSearchTerms) => {
-  if (!rawSearchTerms || rawSearchTerms.length === 0) return [];
 
-  const termsString = rawSearchTerms.map(t => `${t.term} (${t.count})`).join(', ');
-
-  const prompt = `
-    You are a data analyst. Group these search terms into top 5 broader topics:
-    [${termsString}]
-    Return JSON object { "trends": ["Topic A", "Topic B"] }
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { responseMimeType: "application/json" }
-    });
-
-    const result = JSON.parse(response.text);
-    return result.trends ? result.trends.map(topic => ({ term: topic })) : [];
-
-  } catch (err) {
-    return rawSearchTerms.slice(0, 5).map(t => ({ term: t.term }));
-  }
-};
 
 // === NEW: FORMAT CITATION ===
 exports.formatCitation = async (docData, style) => {
