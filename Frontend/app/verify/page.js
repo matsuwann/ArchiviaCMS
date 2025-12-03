@@ -38,8 +38,9 @@ function VerifyContent() {
         <div className="glass-panel p-8 rounded-2xl shadow-2xl border border-white/40 max-w-sm w-full mx-auto animate-fade-in">
             <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Check your Inbox</h2>
+                {/* FIXED APOSTROPHE HERE */}
                 <p className="text-sm text-gray-500 mt-2">
-                    We've sent a 6-digit code to your email.
+                    We&apos;ve sent a 6-digit code to your email.
                 </p>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">

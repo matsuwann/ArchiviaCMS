@@ -57,7 +57,8 @@ export default function AdminRequestsPage() {
                     </div>
                     <div className="bg-red-50 p-3 rounded-lg border border-red-100 inline-block">
                         <span className="text-xs font-bold text-red-800 uppercase">Reason:</span>
-                        <span className="text-sm text-red-900 ml-2 italic">"{req.deletion_reason}"</span>
+                        {/* FIXED QUOTES HERE */}
+                        <span className="text-sm text-red-900 ml-2 italic">&quot;{req.deletion_reason}&quot;</span>
                     </div>
                 </div>
                 

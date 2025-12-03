@@ -84,8 +84,6 @@ export default function AdminThemeManagement() {
     }
   };
 
-  // ... (Reset, Icon, BgImage, BrandIcon handlers remain exactly the same as your code)
-  // Re-implementing simplified versions for brevity in this display, assumes logic is identical
   const handleResetToDefault = async () => {
     if (!window.confirm("Are you sure?")) return;
     setLoading(true);
@@ -95,18 +93,7 @@ export default function AdminThemeManagement() {
         setMessage('Reset successful.');
     } catch(e) { setMessage('Reset failed'); } finally { setLoading(false); }
   };
-
-  // Generic File Uploader Logic helper
-  const handleFileUpload = async (e, fileState, apiFunc, setterKey, successMsg) => {
-    e.preventDefault();
-    if (!fileState) return setMessage('Please select a file.');
-    setLoading(true);
-    const formData = new FormData();
-    // Logic differs slightly per type in original, adapting generically for display:
-    // In real implementation, keep your specific append keys ('icon', 'bg-image', 'brand-icon')
-  };
   
-  // Specific Handlers to maintain your exact logic
   const handleBgImageSubmitWrapper = async (e) => {
       e.preventDefault();
       if(!bgImageFile) return setMessage("Select file");
@@ -298,6 +285,7 @@ export default function AdminThemeManagement() {
             {/* Brand Icon Upload */}
             <SettingCard title="Brand Icon">
                 <div className="flex items-center justify-center mb-4 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {settings.brandIconUrl !== 'none' ? <img src={settings.brandIconUrl} alt="Logo" className="h-10 w-10 object-contain" /> : <span className="text-gray-400 text-sm">No Icon</span>}
                 </div>
                 <input type="file" accept="image/*" onChange={(e) => setBrandIconFile(e.target.files[0])} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-4"/>

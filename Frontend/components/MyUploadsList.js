@@ -64,7 +64,8 @@ export default function MyUploadsList() {
         {documents.length === 0 ? (
           <div className="text-center py-16 bg-white/50 rounded-2xl border-2 border-dashed border-gray-300">
             <div className="text-4xl mb-3">📂</div>
-            <p className="text-gray-500 font-medium">You haven't uploaded any documents yet.</p>
+            {/* FIXED APOSTROPHE HERE */}
+            <p className="text-gray-500 font-medium">You haven&apos;t uploaded any documents yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -110,7 +111,7 @@ export default function MyUploadsList() {
       {isModalOpen && (
         <EditDocumentModal 
           document={selectedDocument} 
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setIsModalOpen(false)} 
           onSave={handleSave}
         />
       )}

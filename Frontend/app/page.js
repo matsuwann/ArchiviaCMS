@@ -169,7 +169,8 @@ function HomeContent() {
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-gray-200/50 shadow-sm">
         <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Library Results</h1>
-            <p className="text-gray-500 text-sm mt-1">Found results for <span className="font-semibold text-indigo-600">"{currentSearchTerm}"</span></p>
+            {/* FIXED QUOTES BELOW */}
+            <p className="text-gray-500 text-sm mt-1">Found results for <span className="font-semibold text-indigo-600">&quot;{currentSearchTerm}&quot;</span></p>
         </div>
         <button 
             onClick={() => router.push('/')}
