@@ -48,7 +48,8 @@ export default function AdminDashboardPage() {
       <div className="bg-gradient-to-r from-indigo-900 to-indigo-800 p-8 rounded-3xl shadow-xl text-white relative overflow-hidden">
         <div className="relative z-10">
             <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.firstName}! 👋</h2>
-            <p className="text-indigo-200 text-lg">Here's what's happening in your repository today.</p>
+            {/* FIXED QUOTES BELOW */}
+            <p className="text-indigo-200 text-lg">Here&apos;s what&apos;s happening in your repository today.</p>
         </div>
         {/* Decorative Circle */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5 pointer-events-none"></div>

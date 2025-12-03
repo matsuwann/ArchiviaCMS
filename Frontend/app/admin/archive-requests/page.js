@@ -46,8 +46,9 @@ export default function AdminArchiveRequestsPage() {
         <div className="flex-1">
             <h3 className="font-bold text-lg text-gray-900">{title}</h3>
             <p className="text-xs text-gray-400 mb-2">{subtitle}</p>
+            {/* FIXED QUOTES BELOW */}
             <div className={`p-2 rounded bg-opacity-10 text-sm italic inline-block ${color.replace('border-l-', 'bg-').replace('500', '50')}`}>
-                "{reason}"
+                &quot;{reason}&quot;
             </div>
         </div>
         <div className="flex gap-2">
