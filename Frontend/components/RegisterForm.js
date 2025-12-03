@@ -17,6 +17,51 @@ export default function RegisterForm() {
   });
   
   const [loading, setLoading] = useState(false);
+  
+  const router = useRouter(); 
+  const { login } = useAuth(); // <--- Get login function
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const [passwordValidity, setPasswordValidity] = useState({
+    hasLength: false,
+    hasUpper: false,
+    hasLower: false,
+    hasNumber: false,
+    hasSpecial: false,
+  });
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    setPasswordValidity({
+      hasLength: newPassword.length >= 8,
+      hasUpper: /[A-Z]/.test(newPassword),
+      hasLower: /[a-z]/.test(newPassword),
+      hasNumber: /[0-9]/.test(newPassword),
+      hasSpecial: /[@$!%*?&]/.test(newPassword),
+    });
+  };
+
+  // <--- GOOGLE HANDLER --->
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // Send the token to your backend
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
+        token: credentialResponse.credential,
+      });
+
+      // Log the user in directly
+      login(res.data.user, res.data.token);
+      toast.success(`Account created! Welcome, ${res.data.user.firstName}.`);
+      
+      setTimeout(() => {
+        router.push('/');
+      }, 1000);
+
+    } catch (err) {
+      console.error('Google Signup Error:', err);
+      toast.error('Google signup failed.');
+    }
   const router = useRouter();
   const { login } = useAuth();
 

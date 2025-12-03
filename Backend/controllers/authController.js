@@ -8,8 +8,7 @@ const crypto = require('crypto');
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-// FIXED: Added '_' to the allowed characters and the lookahead check
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 exports.register = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
@@ -45,9 +44,13 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-    emailService.sendOTP(email, otp).catch(err => {
-        console.error("BACKGROUND EMAIL ERROR:", err);
-    });
+   try {
+    await emailService.sendOTP(email, otp); // AWAIT THIS
+  } catch (emailError) {
+    // If email fails, delete the user so they can try again
+    await db.query('DELETE FROM users WHERE id = $1', [user.id]); 
+    return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+  }
    
     res.status(201).json({
         message: 'Registration successful. Please verify your email.',
