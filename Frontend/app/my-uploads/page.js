@@ -15,26 +15,20 @@ export default function MyUploadsPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
-  if (authLoading || !isAuthenticated) {
-    return (
-      <main className="container mx-auto p-4 md:p-8 text-center">
-        <p className="text-lg">Loading your documents...</p>
-      </main>
-    );
-  }
+  if (authLoading || !isAuthenticated) return null;
 
   return (
-    <main className="container mx-auto p-4 md:p-8">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-          Your Submissions
-        </h1>
-        <p className="mt-2 text-lg text-gray-500">
-          Here you can view, edit, or delete your uploaded documents.
-        </p>
-      </header>
+    <main className="container mx-auto p-4 md:p-8 min-h-screen">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <header className="text-center md:text-left py-6 border-b border-white/20">
+            <h1 className="text-3xl font-bold text-white drop-shadow-md">
+            Your Submissions
+            </h1>
+            <p className="text-indigo-100 mt-1">
+            Manage and track the status of your uploaded documents.
+            </p>
+        </header>
 
-      <div className="max-w-4xl mx-auto">
         <MyUploadsList />
       </div>
     </main>

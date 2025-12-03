@@ -8,93 +8,72 @@ import Link from 'next/link';
 export default function ArchivedUsers() {
   const [archivedUsers, setArchivedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchArchivedUsers();
-  }, []);
+  useEffect(() => { fetchArchivedUsers(); }, []);
 
   const fetchArchivedUsers = async () => {
     try {
       setLoading(true);
       const response = await getAllUsers();
-      // FILTER: Only show INACTIVE users
-      const inactive = response.data.filter(u => !u.is_active);
-      setArchivedUsers(inactive);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch archived users.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      setArchivedUsers(response.data.filter(u => !u.is_active));
+    } catch (err) { toast.error('Failed to fetch archive.'); } 
+    finally { setLoading(false); }
   };
 
   const handleRestore = async (userId) => {
-    if (!window.confirm("Are you sure you want to restore this user? They will be able to log in again.")) {
-      return;
-    }
-    try {
-      await adminReactivateUser(userId);
-      toast.success('User restored successfully.');
-      fetchArchivedUsers(); // Refresh list
-    } catch (err) {
-      toast.error('Failed to restore user.');
-      console.error(err);
-    }
+    if (!window.confirm("Restore this user?")) return;
+    try { await adminReactivateUser(userId); toast.success('Restored.'); fetchArchivedUsers(); } 
+    catch (err) { toast.error('Failed.'); }
   };
 
-  if (loading) return <p className="text-center">Loading archive...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
+  if (loading) return <p className="text-center py-20 text-gray-400">Loading archive...</p>;
 
   return (
-    <div className="p-8 bg-white rounded-xl shadow-2xl">
-      <div className="flex justify-between items-center mb-6 border-b pb-2">
-        <h2 className="text-3xl font-bold text-gray-900">
-          Archived Users
-        </h2>
-        <Link href="/admin/users">
-          <button className="py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
-            Back to Users
-          </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div>
+            <h2 className="text-2xl font-bold text-gray-900">Archived Users</h2>
+            <p className="text-sm text-gray-500">Inactive accounts.</p>
+        </div>
+        <Link href="/admin/users" className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+            &larr; Active Users
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50/50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">User</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {archivedUsers.length === 0 ? (
-              <tr><td colSpan="4" className="text-center py-4 text-gray-500">No archived users found.</td></tr>
+              <tr><td colSpan="3" className="text-center py-10 text-gray-400">Archive is empty.</td></tr>
             ) : (
               archivedUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.first_name} {user.last_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.is_admin ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        User
-                      </span>
-                    )}
+                <tr key={user.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs mr-3">
+                            {user.first_name?.[0]}{user.last_name?.[0]}
+                        </div>
+                        <div>
+                            <div className="text-sm font-bold text-gray-900 opacity-50">{user.first_name} {user.last_name}</div>
+                            <div className="text-xs text-gray-400">{user.email}</div>
+                        </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleRestore(user.id)}
-                      className="py-1 px-3 bg-green-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-green-700"
-                    >
-                      Restore
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-0.5 inline-flex text-xs font-bold rounded-full bg-gray-100 text-gray-500">
+                        {user.is_admin ? 'Admin' : 'User'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => handleRestore(user.id)} className="text-green-600 hover:text-green-900 text-xs font-bold px-3 py-1 bg-green-50 rounded-md hover:bg-green-100 transition">
+                      Restore Access
                     </button>
                   </td>
                 </tr>

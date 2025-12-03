@@ -1,110 +1,89 @@
 'use client';
-import { useState } from 'react';
 
 export default function FilterSidebar({ filters, selectedFilters, onFilterChange }) {
-  const [openSections, setOpenSections] = useState({
-    dateRange: true,
-    journals: true,
-    years: true,
-    authors: true,
-    keywords: false, 
-  });
-
-  const toggleSection = (section) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
+  
   const handleCheckboxChange = (category, value) => {
     const current = selectedFilters[category] || [];
-    const isSelected = current.includes(value);
-    let updated;
-
-    if (category === 'year' || category === 'dateRange') {
-        updated = isSelected ? null : value;
-    } else {
-        updated = isSelected
-        ? current.filter(item => item !== value)
-        : [...current, value];
-    }
+    const updated = current.includes(value)
+      ? current.filter(item => item !== value)
+      : [...current, value];
     onFilterChange(category, updated);
   };
 
-  const renderSection = (title, category, items, isSingleSelect = false) => (
-    <div className="mb-4 border-b border-gray-200 pb-4">
-      <button 
-        onClick={() => toggleSection(category)}
-        className="flex justify-between items-center w-full text-left font-bold text-gray-700 hover:text-indigo-700 mb-2 transition-colors"
-      >
-        {title}
-        <span className="text-gray-400 text-sm">{openSections[category] ? '▼' : '▶'}</span>
-      </button>
-      
-      {openSections[category] && (
-        <div className="max-h-48 overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-300">
-          {/* SAFETY FIX: Check if items is a valid array before mapping */}
-          {Array.isArray(items) && items.length > 0 ? (
-            items.map((item) => {
-               const label = item.label || item;
-               const value = item.value || item;
-               
-               const isChecked = isSingleSelect 
-                  ? selectedFilters[category] === value
-                  : (selectedFilters[category] || []).includes(value);
-
-               return (
-                <label key={value} className="flex items-center text-sm text-gray-600 hover:bg-gray-50 p-1 rounded cursor-pointer transition-colors group">
-                  <input
-                    type={isSingleSelect ? "radio" : "checkbox"}
-                    checked={isChecked || false}
-                    onChange={() => handleCheckboxChange(category, value)}
-                    onClick={(e) => {
-                        if(isSingleSelect && isChecked) {
-                            e.preventDefault();
-                            handleCheckboxChange(category, value);
-                        }
-                    }}
-                    className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                  />
-                  <span className={`truncate group-hover:text-indigo-600 ${isChecked ? 'font-medium text-indigo-700' : ''}`} title={label}>
-                      {label}
-                  </span>
-                </label>
-              );
-            })
-          ) : (
-            <p className="text-xs text-gray-400 italic ml-6">No options available</p>
-          )}
+  const FilterSection = ({ title, category, items }) => {
+    if (!items || items.length === 0) return null;
+    
+    return (
+      <div className="mb-8">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 pl-1">
+          {title}
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {items.map((item, idx) => {
+            const isSelected = selectedFilters[category]?.includes(item);
+            return (
+              <label 
+                key={idx} 
+                className={`cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                  isSelected 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' 
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={isSelected}
+                  onChange={() => handleCheckboxChange(category, item)}
+                />
+                {item}
+              </label>
+            );
+          })}
         </div>
-      )}
-    </div>
-  );
-
-  const dateAddedOptions = [
-    { label: 'Last 7 Days', value: '7days' },
-    { label: 'Last 30 Days', value: '30days' },
-    { label: 'This Year', value: 'thisYear' },
-  ];
-
-  // SAFETY FIX: Ensure safeFilters is never null
-  const safeFilters = filters || {};
+      </div>
+    );
+  };
 
   return (
-    <div className="w-full bg-white p-5 rounded-lg shadow-sm border border-gray-200 h-fit sticky top-4">
-      <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Refine by</h3>
-        <button 
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+          Filters
+        </h2>
+        
+        {/* Show reset if any filter is active */}
+        {(selectedFilters.authors?.length > 0 || selectedFilters.keywords?.length > 0 || selectedFilters.year) && (
+          <button 
             onClick={() => onFilterChange('reset')}
-            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
-        >
+            className="text-xs font-semibold text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors"
+          >
             Clear All
-        </button>
+          </button>
+        )}
       </div>
 
-      {renderSection('Date Added', 'dateRange', dateAddedOptions, true)}
-      {renderSection('Journal / Source', 'journal', safeFilters.journals || [])}
-      {renderSection('Publication Year', 'year', safeFilters.years || [], true)}
-      {renderSection('Authors', 'authors', safeFilters.authors || [])}
-      {renderSection('Keywords', 'keywords', safeFilters.keywords || [])}
+      <div className="space-y-6">
+        {/* Years - slightly different layout for years (grid) */}
+        {filters.years?.length > 0 && (
+           <div className="mb-6">
+             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 pl-1">Publication Year</h3>
+             <select 
+                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={selectedFilters.year || ''}
+                onChange={(e) => onFilterChange('year', e.target.value)}
+             >
+               <option value="">Any Year</option>
+               {filters.years.map(y => <option key={y} value={y}>{y}</option>)}
+             </select>
+           </div>
+        )}
+
+        <FilterSection title="Authors" category="authors" items={filters.authors} />
+        <FilterSection title="Keywords" category="keywords" items={filters.keywords} />
+        <FilterSection title="Journals" category="journal" items={filters.journals} />
+      </div>
     </div>
   );
 }

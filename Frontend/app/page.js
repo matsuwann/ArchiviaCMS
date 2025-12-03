@@ -17,8 +17,6 @@ function HomeContent() {
   // App Data State
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // NEW: Controlled State for Hero Input
   const [heroInput, setHeroInput] = useState(''); 
 
   // Filter/Data State
@@ -26,22 +24,17 @@ function HomeContent() {
   const [popularSearches, setPopularSearches] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
 
-  // Initial Data Load
   useEffect(() => {
-    Promise.all([
-      getFilters(),             
-      getPopularSearches()      
-    ]).then(([filtersRes, popRes]) => {
-      setAvailableFilters(filtersRes.data || { authors: [], keywords: [], years: [], journals: [] });
-      // FIX 2: Ensure we always set an array to prevent .slice() crashes
-      setPopularSearches(Array.isArray(popRes.data) ? popRes.data : []);
-    }).catch(err => {
+    Promise.all([getFilters(), getPopularSearches()])
+      .then(([filtersRes, popRes]) => {
+        setAvailableFilters(filtersRes.data || { authors: [], keywords: [], years: [], journals: [] });
+        setPopularSearches(Array.isArray(popRes.data) ? popRes.data : []);
+      }).catch(err => {
         console.error("Initial load error:", err);
-        setPopularSearches([]); // Fallback to empty
-    });
+        setPopularSearches([]);
+      });
   }, []);
 
-  // Trigger Search when URL changes
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -60,14 +53,12 @@ function HomeContent() {
         setIsLoading(false);
       }
     };
-
     fetchData();
   }, [currentSearchTerm, isHeroMode]);
 
-  // HANDLERS
   const handleSearch = (term) => {
-    if (!term) return; // Prevent empty searches
-    const cleanTerm = typeof term === 'string' ? term : String(term); // Safety cast
+    if (!term) return; 
+    const cleanTerm = typeof term === 'string' ? term : String(term);
     router.push(`/?q=${encodeURIComponent(cleanTerm)}`);
   };
 
@@ -76,20 +67,16 @@ function HomeContent() {
   };
 
   const handleFilterChange = async (category, value) => {
-    // ... (Your existing filter logic is fine, keeping it brief for the solution)
     if (category === 'reset') {
         setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
         const response = await searchDocuments(currentSearchTerm || '');
         setDocuments(response.data);
         return;
     }
-    // ... existing filter logic ...
     const newFilters = { ...selectedFilters, [category]: value };
     setSelectedFilters(newFilters);
     setIsLoading(true);
-    // ... logic remains same ...
     try {
-        // ...
         const response = await filterDocuments(newFilters);
         setDocuments(response.data);
     } catch(e) { console.error(e); } finally { setIsLoading(false); }
@@ -97,80 +84,78 @@ function HomeContent() {
 
   // --- VIEW: LANDING PAGE (HERO) ---
   if (isHeroMode) {
-    // FIX 2 (Cont): Safety slice
     const safeTrending = Array.isArray(popularSearches) ? popularSearches : [];
 
     return (
-      <main className="min-h-screen flex flex-col bg-white animate-fade-in">
-        <div 
-            className="flex-grow flex flex-col items-center justify-center px-4 text-center relative"
-            style={{
-                background: 'linear-gradient(to bottom right, #1e1b4b, #312e81, #4338ca)',
-                color: 'white'
-            }}
-        >
-            <div className="max-w-3xl w-full z-10 space-y-8">
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-2">
-                    Archivia
-                </h1>
-                <p className="text-xl text-indigo-100 font-light mb-8">
-                    Access academic papers, journals, and articles in one place.
-                </p>
+      <main className="min-h-[calc(100vh-76px)] flex flex-col animate-fade-in relative">
+        {/* The background logic here changes. 
+            We use the global background set in CSS variables, 
+            but add a gradient OVERLAY so text is readable. 
+        */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 z-0 pointer-events-none" />
 
-                {/* Hero Search Bar - FIX 1: Using State instead of DOM traversal */}
-                <div className="bg-white p-2 rounded-full shadow-2xl flex items-center max-w-2xl mx-auto transition-transform hover:scale-[1.02] duration-200">
+        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 py-20">
+            <div className="max-w-4xl w-full space-y-10">
+                <div className="space-y-4">
+                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-lg">
+                        Archivia
+                    </h1>
+                    <p className="text-xl md:text-2xl text-indigo-100 font-light max-w-2xl mx-auto drop-shadow-md">
+                        Your central repository for academic excellence. <br/>Access papers, journals, and articles instantly.
+                    </p>
+                </div>
+
+                {/* Modern Hero Search Bar */}
+                <div className="bg-white/95 p-3 rounded-2xl shadow-2xl flex items-center max-w-2xl mx-auto transition-all focus-within:ring-4 focus-within:ring-indigo-500/30 focus-within:scale-[1.01]">
                     <span className="pl-4 text-gray-400">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </span>
                     <input 
                         type="text" 
-                        placeholder="Search for papers, authors, or keywords..." 
-                        className="flex-grow px-4 py-3 text-gray-800 bg-transparent focus:outline-none text-lg"
+                        placeholder="Search title, author, or keywords..." 
+                        className="flex-grow px-4 py-3 text-gray-800 bg-transparent focus:outline-none text-lg font-medium placeholder:text-gray-400"
                         value={heroInput} 
-                        onChange={(e) => setHeroInput(e.target.value)} // Controlled Input
+                        onChange={(e) => setHeroInput(e.target.value)} 
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSearch(heroInput);
                         }}
                     />
                     <button 
-                        className="bg-indigo-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-indigo-700 transition"
-                        onClick={() => handleSearch(heroInput)} // Uses state variable
+                        className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition shadow-md active:transform active:scale-95"
+                        onClick={() => handleSearch(heroInput)} 
                     >
                         Search
                     </button>
                 </div>
 
-                {/* Quick Stats / Popular */}
-                <div className="pt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                    <p className="text-sm text-indigo-200 mb-4 uppercase tracking-widest">Popular Searches</p>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        {/* FIX 2: Safe mapping with safeguards for missing terms */}
-                        {safeTrending.slice(0, 5).map((item, idx) => (
-                            <button 
-                                key={idx}
-                                onClick={() => handleSearch(item.term || item)} // Handle object OR string
-                                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-sm border border-white/20 text-sm transition"
-                            >
-                                {item.term || item}
-                            </button>
-                        ))}
+                {/* Tags */}
+                {safeTrending.length > 0 && (
+                    <div className="pt-4 animate-fade-in delay-150">
+                        <p className="text-xs text-indigo-200 mb-4 uppercase tracking-widest font-semibold">Trending Topics</p>
+                        <div className="flex flex-wrap justify-center gap-3">
+                            {safeTrending.slice(0, 5).map((item, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => handleSearch(item.term || item)}
+                                    className="px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md border border-white/20 text-sm text-white transition hover:border-white/40"
+                                >
+                                    {item.term || item}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </div>
-            
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500 rounded-full blur-[100px]"></div>
-                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500 rounded-full blur-[100px]"></div>
+                )}
             </div>
         </div>
 
-        <div className="bg-gray-50 py-12 border-t border-gray-200 text-center">
-            <p className="text-gray-600 mb-4">Want to browse the full repository?</p>
+        <div className="relative z-10 bg-white/90 backdrop-blur-sm py-8 border-t border-white/20 text-center">
+            <p className="text-gray-600 mb-3 font-medium">Explore the entire collection</p>
             <button 
                 onClick={handleBrowseAll}
-                className="text-indigo-600 font-bold hover:underline"
+                className="text-indigo-600 font-bold hover:text-indigo-800 flex items-center justify-center gap-2 mx-auto group"
             >
-                View All Documents &rarr;
+                Browse All Documents 
+                <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
             </button>
         </div>
       </main>
@@ -179,35 +164,46 @@ function HomeContent() {
 
   // --- VIEW: RESULTS LIST (APP MODE) ---
   return (
-    <main className="container mx-auto p-4 md:p-6 bg-slate-50 min-h-screen animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Archivia Library</h1>
+    <main className="container mx-auto p-4 md:p-8 min-h-screen animate-fade-in">
+      {/* Search Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-gray-200/50 shadow-sm">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Library Results</h1>
+            <p className="text-gray-500 text-sm mt-1">Found results for <span className="font-semibold text-indigo-600">"{currentSearchTerm}"</span></p>
+        </div>
         <button 
             onClick={() => router.push('/')}
-            className="text-sm text-gray-500 hover:text-indigo-600 underline flex items-center gap-1"
+            className="text-sm font-medium text-gray-600 hover:text-indigo-600 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all flex items-center gap-2"
         >
-            <span>&larr;</span> Back to Home
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to Search
         </button>
       </div>
       
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <aside className="w-full md:w-1/4 flex-shrink-0">
-            <FilterSidebar 
-                filters={availableFilters} 
-                selectedFilters={selectedFilters}
-                onFilterChange={handleFilterChange}
-            />
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Sidebar */}
+        <aside className="w-full lg:w-1/4 flex-shrink-0 lg:sticky lg:top-24">
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-gray-100 p-1">
+                <FilterSidebar 
+                    filters={availableFilters} 
+                    selectedFilters={selectedFilters}
+                    onFilterChange={handleFilterChange}
+                />
+            </div>
         </aside>
 
-        <div className="w-full md:w-3/4">
-            <DocumentList 
-              documents={documents} 
-              isLoading={isLoading}
-              searchPerformed={true} 
-              onSearch={handleSearch}
-              popularSearches={popularSearches}
-              initialSearchTerm={currentSearchTerm || ''}
-            />
+        {/* Results */}
+        <div className="w-full lg:w-3/4">
+            <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-1">
+                <DocumentList 
+                documents={documents} 
+                isLoading={isLoading}
+                searchPerformed={true} 
+                onSearch={handleSearch}
+                popularSearches={popularSearches}
+                initialSearchTerm={currentSearchTerm || ''}
+                />
+            </div>
         </div>
       </div>
     </main>
@@ -216,7 +212,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">Loading Archivia...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
       <HomeContent />
     </Suspense>
   );

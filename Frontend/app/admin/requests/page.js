@@ -11,10 +11,9 @@ export default function AdminRequestsPage() {
   const { user, authLoading } = useAuth();
   const router = useRouter();
 
-  // Redirect if not Super Admin
   useEffect(() => {
     if (!authLoading && (!user || !user.is_super_admin)) {
-        router.push('/admin/documents'); // Kick regular admins back to docs
+        router.push('/admin/documents'); 
     }
   }, [user, authLoading, router]);
 
@@ -22,74 +21,51 @@ export default function AdminRequestsPage() {
     try {
       const res = await getDeletionRequests();
       setRequests(res.data);
-    } catch (err) {
-      console.error("Failed to fetch requests");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    if(user?.is_super_admin) fetchRequests();
-  }, [user]);
+  useEffect(() => { if(user?.is_super_admin) fetchRequests(); }, [user]);
 
   const handleApprove = async (id) => {
-    if(!confirm("Are you sure you want to permanently delete this file?")) return;
-    try {
-        await adminApproveDeletion(id);
-        toast.success("File deleted successfully");
-        setRequests(requests.filter(r => r.id !== id));
-    } catch (err) {
-        toast.error("Failed to delete file");
-    }
+    if(!confirm("Permanently delete this file?")) return;
+    try { await adminApproveDeletion(id); toast.success("Deleted."); setRequests(requests.filter(r => r.id !== id)); } catch (err) { toast.error("Failed."); }
   };
 
   const handleReject = async (id) => {
-    try {
-        await adminRejectDeletion(id);
-        toast.success("Request rejected");
-        setRequests(requests.filter(r => r.id !== id));
-    } catch (err) {
-        toast.error("Failed to reject request");
-    }
+    try { await adminRejectDeletion(id); toast.success("Rejected."); setRequests(requests.filter(r => r.id !== id)); } catch (err) { toast.error("Failed."); }
   };
 
   if (!user?.is_super_admin) return null;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">User Deletion Requests</h1>
+    <div className="p-6 space-y-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h1 className="text-2xl font-bold text-gray-900">User Deletion Requests</h1>
+        <p className="text-sm text-gray-500">Users have requested to remove the following files.</p>
+      </div>
       
-      {loading ? (
-        <p>Loading...</p>
-      ) : requests.length === 0 ? (
-        <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
-            No pending user requests.
-        </div>
+      {loading ? <p className="text-center text-gray-400">Loading...</p> : requests.length === 0 ? (
+        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed">No pending requests.</div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {requests.map(req => (
-            <div key={req.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h3 className="font-bold text-lg text-indigo-700">{req.title}</h3>
-                    <p className="text-xs text-gray-400 mb-2">{req.filename}</p>
-                    <div className="bg-red-50 p-3 rounded border border-red-100">
-                        <p className="text-sm text-red-800 font-semibold">Reason provided by User:</p>
-                        <p className="text-gray-700 italic">&quot;{req.deletion_reason}&quot;</p>
+            <div key={req.id} className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 flex flex-col md:flex-row justify-between items-start gap-4 animate-fade-in">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg text-gray-900">{req.title}</h3>
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-500">{req.filename}</span>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg border border-red-100 inline-block">
+                        <span className="text-xs font-bold text-red-800 uppercase">Reason:</span>
+                        <span className="text-sm text-red-900 ml-2 italic">"{req.deletion_reason}"</span>
                     </div>
                 </div>
                 
-                <div className="flex gap-3 shrink-0">
-                    <button 
-                        onClick={() => handleReject(req.id)}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded hover:bg-gray-300 transition"
-                    >
-                        Deny
+                <div className="flex gap-2 w-full md:w-auto">
+                    <button onClick={() => handleReject(req.id)} className="flex-1 md:flex-none px-4 py-2 bg-white border border-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition">
+                        Keep File
                     </button>
-                    <button 
-                        onClick={() => handleApprove(req.id)}
-                        className="px-4 py-2 bg-red-600 text-white font-bold rounded hover:bg-red-700 shadow transition"
-                    >
+                    <button onClick={() => handleApprove(req.id)} className="flex-1 md:flex-none px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md transition">
                         Approve Delete
                     </button>
                 </div>

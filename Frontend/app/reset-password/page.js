@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, Suspense } from 'react'; // Import Suspense
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { resetPassword } from '../../services/apiService';
 import PasswordChecklist from '../../components/PasswordChecklist';
 import { toast } from 'react-hot-toast';
 
-// Create a separate component for the form logic
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -40,7 +39,7 @@ function ResetPasswordForm() {
     setLoading(true);
     try {
       await resetPassword(token, password);
-      toast.success('Password reset successful! Redirecting to login...');
+      toast.success('Success! Redirecting to login...');
       setTimeout(() => router.push('/login'), 2000);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reset password.');
@@ -49,20 +48,36 @@ function ResetPasswordForm() {
     }
   };
 
-  if (!token) return <p className="text-center text-red-500">Invalid password reset link.</p>;
+  if (!token) return <div className="p-4 bg-red-100 text-red-700 rounded-lg text-center">Invalid or expired reset link.</div>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700">New Password</label>
-        <input type="password" value={password} onChange={handlePasswordChange} className="mt-1 w-full px-3 py-2 border rounded-md" required />
+        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">New Password</label>
+        <input 
+            type="password" 
+            value={password} 
+            onChange={handlePasswordChange} 
+            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1" 
+            required 
+        />
         <PasswordChecklist validity={passwordValidity} />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
-        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-3 py-2 border rounded-md" required />
+        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Confirm Password</label>
+        <input 
+            type="password" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
+            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1" 
+            required 
+        />
       </div>
-      <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400">
+      <button 
+        type="submit" 
+        disabled={loading} 
+        className="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 disabled:bg-indigo-400 transition-all active:scale-[0.98]"
+      >
         {loading ? 'Resetting...' : 'Set New Password'}
       </button>
     </form>
@@ -71,10 +86,10 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="container mx-auto p-4 pt-20 max-w-sm">
-      <div className="bg-slate-100 p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Set New Password</h1>
-        <Suspense fallback={<div>Loading...</div>}>
+    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center p-4">
+      <div className="glass-panel p-8 rounded-2xl shadow-2xl border border-white/40 max-w-md w-full animate-fade-in">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">Secure Account Recovery</h1>
+        <Suspense fallback={<div className="text-center py-10 text-gray-500">Loading secure form...</div>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

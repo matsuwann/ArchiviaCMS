@@ -1,156 +1,149 @@
 'use client';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import RelatedPapersWidget from './RelatedPapersWidget';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+// Helper to safely parse arrays from strings/JSON
 const getSafeList = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     if (typeof data === 'string') {
-        const cleaned = data.replace(/[\[\]"'{}]/g, '');
-        return cleaned.split(',').map(s => s.trim()).filter(s => s);
+        try {
+            // Try standard JSON parse
+            const parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            // Fallback: strip brackets and split by comma
+            const cleaned = data.replace(/[\[\]"'{}]/g, '');
+            return cleaned.split(',').map(s => s.trim()).filter(s => s);
+        }
     }
     return [];
 };
 
-export default function PreviewModal({ document: activeDoc, onClose, allDocs, onSelectDoc }) {
-  // 1. State for the toggle
-  const [showAbstract, setShowAbstract] = useState(false);
+export default function PreviewModal({ document, allDocs, onSelectDoc, onClose }) {
+  if (!document) return null;
 
-  if (!activeDoc) return null;
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = originalStyle; };
+  }, []);
 
-  const previewUrls = getSafeList(activeDoc.preview_urls);
+  const handleDownload = () => {
+    const url = `${API_URL}/documents/${document.id}/download`;
+    window.open(url, '_blank');
+  };
+
+  const safeKeywords = getSafeList(document.ai_keywords);
+  const safeAuthors = getSafeList(document.ai_authors);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-slate-100 rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+        onClick={onClose}
+      ></div>
+
+      {/* Modal Content */}
+      <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in ring-1 ring-white/20">
         
-        {/* === HEADER === */}
-        <div className="p-4 border-b flex justify-between items-center bg-white shrink-0 z-10">
-          <div className="flex items-center gap-4 overflow-hidden">
-             <h2 className="text-lg font-bold text-slate-800 truncate">{activeDoc.title || "Untitled Document"}</h2>
-             
-             {/* TOGGLE BUTTON */}
-             <button 
-               onClick={() => setShowAbstract(!showAbstract)}
-               className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors flex items-center gap-2
-                 ${showAbstract 
-                   ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' 
-                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
-             >
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-               {showAbstract ? 'Hide Abstract' : 'Show Abstract'}
-             </button>
-          </div>
-
-          <button onClick={onClose} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
-
-        {/* === MAIN CONTENT AREA (SPLIT VIEW) === */}
-        <div className="flex flex-1 overflow-hidden relative">
-            
-            {/* LEFT: SCROLLABLE PDF PREVIEW */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50" id="modal-content">
-                <div className="max-w-3xl mx-auto flex flex-col items-center gap-8">
-                    
-                    {/* Visual Previews */}
-                    {previewUrls.length > 0 ? (
-                    previewUrls.map((url, index) => (
-                        <div key={index} className="relative shadow-md w-full bg-white rounded-sm border border-slate-200">
-                        <img 
-                            src={url} 
-                            alt={`Page ${index + 1}`} 
-                            className="w-full h-auto min-h-[200px] object-contain" 
-                            onError={(e) => {e.target.style.display='none'}}
-                        />
-                        
-                        {/* Login Wall Blur */}
-                        {index === 3 && !activeDoc.downloadLink && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
-                            <div className="bg-white p-6 rounded-xl shadow-xl text-center border border-gray-200 max-w-sm">
-                                <p className="font-bold text-gray-900 text-lg mb-2">Continue Reading</p>
-                                <a href="/login" className="inline-block w-full px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md">
-                                Login to Access
-                                </a>
-                            </div>
-                            </div>
-                        )}
-                        </div>
-                    ))
-                    ) : (
-                    <div className="py-20 text-center w-full">
-                        <p className="text-gray-400 text-lg font-medium">Preview images unavailable.</p>
-                    </div>
-                    )}
-
-                    {/* Related Papers Widget */}
-                    <div className="w-full pt-4">
-                        <RelatedPapersWidget 
-                            currentDoc={activeDoc}
-                            allDocs={allDocs}
-                            onSelectDoc={(doc) => {
-                                const scrollContainer = document.getElementById('modal-content');
-                                if(scrollContainer) scrollContainer.scrollTop = 0;
-                                onSelectDoc(doc);
-                            }}
-                        />
-                    </div>
+        {/* Header */}
+        <div className="flex-shrink-0 px-8 py-6 border-b border-gray-100 bg-white z-10 flex justify-between items-start gap-4">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide">
+                        {document.ai_journal || "Research Paper"}
+                    </span>
+                    <span className="text-gray-400 text-sm">• {document.ai_date_created}</span>
                 </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+                    {document.title}
+                </h2>
+                <p className="text-gray-500 font-medium mt-1">
+                    {safeAuthors.join(', ')}
+                </p>
             </div>
+            <button 
+                onClick={onClose}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
 
-            {/* RIGHT: ABSTRACT SIDEBAR (CONDITIONAL) */}
-            {showAbstract && (
-                <div className="w-[350px] bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 shadow-xl animate-fade-in">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                        Abstract
-                    </h3>
-                    <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-line">
-                        {activeDoc.ai_abstract || "No abstract available for this document."}
+        {/* Scrollable Body */}
+        <div className="flex-grow overflow-y-auto p-8 space-y-8 bg-gray-50/50">
+            
+            {/* Abstract */}
+            <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+                    Abstract
+                </h3>
+                <p className="text-gray-700 leading-relaxed text-lg">
+                    {document.ai_abstract || "No abstract available."}
+                </p>
+            </section>
+
+            {/* AI Insights / Summary if available */}
+            {document.ai_summary && (
+                <section className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
+                    <h3 className="text-sm font-bold text-indigo-800 uppercase tracking-wider mb-3">AI Analysis</h3>
+                    <p className="text-indigo-900/80 leading-relaxed">
+                        {document.ai_summary}
                     </p>
-                    
-                    <div className="mt-8 pt-6 border-t border-slate-100">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Metadata</h4>
-                        <div className="space-y-2">
-                            {activeDoc.ai_journal && (
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Source</span>
-                                    <span className="text-sm font-medium text-slate-800">{activeDoc.ai_journal}</span>
-                                </div>
-                            )}
-                            {activeDoc.ai_date_created && (
-                                <div>
-                                    <span className="text-xs text-slate-500 block">Date</span>
-                                    <span className="text-sm font-medium text-slate-800">{activeDoc.ai_date_created}</span>
-                                </div>
-                            )}
-                        </div>
+                </section>
+            )}
+
+            {/* Keywords */}
+            {safeKeywords.length > 0 && (
+                <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Keywords</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {safeKeywords.map((k, i) => (
+                            <span key={i} className="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm text-gray-600 shadow-sm">
+                                {k}
+                            </span>
+                        ))}
                     </div>
                 </div>
             )}
+
+            {/* WIDGET INTEGRATION */}
+            <RelatedPapersWidget 
+                currentDoc={document} 
+                allDocs={allDocs} 
+                onSelectDoc={onSelectDoc} 
+            />
         </div>
 
-        {/* === FOOTER === */}
-        <div className="p-4 border-t bg-white flex justify-between items-center shrink-0 z-10">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                {previewUrls.length > 0 ? `${previewUrls.length} Page Preview` : 'Document Viewer'}
-            </p>
-            
-            {activeDoc.downloadLink ? (
-               <a 
-                 href={activeDoc.downloadLink} 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 className="px-6 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 shadow-md flex items-center gap-2 transition-colors"
-               >
-                 Download Full PDF
-               </a>
-            ) : (
-               <a href="/login" className="px-6 py-2 bg-slate-900 text-white font-bold rounded-md hover:bg-slate-800 shadow-md transition-colors">
-                 Login to Download
-               </a>
-            )}
+        {/* Footer Actions */}
+        <div className="flex-shrink-0 p-6 bg-white border-t border-gray-100 flex items-center justify-between gap-4">
+            <div className="hidden sm:flex text-sm text-gray-400 gap-4">
+                <span>ID: {document.id}</span>
+                <span>Type: PDF</span>
+            </div>
+            <div className="flex gap-3 w-full sm:w-auto">
+                <button 
+                    onClick={onClose}
+                    className="flex-1 sm:flex-none px-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition shadow-sm"
+                >
+                    Close
+                </button>
+                <button 
+                    onClick={handleDownload}
+                    className="flex-1 sm:flex-none px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 transition flex items-center justify-center gap-2"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download PDF
+                </button>
+            </div>
         </div>
+
       </div>
     </div>
   );

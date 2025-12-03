@@ -1,275 +1,90 @@
 'use client';
 
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { updateUserProfile, changeUserPassword } from '../services/apiService';
+import { useState } from 'react';
+import EditUserModal from './EditUserModal';
+import { updateUser } from '../services/apiService'; // Ensure this is imported
+import { toast } from 'react-hot-toast';
 
-export default function UserProfile() {
-  // Destructure 'login' to update context state
-  const { user, isAuthenticated, authLoading, login } = useAuth();
-  const router = useRouter();
+export default function UserProfile({ user, onUpdateUser }) {
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // Editing State
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '' });
-  const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
-  const [isSaving, setIsSaving] = useState(false);
+  if (!user) return null;
 
-  // Password Modal State
-  const [showPwModal, setShowPwModal] = useState(false);
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [pwMessage, setPwMessage] = useState({ type: '', text: '' });
-  const [isPwSaving, setIsPwSaving] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-    if (user) {
-      setEditForm({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || ''
-      });
-    }
-  }, [isAuthenticated, authLoading, router, user]);
-
-  const handleEditChange = (e) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  };
-
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setProfileMessage({ type: '', text: '' });
-
+  const handleSave = async (id, data) => {
     try {
-      const response = await updateUserProfile(editForm);
-      
-      // Update auth context immediately if token is returned
-      if (response.data.token && response.data.user) {
-        login(response.data.user, response.data.token);
-      }
-
-      setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
-      setIsEditing(false);
-      // No reload needed
+        const res = await updateUser(data); // Call the API
+        if (onUpdateUser) onUpdateUser(res.data.user); // Update context
+        toast.success('Profile updated!');
     } catch (err) {
-      setProfileMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update profile.' });
-    } finally {
-      setIsSaving(false);
+        toast.error('Failed to update profile.');
+        throw err; // Re-throw to let modal know it failed
     }
   };
-
-  const handlePwChange = (e) => {
-    setPwForm({ ...pwForm, [e.target.name]: e.target.value });
-  };
-
-  const handlePwSubmit = async (e) => {
-    e.preventDefault();
-    if (pwForm.newPassword !== pwForm.confirmPassword) {
-      setPwMessage({ type: 'error', text: 'New passwords do not match.' });
-      return;
-    }
-    
-    setIsPwSaving(true);
-    setPwMessage({ type: '', text: '' });
-
-    try {
-      await changeUserPassword(pwForm.currentPassword, pwForm.newPassword);
-      setPwMessage({ type: 'success', text: 'Password changed successfully!' });
-      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTimeout(() => setShowPwModal(false), 1500);
-    } catch (err) {
-      setPwMessage({ type: 'error', text: err.response?.data?.message || 'Failed to change password.' });
-    } finally {
-      setIsPwSaving(false);
-    }
-  };
-
-  if (authLoading || !isAuthenticated) return <div className="text-center p-6">Loading...</div>;
 
   return (
-    <div className="p-8 bg-white rounded-xl shadow-2xl max-w-3xl mx-auto relative">
-      <div className="flex justify-between items-center mb-6 border-b pb-2">
-        <h2 className="text-3xl font-bold text-gray-900">Account Profile</h2>
-        {!isEditing && (
-          <button 
-            onClick={() => setIsEditing(true)}
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            Edit Profile
-          </button>
-        )}
-      </div>
-
-      {profileMessage.text && (
-        <div className={`mb-4 p-3 rounded ${profileMessage.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-          {profileMessage.text}
-        </div>
-      )}
-
-      <form onSubmit={handleProfileUpdate} className="space-y-6">
-        <h3 className="text-xl font-semibold text-indigo-700">Personal Information</h3>
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Profile Card */}
+      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {isEditing ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">First Name</label>
-                <input
-                  name="firstName"
-                  value={editForm.firstName}
-                  onChange={handleEditChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                <input
-                  name="lastName"
-                  value={editForm.lastName}
-                  onChange={handleEditChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <InfoItem label="First Name" value={user.firstName} />
-              <InfoItem label="Last Name" value={user.lastName} />
-            </>
-          )}
-        </div>
-        
-        <div>
-          {isEditing ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
-              <input
-                name="email"
-                type="email"
-                value={editForm.email}
-                onChange={handleEditChange}
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                required
-              />
+        {/* Banner */}
+        <div className="h-32 bg-gradient-to-r from-indigo-600 to-purple-600 relative">
+            <div className="absolute bottom-0 left-8 transform translate-y-1/2">
+                <div className="w-24 h-24 bg-white rounded-full p-1 shadow-lg">
+                    <div className="w-full h-full bg-slate-200 rounded-full flex items-center justify-center text-3xl font-bold text-slate-500 uppercase">
+                        {user.firstName?.[0]}{user.lastName?.[0]}
+                    </div>
+                </div>
             </div>
-          ) : (
-            <InfoItem label="Email Address" value={user.email} isFullWidth={true} />
-          )}
         </div>
 
-        {isEditing && (
-          <div className="flex gap-4 mt-4">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsEditing(false); setEditForm({ firstName: user.firstName, lastName: user.lastName, email: user.email }); }}
-              className="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </form>
+        {/* Content */}
+        <div className="pt-16 pb-8 px-8">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">{user.firstName} {user.lastName}</h1>
+                    <p className="text-gray-500 font-medium">{user.email}</p>
+                    <div className="mt-2 flex gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${user.is_admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {user.is_admin ? 'Administrator' : 'Standard User'}
+                        </span>
+                    </div>
+                </div>
+                
+                <button
+                    onClick={() => setIsEditOpen(true)}
+                    className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-black transition shadow-md flex items-center gap-2"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    Edit Profile
+                </button>
+            </div>
 
-      <div className="pt-4 border-t mt-8">
-        <h3 className="text-xl font-semibold text-indigo-700 mb-4">Account Security</h3>
-        <p className="text-gray-600 mb-4">
-            You can manage your account security and settings here.
-        </p>
-        <button
-          onClick={() => setShowPwModal(true)}
-          className="py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700"
-        >
-          Change Password
-        </button>
+            {/* Stats Grid */}
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-xs text-gray-400 uppercase font-bold">Member Since</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">
+                        {new Date().getFullYear()}
+                    </p>
+                </div>
+                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-xs text-gray-400 uppercase font-bold">Account Status</p>
+                    <p className="text-lg font-semibold text-green-600 mt-1 flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span> Active
+                    </p>
+                </div>
+            </div>
+        </div>
       </div>
 
-      {/* Change Password Modal */}
-      {showPwModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Change Password</h3>
-            {pwMessage.text && (
-              <div className={`mb-4 p-2 text-sm rounded ${pwMessage.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                {pwMessage.text}
-              </div>
-            )}
-            <form onSubmit={handlePwSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Current Password</label>
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={pwForm.currentPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">New Password</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={pwForm.newPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">8+ chars, Uppercase, Lowercase, Number, Special char</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={pwForm.confirmPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowPwModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPwSaving}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400"
-                >
-                  {isPwSaving ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {isEditOpen && (
+        <EditUserModal 
+            user={user} 
+            isOpen={isEditOpen} 
+            onClose={() => setIsEditOpen(false)} 
+            onSave={handleSave} 
+        />
       )}
     </div>
   );
 }
-
-const InfoItem = ({ label, value, isFullWidth = false }) => (
-  <div className={isFullWidth ? 'sm:col-span-2' : ''}>
-    <p className="text-sm font-medium text-gray-500">{label}</p>
-    <p className="mt-1 text-lg font-medium text-gray-800 p-2 bg-slate-100 rounded-md border">
-      {value}
-    </p>
-  </div>
-);

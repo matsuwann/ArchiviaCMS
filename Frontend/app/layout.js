@@ -5,7 +5,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '../context/AuthContext'; 
 import { Toaster } from 'react-hot-toast';
 
-
 export const dynamic = 'force-dynamic'; 
 
 const geistSans = Geist({
@@ -23,13 +22,10 @@ export const metadata = {
   description: "A Capstone and Research Repository", 
 };
 
-
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 async function getSystemSettings() {
   try {
-   
     const res = await fetch(`${API_URL}/settings`, { 
       cache: 'no-store' 
     });
@@ -53,17 +49,18 @@ export default async function RootLayout({ children }) {
   const brandIconUrl = settings?.brandIconUrl || 'none';
   const bgImageUrl = settings?.backgroundImage || 'none';
 
+  // Inject dynamic CSS variables into the document head
   const customStyles = `
     :root {
       /* Page */
-      --background-color: ${settings?.backgroundColor || '#ffffff'};
-      --background-image: ${bgImageUrl};
-      --foreground: ${settings?.foregroundColor || '#171717'};
+      --background-color: ${settings?.backgroundColor || '#f8fafc'};
+      --background-image: ${bgImageUrl !== 'none' ? `url('${bgImageUrl}')` : 'none'};
+      --foreground: ${settings?.foregroundColor || '#1e293b'};
       
       /* Navbar */
       --navbar-bg-color: ${settings?.navbarBgColor || '#1e293b'};
       --navbar-text-color: ${settings?.navbarTextColor || '#ffffff'};
-      --navbar-link-color: ${settings?.navbarLinkColor || '#ffffff'};
+      --navbar-link-color: ${settings?.navbarLinkColor || '#f1f5f9'};
       
       /* Brand */
       --navbar-brand-font: ${settings?.navbarBrandFont || 'var(--font-geist-sans)'};
@@ -71,8 +68,8 @@ export default async function RootLayout({ children }) {
       --navbar-brand-weight: ${settings?.navbarBrandWeight || '700'};
       --navbar-brand-text: '${settings?.navbarBrandText || 'Archivia'}';
       
-      /* Brand Icon (Computed) */
-      --brand-icon-url: ${brandIconUrl};
+      /* Brand Icon */
+      --brand-icon-url: ${brandIconUrl !== 'none' ? `url('${brandIconUrl}')` : 'none'};
       --brand-icon-display: ${brandIconUrl === 'none' ? 'none' : 'inline-block'};
     }
   `;
@@ -80,11 +77,41 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <head><style>{customStyles}</style></head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
        
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> 
           <AuthProvider> 
-            <Toaster position="bottom-right" />
+            {/* STYLED NOTIFICATIONS */}
+            <Toaster 
+              position="bottom-right" 
+              toastOptions={{
+                style: {
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  color: '#1e293b',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                },
+                success: {
+                  iconTheme: {
+                    primary: '#4f46e5',
+                    secondary: 'white',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: 'white',
+                  },
+                },
+              }}
+            />
+            
             <Navbar />
             {children}
           </AuthProvider>
