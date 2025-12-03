@@ -2,14 +2,14 @@
 
 :root {
   /* Page variables */
-  --background-color: #f8fafc; /* Softer default white */
+  --background-color: #ffffff;
   --background-image: none;
-  --foreground: #1e293b;
+  --foreground: #171717;
   
   /* Navbar variables */
   --navbar-bg-color: #1e293b;
   --navbar-text-color: #ffffff;
-  --navbar-link-color: #f1f5f9;
+  --navbar-link-color: #ffffff;
   
   /* Brand variables */
   --navbar-brand-font: var(--font-geist-sans);
@@ -27,72 +27,71 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #ffffff;
+    --foreground: #000000;
+  }
+}
+
 body {
+  /* MODIFIED: Use new variables for background */
   background-color: var(--background-color);
   background-image: var(--background-image);
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-  background-repeat: no-repeat;
   
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Helper to make the custom navbar color slightly translucent for glass effect */
-/* Note: Since variables are HEX, we use opacity on the container in Navbar.js */
-
+/* This reads the brand text from the CSS variable */
 .navbar-brand-text-from-css {
-  font-size: 0;
+  font-size: 0; /* Hide the fallback text */
 }
 .navbar-brand-text-from-css::before {
   content: var(--navbar-brand-text, 'Archivia');
-  font-size: var(--navbar-brand-size);
+  font-size: var(--navbar-brand-size); /* Re-apply the font size */
 }
 
+/* This is the new brand icon */
 .navbar-brand-icon {
-  display: var(--brand-icon-display, 'none');
-  width: 36px;
-  height: 36px;
-  margin-right: 0.75rem;
+  display: var(--brand-icon-display, 'none'); /* 'none' or 'inline-block' */
+  width: 32px; /* You can customize this */
+  height: 32px;
+  margin-right: 0.5rem;
   background-image: var(--brand-icon-url);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  border-radius: 6px;
 }
 
-/* Glass Card Utility */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }
 
-.dark .glass-panel {
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Form Elements */
-input[type="text"], input[type="password"], input[type="email"], select {
-  transition: all 0.2s ease-in-out;
-}
-input[type="text"]:focus, input[type="password"]:focus, select:focus {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Animations */
+/* ANIMATIONS */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeOutSlideUp {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+
 .animate-fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOutSlideUp 0.3s ease-in forwards;
+}
+
+/* Smooth transition for layout changes */
+main {
+  transition: all 0.3s ease-in-out;
 }

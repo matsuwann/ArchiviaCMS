@@ -15,53 +15,60 @@ function VerifyContent() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (emailFromQuery) setEmail(emailFromQuery);
+        if (emailFromQuery) {
+            setEmail(emailFromQuery);
+        }
     }, [emailFromQuery]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!email || !otp) return toast.error("Please provide both email and OTP.");
+        if (!email || !otp) {
+            toast.error("Please provide both email and OTP.");
+            return;
+        }
 
         setLoading(true);
         try {
             await verifyEmail(email, otp);
-            toast.success("Verification successful!");
-            setTimeout(() => router.push('/login'), 1500);
+            toast.success("Verification successful! You can now login.");
+            setTimeout(() => {
+                router.push('/login');
+            }, 1500);
         } catch (error) {
-            toast.error(error.response?.data?.message || "Verification failed.");
+            const msg = error.response?.data?.message || "Verification failed.";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="glass-panel p-8 rounded-2xl shadow-2xl border border-white/40 max-w-sm w-full mx-auto animate-fade-in">
-            <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Check your Inbox</h2>
-                {/* FIXED APOSTROPHE HERE */}
-                <p className="text-sm text-gray-500 mt-2">
-                    We&apos;ve sent a 6-digit code to your email.
-                </p>
-            </div>
+        <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md max-w-sm mx-auto mt-10">
+            <h2 className="text-2xl font-bold mb-4 text-center">Verify Your Email</h2>
+            <p className="text-sm text-gray-600 mb-6 text-center">
+                Enter the 6-digit code sent to your email address.
+            </p>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Email</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
                     <input 
                         type="email" 
+                        id="email" 
                         value={email} 
                         onChange={(e) => setEmail(e.target.value)} 
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
                         required 
                     />
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">OTP Code</label>
+                    <label htmlFor="otp" className="block text-sm font-medium text-gray-700">OTP Code</label>
                     <input 
                         type="text" 
+                        id="otp" 
                         value={otp} 
                         onChange={(e) => setOtp(e.target.value)} 
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1 text-center font-mono text-xl tracking-[0.5em]"
-                        placeholder="000000"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm tracking-widest text-center text-lg"
+                        placeholder="123456"
                         maxLength={6}
                         required 
                     />
@@ -69,9 +76,9 @@ function VerifyContent() {
                 <button 
                     type="submit" 
                     disabled={loading} 
-                    className="w-full py-3 px-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition-all active:scale-[0.98]"
+                    className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400"
                 >
-                    {loading ? 'Verifying...' : 'Verify & Login'}
+                    {loading ? 'Verifying...' : 'Verify Email'}
                 </button>
             </form>
         </div>
@@ -80,8 +87,8 @@ function VerifyContent() {
 
 export default function VerifyPage() {
     return (
-        <main className="min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
-            <Suspense fallback={<div className="text-white">Loading...</div>}>
+        <main className="container mx-auto p-4 md:p-8">
+            <Suspense fallback={<p className="text-center">Loading...</p>}>
                 <VerifyContent />
             </Suspense>
         </main>

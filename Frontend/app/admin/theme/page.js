@@ -13,16 +13,6 @@ import {
   adminResetSettings 
 } from '../../../services/apiService';
 
-// Reusable styled card component
-const SettingCard = ({ title, children, className = "" }) => (
-  <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 hover:shadow-md transition-shadow duration-300 ${className}`}>
-    <h3 className="text-xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center gap-2">
-      {title}
-    </h3>
-    {children}
-  </div>
-);
-
 export default function AdminThemeManagement() {
   const [settings, setSettings] = useState({
     backgroundColor: '#ffffff',
@@ -85,224 +75,304 @@ export default function AdminThemeManagement() {
   };
 
   const handleResetToDefault = async () => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to reset all theme settings to their default values? This action cannot be undone.")) {
+      return;
+    }
     setLoading(true);
+    setMessage('Resetting settings...');
     try {
-        const res = await adminResetSettings();
-        setSettings(prev => ({ ...prev, ...res.data }));
-        setMessage('Reset successful.');
-    } catch(e) { setMessage('Reset failed'); } finally { setLoading(false); }
+      const response = await adminResetSettings();
+      setSettings(prev => ({ ...prev, ...response.data })); 
+      setMessage('Settings reset to default! Reload page to see all changes.');
+    } catch (err) {
+      setMessage('Failed to reset settings.');
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleBgImageSubmitWrapper = async (e) => {
-      e.preventDefault();
-      if(!bgImageFile) return setMessage("Select file");
-      setLoading(true);
-      const fd = new FormData(); fd.append('bg-image', bgImageFile);
-      try {
-          const res = await adminUploadBgImage(fd);
-          setSettings(p => ({...p, backgroundImage: res.data.imageUrl}));
-          setMessage("Background uploaded.");
-      } catch(e) { setMessage("Error uploading."); } finally { setLoading(false); }
-  }
 
-  const handleBrandIconSubmitWrapper = async (e) => {
-      e.preventDefault();
-      if(!brandIconFile) return setMessage("Select file");
-      setLoading(true);
-      const fd = new FormData(); fd.append('brand-icon', brandIconFile);
-      try {
-          const res = await adminUploadBrandIcon(fd);
-          setSettings(p => ({...p, brandIconUrl: res.data.iconUrl}));
-          setMessage("Icon uploaded.");
-      } catch(e) { setMessage("Error uploading."); } finally { setLoading(false); }
-  }
+  const handleIconSubmit = async (e) => {
+    e.preventDefault();
+    if (!iconFile) return setMessage('Please select a favicon file.');
+    setLoading(true);
+    setMessage('Uploading favicon...');
+    const formData = new FormData();
+    formData.append('icon', iconFile);
+    try {
+      const response = await adminUploadIcon(formData);
+      setMessage(response.data.message);
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Failed to upload favicon.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleIconSubmitWrapper = async (e) => {
-      e.preventDefault();
-      if(!iconFile) return setMessage("Select file");
-      setLoading(true);
-      const fd = new FormData(); fd.append('icon', iconFile);
-      try {
-          await adminUploadIcon(fd);
-          setMessage("Favicon uploaded.");
-      } catch(e) { setMessage("Error uploading."); } finally { setLoading(false); }
-  }
+  const handleBgImageSubmit = async (e) => {
+    e.preventDefault();
+    if (!bgImageFile) return setMessage('Please select a background image file.');
+    setLoading(true);
+    setMessage('Uploading background image...');
+    const formData = new FormData();
+    formData.append('bg-image', bgImageFile);
+    try {
+      const response = await adminUploadBgImage(formData);
+      setSettings(prev => ({ ...prev, backgroundImage: response.data.imageUrl }));
+      setMessage(response.data.message + " Reload page to see changes.");
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Failed to upload image.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleRemoveBgWrapper = async () => {
-      if(!confirm("Remove background?")) return;
-      setLoading(true);
-      try { await adminRemoveBgImage(); setSettings(p => ({...p, backgroundImage: 'none'})); } 
-      catch(e) {} finally { setLoading(false); }
-  }
+  const handleBgImageRemove = async () => {
+    if (!window.confirm("Are you sure you want to remove the background image?")) return;
+    setLoading(true);
+    setMessage('Removing background image...');
+    try {
+      await adminRemoveBgImage();
+      setSettings(prev => ({ ...prev, backgroundImage: 'none' }));
+      setMessage('Background image removed. Reload page to see changes.');
+    } catch (err) {
+      setMessage('Failed to remove image.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleRemoveBrandWrapper = async () => {
-      if(!confirm("Remove logo?")) return;
-      setLoading(true);
-      try { await adminRemoveBrandIcon(); setSettings(p => ({...p, brandIconUrl: 'none'})); } 
-      catch(e) {} finally { setLoading(false); }
-  }
+  const handleBrandIconSubmit = async (e) => {
+    e.preventDefault();
+    if (!brandIconFile) return setMessage('Please select a brand icon file.');
+    setLoading(true);
+    setMessage('Uploading brand icon...');
+    const formData = new FormData();
+    formData.append('brand-icon', brandIconFile);
+    try {
+      const response = await adminUploadBrandIcon(formData);
+      setSettings(prev => ({ ...prev, brandIconUrl: response.data.iconUrl }));
+      setMessage(response.data.message + " Reload page to see changes.");
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Failed to upload icon.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBrandIconRemove = async () => {
+    if (!window.confirm("Are you sure you want to remove the brand icon?")) return;
+    setLoading(true);
+    setMessage('Removing brand icon...');
+    try {
+      await adminRemoveBrandIcon();
+      setSettings(prev => ({ ...prev, brandIconUrl: 'none' }));
+      setMessage('Brand icon removed. Reload page to see changes.');
+    } catch (err) {
+      setMessage('Failed to remove icon.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   if (loading && !settings.backgroundColor) {
-    return <div className="flex h-64 items-center justify-center text-gray-500">Loading Configuration...</div>;
+    return <p className="text-center">Loading settings...</p>;
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Theme Customization</h2>
-        <button
+    <div className="space-y-8">
+      {/* Settings Management Card */}
+      <div className="p-8 bg-white rounded-xl shadow-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">
+          Manage System Theme
+        </h2>
+        
+        {message && (
+          <div className="p-3 bg-blue-100 text-blue-800 rounded-md mb-6 text-center">
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSettingsSubmit} className="space-y-6">
+          
+          <h3 className="text-xl font-semibold text-indigo-700">Page Colors</h3>
+          <div className="flex flex-col sm:flex-row justify-around gap-8">
+            <div className="flex-1 flex flex-col items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Background Color (Fallback)
+              </label>
+              <HexColorPicker 
+                color={settings.backgroundColor} 
+                onChange={(newColor) => handleColorChange('backgroundColor', newColor)} 
+              />
+              <input type="text" value={settings.backgroundColor}
+                onChange={(e) => handleColorChange('backgroundColor', e.target.value)}
+                className="mt-3 w-32 text-center p-1 border border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+            <div className="flex-1 flex flex-col items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Foreground/Text Color
+              </label>
+              <HexColorPicker
+                color={settings.foregroundColor}
+                onChange={(newColor) => handleColorChange('foregroundColor', newColor)}
+              />
+              <input type="text" value={settings.foregroundColor}
+                onChange={(e) => handleColorChange('foregroundColor', e.target.value)}
+                className="mt-3 w-32 text-center p-1 border border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-semibold text-indigo-700 pt-4 border-t">Navbar Settings</h3>
+          <div>
+            <label htmlFor="navbarBrandText" className="block text-sm font-medium text-gray-700">
+              Navbar Brand Text
+            </label>
+            <input type="text" id="navbarBrandText" name="navbarBrandText"
+              value={settings.navbarBrandText} onChange={handleSettingChange}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+            />
+          </div>
+          
+          <div className="flex flex-col sm:flex-row justify-around gap-8">
+            <div className="flex-1 flex flex-col items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Navbar Background
+              </label>
+              <HexColorPicker
+                color={settings.navbarBgColor}
+                onChange={(newColor) => handleColorChange('navbarBgColor', newColor)}
+              />
+              <input type="text" value={settings.navbarBgColor}
+                onChange={(e) => handleColorChange('navbarBgColor', e.target.value)}
+                className="mt-3 w-32 text-center p-1 border border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+            <div className="flex-1 flex flex-col items-center">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Navbar Link Color
+              </label>
+              <HexColorPicker
+                color={settings.navbarLinkColor}
+                onChange={(newColor) => handleColorChange('navbarLinkColor', newColor)}
+              />
+              <input type="text" value={settings.navbarLinkColor}
+                onChange={(e) => handleColorChange('navbarLinkColor', e.target.value)}
+                className="mt-3 w-32 text-center p-1 border border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="navbarBrandFont" className="block text-sm font-medium text-gray-700">Brand Font</label>
+              <select id="navbarBrandFont" name="navbarBrandFont"
+                value={settings.navbarBrandFont} onChange={handleSettingChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              >
+                <option value="var(--font-geist-sans)">Geist Sans (Default)</option>
+                <option value="var(--font-geist-mono)">Geist Mono</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Georgia, serif">Georgia</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="navbarBrandSize" className="block text-sm font-medium text-gray-700">Brand Font Size</label>
+              <input type="text" id="navbarBrandSize" name="navbarBrandSize"
+                value={settings.navbarBrandSize} onChange={handleSettingChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                placeholder="e.g., 1.5rem"
+              />
+            </div>
+            <div>
+              <label htmlFor="navbarBrandWeight" className="block text-sm font-medium text-gray-700">Brand Font Weight</label>
+              <input type="text" id="navbarBrandWeight" name="navbarBrandWeight"
+                value={settings.navbarBrandWeight} onChange={handleSettingChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                placeholder="e.g., 700"
+              />
+            </div>
+          </div>
+          
+          <button
+            type="submit" disabled={loading}
+            className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400"
+          >
+            {loading ? 'Saving...' : 'Save All Text & Color Settings'}
+          </button>
+          
+
+          <button
             type="button"
             onClick={handleResetToDefault}
             disabled={loading}
-            className="px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium transition-colors"
+            className="w-full py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 disabled:bg-red-400"
+          >
+            Reset All Settings to Default
+          </button>
+
+        </form>
+      </div>
+
+      <div className="p-8 bg-white rounded-xl shadow-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage Background Image</h2>
+        <form onSubmit={handleBgImageSubmit} className="space-y-4">
+          <input type="file" name="bg-image" accept="image/*"
+            onChange={(e) => setBgImageFile(e.target.files[0])}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0"
+          />
+          <button type="submit" disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400"
+          >
+            Upload Background Image
+          </button>
+        </form>
+        <button
+          onClick={handleBgImageRemove} disabled={loading || settings.backgroundImage === 'none'}
+          className="w-full mt-4 py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400"
         >
-            Reset to Default
+          Remove Background Image
         </button>
       </div>
-        
-      {message && (
-        <div className="p-4 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 rounded-r-lg shadow-sm flex items-center justify-between">
-          <span>{message}</span>
-          <button onClick={() => setMessage('')} className="text-indigo-400 hover:text-indigo-600">&times;</button>
-        </div>
-      )}
 
-      <form onSubmit={handleSettingsSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* COLUMN 1: Colors */}
-        <div className="space-y-8 lg:col-span-2">
-            <SettingCard title="System Colors">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Background */}
-                    <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-600">Page Background</label>
-                        <div className="flex gap-4 items-start">
-                            <div className="p-1 bg-gray-100 rounded-lg shadow-inner">
-                                <HexColorPicker color={settings.backgroundColor} onChange={(c) => handleColorChange('backgroundColor', c)} />
-                            </div>
-                            <div className="flex-1">
-                                <input type="text" value={settings.backgroundColor} readOnly className="w-full p-2 font-mono text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-600" />
-                                <p className="text-xs text-gray-400 mt-2">Fallback color if no image is set.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Foreground */}
-                    <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-600">Text Color</label>
-                        <div className="flex gap-4 items-start">
-                            <div className="p-1 bg-gray-100 rounded-lg shadow-inner">
-                                <HexColorPicker color={settings.foregroundColor} onChange={(c) => handleColorChange('foregroundColor', c)} />
-                            </div>
-                            <div className="flex-1">
-                                <input type="text" value={settings.foregroundColor} readOnly className="w-full p-2 font-mono text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-600" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </SettingCard>
+      <div className="p-8 bg-white rounded-xl shadow-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage Navbar Brand Icon</h2>
+        <form onSubmit={handleBrandIconSubmit} className="space-y-4">
+          <input type="file" name="brand-icon" accept="image/png, image/svg+xml"
+            onChange={(e) => setBrandIconFile(e.target.files[0])}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0"
+          />
+          <button type="submit" disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400"
+          >
+            Upload Brand Icon
+          </button>
+        </form>
+        <button
+          onClick={handleBrandIconRemove} disabled={loading || settings.brandIconUrl === 'none'}
+          className="w-full mt-4 py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400"
+        >
+          Remove Brand Icon
+        </button>
+      </div>
 
-            <SettingCard title="Navigation Bar">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-600">Navbar Background</label>
-                        <div className="flex gap-4">
-                            <HexColorPicker color={settings.navbarBgColor} onChange={(c) => handleColorChange('navbarBgColor', c)} />
-                        </div>
-                    </div>
-                    <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-600">Link Color</label>
-                        <div className="flex gap-4">
-                            <HexColorPicker color={settings.navbarLinkColor} onChange={(c) => handleColorChange('navbarLinkColor', c)} />
-                        </div>
-                    </div>
-                </div>
+      <div className="p-8 bg-white rounded-xl shadow-2xl">
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Manage System Favicon</h2>
+        <form onSubmit={handleIconSubmit} className="space-y-4">
+          <input type="file" name="icon" accept="image/png,image/svg+xml,image/vnd.microsoft.icon,image/x-icon"
+            onChange={(e) => setIconFile(e.target.files[0])}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0"
+          />
+          <button type="submit" disabled={loading}
+            className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400"
+          >
+            {loading ? 'Uploading...' : 'Upload Favicon'}
+          </button>
+        </form>
+      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Brand Text</label>
-                        <input 
-                            type="text" 
-                            name="navbarBrandText"
-                            value={settings.navbarBrandText} 
-                            onChange={handleSettingChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
-                        <select 
-                            name="navbarBrandFont"
-                            value={settings.navbarBrandFont} 
-                            onChange={handleSettingChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
-                        >
-                            <option value="var(--font-geist-sans)">Geist Sans (Modern)</option>
-                            <option value="var(--font-geist-mono)">Geist Mono (Tech)</option>
-                            <option value="Arial, sans-serif">Arial (Classic)</option>
-                            <option value="Georgia, serif">Georgia (Serif)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
-                        <input type="text" name="navbarBrandSize" value={settings.navbarBrandSize} onChange={handleSettingChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Font Weight</label>
-                        <input type="text" name="navbarBrandWeight" value={settings.navbarBrandWeight} onChange={handleSettingChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                    </div>
-                </div>
-            </SettingCard>
-            
-            <div className="flex justify-end">
-                <button type="submit" disabled={loading} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transform active:scale-95 transition-all">
-                    {loading ? 'Saving...' : 'Save Configuration'}
-                </button>
-            </div>
-        </div>
-
-        {/* COLUMN 2: Assets */}
-        <div className="space-y-8">
-            {/* Background Image Upload */}
-            <SettingCard title="Background Image">
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors">
-                    <input type="file" id="bg-upload" className="hidden" accept="image/*" onChange={(e) => setBgImageFile(e.target.files[0])} />
-                    <label htmlFor="bg-upload" className="cursor-pointer block">
-                        <div className="mx-auto h-12 w-12 text-gray-400 mb-2">📷</div>
-                        <span className="text-indigo-600 font-semibold hover:underline">Click to upload</span>
-                        <p className="text-xs text-gray-500 mt-1">{bgImageFile ? bgImageFile.name : "SVG, PNG, JPG"}</p>
-                    </label>
-                </div>
-                <div className="mt-4 flex gap-2">
-                    <button type="button" onClick={handleBgImageSubmitWrapper} className="flex-1 bg-gray-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-black">Upload</button>
-                    <button type="button" onClick={handleRemoveBgWrapper} disabled={settings.backgroundImage === 'none'} className="px-3 py-2 text-red-600 bg-red-50 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50">Remove</button>
-                </div>
-                {settings.backgroundImage !== 'none' && <p className="text-xs text-green-600 mt-2 text-center">✓ Active Image Set</p>}
-            </SettingCard>
-
-            {/* Brand Icon Upload */}
-            <SettingCard title="Brand Icon">
-                <div className="flex items-center justify-center mb-4 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {settings.brandIconUrl !== 'none' ? <img src={settings.brandIconUrl} alt="Logo" className="h-10 w-10 object-contain" /> : <span className="text-gray-400 text-sm">No Icon</span>}
-                </div>
-                <input type="file" accept="image/*" onChange={(e) => setBrandIconFile(e.target.files[0])} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-4"/>
-                <div className="flex gap-2">
-                    <button type="button" onClick={handleBrandIconSubmitWrapper} className="flex-1 bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">Set Icon</button>
-                    <button type="button" onClick={handleRemoveBrandWrapper} className="px-3 py-2 text-red-600 bg-red-50 rounded-lg text-sm font-medium hover:bg-red-100">Clear</button>
-                </div>
-            </SettingCard>
-
-            {/* Favicon Upload */}
-            <SettingCard title="Browser Favicon">
-                <input type="file" accept="image/*" onChange={(e) => setIconFile(e.target.files[0])} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4"/>
-                <button type="button" onClick={handleIconSubmitWrapper} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Update Favicon</button>
-            </SettingCard>
-        </div>
-
-      </form>
     </div>
   );
 }

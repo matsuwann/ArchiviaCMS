@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast'; 
 
 export default function EditDocumentModal({ document, onClose, onSave }) {
   const [title, setTitle] = useState('');
@@ -12,6 +13,7 @@ export default function EditDocumentModal({ document, onClose, onSave }) {
     if (document) {
       setTitle(document.title || '');
       setDateCreated(document.ai_date_created || '');
+      
       let authorsArray = document.ai_authors || [];
       setAuthors(authorsArray.join('; ')); 
     }
@@ -20,65 +22,77 @@ export default function EditDocumentModal({ document, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     const authorsArray = authors.split(';').map(name => name.trim());
+
     try {
-      await onSave(document.id, { title, ai_authors: authorsArray, ai_date_created: dateCreated });
+
+      await onSave(document.id, {
+        title,
+        ai_authors: authorsArray,
+        ai_date_created: dateCreated,
+      });
       onClose(); 
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!document) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-      <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 animate-fade-in">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Edit Metadata</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+        <h2 className="text-2xl font-bold mb-4">Edit Document</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Document Title</label>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
             <input
               type="text"
+              id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
             />
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Authors</label>
+            <label htmlFor="authors" className="block text-sm font-medium text-gray-700">Authors</label>
             <input
               type="text"
+              id="authors"
               value={authors}
               onChange={(e) => setAuthors(e.target.value)}
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="Author 1; Author 2"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholder="e.g., Doe, J.; Smith, A."
             />
-            <p className="text-xs text-gray-400 mt-1 ml-1">Separate multiple authors with a semicolon (;)</p>
+            <p className="text-xs text-gray-500 mt-1">Use a semicolon (;) to separate authors.</p>
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Date Created</label>
+            <label htmlFor="dateCreated" className="block text-sm font-medium text-gray-700">Date Created</label>
             <input
               type="text"
+              id="dateCreated"
               value={dateCreated}
               onChange={(e) => setDateCreated(e.target.value)}
-              className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholder="e.g., 2024-05"
             />
           </div>
           
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
+              className="py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md transition disabled:opacity-50"
+              className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400"
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>

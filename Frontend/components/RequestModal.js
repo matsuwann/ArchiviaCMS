@@ -17,41 +17,38 @@ export default function RequestModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Pass the reason up to the parent component
     onSubmit(reason);
-    setReason(""); 
+    setReason(""); // Reset internal state
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
-      <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 animate-fade-in border border-white/20">
-        <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-            <div className="text-gray-500 mt-1 text-sm leading-relaxed">
-            {message}
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+        <h3 className="text-lg font-bold mb-2">{title}</h3>
+        <div className="text-gray-600 mb-4 text-sm">
+          {message}
         </div>
-        
         <form onSubmit={handleSubmit}>
           <textarea
-            className="w-full border border-gray-200 bg-gray-50 rounded-xl p-3 mb-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none min-h-[100px] text-sm shadow-inner transition-all"
+            className="w-full border border-gray-300 rounded p-2 mb-4 focus:ring-2 ring-indigo-500 outline-none min-h-[100px]"
             placeholder="Please provide a reason..."
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
           />
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-2">
             <button 
               type="button"
               onClick={onClose} 
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-bold text-sm transition-colors"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button 
               type="submit" 
-              className={`px-6 py-2 text-white rounded-lg font-bold text-sm shadow-md transition-all transform active:scale-95 ${confirmColor} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 text-white rounded font-medium shadow-sm ${confirmColor} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={isLoading}
             >
               {isLoading ? 'Processing...' : actionLabel}
