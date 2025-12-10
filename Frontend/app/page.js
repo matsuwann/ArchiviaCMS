@@ -18,9 +18,6 @@ function HomeContent() {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [heroInput, setHeroInput] = useState(''); 
-  
-  // NEW: State for Bottom CTA Pop-up
-  const [showBottomCTA, setShowBottomCTA] = useState(false);
 
   // Filter/Data State
   const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
@@ -39,17 +36,6 @@ function HomeContent() {
         console.error("Initial load error:", err);
         setPopularSearches([]);
     });
-  }, []);
-
-  // NEW: Handle Scroll for Pop-up Effect
-  useEffect(() => {
-    const handleScroll = () => {
-        // Show bar if scrolled down more than 50px
-        setShowBottomCTA(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Trigger Search when URL changes
@@ -107,8 +93,7 @@ function HomeContent() {
     const safeTrending = Array.isArray(popularSearches) ? popularSearches : [];
 
     return (
-      // Added min-h-[110vh] to FORCE scrolling capability so the effect works
-      <main className="min-h-[110vh] flex flex-col bg-slate-50 relative overflow-x-hidden">
+      <main className="min-h-screen flex flex-col bg-slate-50 relative overflow-x-hidden">
         
         {/* Abstract Background Shapes */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
@@ -118,16 +103,12 @@ function HomeContent() {
         </div>
 
         {/* --- HERO SECTION --- */}
-        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 pt-20 pb-40">
-            <div className="max-w-4xl w-full space-y-10 animate-fade-in">
+        {/* UPDATED: justify-center with flex-grow ensures vertical centering */}
+        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 py-20">
+            <div className="max-w-4xl w-full space-y-12 animate-fade-in flex flex-col items-center">
                 
                 {/* Brand Header */}
-                <div className="space-y-6">
-                    <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/80 border border-indigo-100 shadow-sm mb-4 backdrop-blur-sm">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Institutional Repository</span>
-                    </div>
-                    
+                <div className="space-y-6 flex flex-col items-center">
                     <div className="flex items-center justify-center gap-4 md:gap-6">
                         <div 
                             className="w-16 h-16 md:w-20 md:h-20 bg-center bg-no-repeat bg-contain"
@@ -147,7 +128,7 @@ function HomeContent() {
                 </div>
 
                 {/* Hero Search Bar */}
-                <div className="relative group max-w-2xl mx-auto w-full">
+                <div className="relative group max-w-2xl w-full mx-auto">
                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-2xl opacity-20 group-hover:opacity-30 blur-lg transition duration-500"></div>
                     <div className="relative flex items-center bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-transform group-hover:scale-[1.01]">
                         <span className="pl-6 text-slate-400">
@@ -156,7 +137,7 @@ function HomeContent() {
                         <input 
                             type="text" 
                             placeholder="Search keywords, authors, or titles..." 
-                            className="flex-grow px-4 py-5 text-lg text-slate-800 bg-transparent focus:outline-none placeholder-slate-400"
+                            className="flex-grow px-4 py-5 text-lg text-slate-800 bg-transparent focus:outline-none placeholder-slate-400 text-center md:text-left"
                             value={heroInput} 
                             onChange={(e) => setHeroInput(e.target.value)} 
                             onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(heroInput); }}
@@ -171,50 +152,56 @@ function HomeContent() {
                 </div>
 
                 {/* Trending Pills */}
-                <div className="pt-6">
-                    <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest">Trending Topics</p>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        {safeTrending.slice(0, 5).map((item, idx) => (
-                            <button 
-                                key={idx}
-                                onClick={() => handleSearch(item.term || item)}
-                                className="px-5 py-2 bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-600 text-sm font-semibold rounded-full hover:border-indigo-300 hover:text-indigo-600 hover:bg-white hover:shadow-md transition-all duration-200"
-                            >
-                                {item.term || item}
-                            </button>
-                        ))}
+                {safeTrending.length > 0 && (
+                    <div className="pt-2 flex flex-col items-center">
+                        <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest">Trending Topics</p>
+                        <div className="flex flex-wrap justify-center gap-3">
+                            {safeTrending.slice(0, 5).map((item, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => handleSearch(item.term || item)}
+                                    className="px-5 py-2 bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-600 text-sm font-semibold rounded-full hover:border-indigo-300 hover:text-indigo-600 hover:bg-white hover:shadow-md transition-all duration-200"
+                                >
+                                    {item.term || item}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
 
-        {/* --- BOTTOM SCROLL-UP CTA BAR --- */}
-        <div 
-            className={`fixed bottom-0 left-0 w-full bg-slate-900 text-white py-6 px-6 z-50 shadow-2xl transition-all duration-500 ease-out transform ${
-                showBottomCTA ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-            }`}
-        >
-            <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-bold">Ready to Dive Deeper?</h3>
-                    <p className="text-indigo-200 text-sm">Access the full repository with thousands of documents.</p>
+        {/* --- BOTTOM ANCHOR (Clean CTA) --- */}
+        <div className="bg-slate-900 text-white py-16 px-4 text-center z-10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-30 pointer-events-none">
+                <div className="absolute top-[-50%] left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-indigo-600 rounded-full blur-[180px]"></div>
+            </div>
+            
+            <div className="relative z-10 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8">
+                <div className="text-left md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Explore the Repository</h2>
+                    <p className="text-indigo-200 text-sm md:text-base font-light">
+                        Access thousands of peer-reviewed documents securely.
+                    </p>
                 </div>
-                <button 
-                    onClick={handleBrowseAll}
-                    className="px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:bg-indigo-50 hover:scale-105 transition-all shadow-lg text-sm whitespace-nowrap flex items-center gap-2"
-                >
-                    Browse Library <span>&rarr;</span>
-                </button>
+                <div className="md:w-auto">
+                    <button 
+                        onClick={handleBrowseAll}
+                        className="inline-flex items-center gap-2 px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:bg-indigo-50 hover:scale-105 transition-all shadow-xl whitespace-nowrap"
+                    >
+                        Browse All Documents <span>&rarr;</span>
+                    </button>
+                </div>
             </div>
         </div>
-
       </main>
     );
   }
 
   // --- VIEW: RESULTS LIST (APP MODE) ---
   return (
-    <main className="container mx-auto p-4 md:p-8 min-h-screen animate-fade-in bg-slate-50/30">
+    // UPDATED: Changed container to max-w-6xl for better centering on large screens
+    <main className="max-w-6xl mx-auto p-4 md:p-8 min-h-screen animate-fade-in bg-slate-50/30">
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Library Results</h1>

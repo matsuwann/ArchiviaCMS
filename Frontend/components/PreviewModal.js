@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react'; // 1. Added useEffect import
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // 1. Import Portal
 import RelatedPapersWidget from './RelatedPapersWidget';
 
 const getSafeList = (data) => {
@@ -14,49 +15,59 @@ const getSafeList = (data) => {
 
 export default function PreviewModal({ document: activeDoc, onClose, allDocs, onSelectDoc }) {
   const [showAbstract, setShowAbstract] = useState(false);
+  const [mounted, setMounted] = useState(false); // 2. State to ensure client-side rendering
 
-  // 2. FIX: Lock background scrolling when modal is open
+  // 3. Mount check & Scroll Lock
   useEffect(() => {
-    // Disable scroll on body
-    document.body.style.overflow = 'hidden';
-    
-    // Re-enable scroll when modal closes
+    setMounted(true);
+    document.body.style.overflow = 'hidden'; // Lock background scroll
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = 'unset'; // Unlock on close
     };
   }, []);
 
-  // 3. FIX: Instantly scroll to top of the preview when the document changes
+  // 4. Auto-scroll to top when doc changes
   useEffect(() => {
     const scrollContainer = document.getElementById('modal-content');
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
-  }, [activeDoc]); // Triggers every time activeDoc updates
+  }, [activeDoc]);
 
-  if (!activeDoc) return null;
+  // Don't render until client-side (to access document.body)
+  if (!activeDoc || !mounted) return null;
 
   const previewUrls = getSafeList(activeDoc.preview_urls);
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-slate-100 rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+  // 5. Wrap content in createPortal to attach to body
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex justify-center items-center p-4">
+      {/* Dark Overlay */}
+      <div 
+        className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" 
+        onClick={onClose}
+      ></div>
+
+      {/* Modal Content */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-[95vw] max-w-[1600px] h-[95vh] flex flex-col overflow-hidden ring-1 ring-white/20 animate-fade-in scale-100">
         
         {/* === HEADER === */}
-        <div className="p-4 border-b flex justify-between items-center bg-white shrink-0 z-10">
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 z-10">
           <div className="flex items-center gap-4 overflow-hidden">
-             <h2 className="text-lg font-bold text-slate-800 truncate">{activeDoc.title || "Untitled Document"}</h2>
+             <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 hidden sm:block">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+             </div>
+             <h2 className="text-lg font-bold text-slate-800 truncate max-w-md">{activeDoc.title || "Untitled Document"}</h2>
              
              {/* TOGGLE BUTTON */}
              <button 
                onClick={() => setShowAbstract(!showAbstract)}
-               className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-colors flex items-center gap-2
+               className={`ml-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-2
                  ${showAbstract 
-                   ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' 
-                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
+                   ? 'bg-slate-900 text-white border-slate-900' 
+                   : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
              >
-               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-               {showAbstract ? 'Hide Abstract' : 'Show Abstract'}
+               {showAbstract ? 'Details View' : 'Metadata View'}
              </button>
           </div>
 
@@ -66,31 +77,31 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
         </div>
 
         {/* === MAIN CONTENT AREA (SPLIT VIEW) === */}
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 overflow-hidden relative bg-slate-50">
             
             {/* LEFT: SCROLLABLE PDF PREVIEW */}
-            {/* Added scroll-smooth for nicer transitions if manually scrolling */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 scroll-smooth" id="modal-content">
-                <div className="max-w-3xl mx-auto flex flex-col items-center gap-8">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 scroll-smooth" id="modal-content">
+                <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
                     
                     {/* Visual Previews */}
                     {previewUrls.length > 0 ? (
                     previewUrls.map((url, index) => (
-                        <div key={index} className="relative shadow-md w-full bg-white rounded-sm border border-slate-200">
+                        <div key={index} className="relative shadow-lg w-full bg-white rounded-lg overflow-hidden border border-slate-200/60">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={url} 
                             alt={`Page ${index + 1}`} 
-                            className="w-full h-auto min-h-[200px] object-contain" 
+                            className="w-full h-auto min-h-[400px] object-contain" 
                             onError={(e) => {e.target.style.display='none'}}
                         />
                         
                         {/* Login Wall Blur */}
                         {index === 3 && !activeDoc.downloadLink && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
-                            <div className="bg-white p-6 rounded-xl shadow-xl text-center border border-gray-200 max-w-sm">
-                                <p className="font-bold text-gray-900 text-lg mb-2">Continue Reading</p>
-                                <a href="/login" className="inline-block w-full px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-md">
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-md">
+                            <div className="bg-white p-8 rounded-2xl shadow-2xl text-center border border-slate-100 max-w-sm">
+                                <p className="font-bold text-slate-900 text-lg mb-2">Read Full Document</p>
+                                <p className="text-slate-500 text-sm mb-6">Create a free account to continue reading.</p>
+                                <a href="/login" className="inline-block w-full px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
                                 Login to Access
                                 </a>
                             </div>
@@ -100,12 +111,15 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                     ))
                     ) : (
                     <div className="py-20 text-center w-full">
-                        <p className="text-gray-400 text-lg font-medium">Preview images unavailable.</p>
+                        <div className="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-400">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <p className="text-slate-400 text-lg font-medium">Preview images unavailable.</p>
                     </div>
                     )}
 
                     {/* Related Papers Widget */}
-                    <div className="w-full pt-4">
+                    <div className="w-full pt-8 border-t border-slate-200">
                         <RelatedPapersWidget 
                             currentDoc={activeDoc}
                             allDocs={allDocs}
@@ -117,27 +131,27 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
 
             {/* RIGHT: ABSTRACT SIDEBAR (CONDITIONAL) */}
             {showAbstract && (
-                <div className="w-[350px] bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 shadow-xl animate-fade-in">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                <div className="w-[400px] bg-white border-l border-slate-200 p-8 overflow-y-auto shrink-0 shadow-xl animate-fade-in relative z-20 hidden md:block">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
                         Abstract
                     </h3>
-                    <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-line">
+                    <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-line text-justify">
                         {activeDoc.ai_abstract || "No abstract available for this document."}
                     </p>
                     
-                    <div className="mt-8 pt-6 border-t border-slate-100">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Metadata</h4>
-                        <div className="space-y-2">
+                    <div className="mt-10 space-y-6">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest pb-2 border-b border-slate-100">Document Details</h4>
+                        <div className="space-y-4">
                             {activeDoc.ai_journal && (
                                 <div>
-                                    <span className="text-xs text-slate-500 block">Source</span>
-                                    <span className="text-sm font-medium text-slate-800">{activeDoc.ai_journal}</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Source / Journal</span>
+                                    <span className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg block border border-slate-100">{activeDoc.ai_journal}</span>
                                 </div>
                             )}
                             {activeDoc.ai_date_created && (
                                 <div>
-                                    <span className="text-xs text-slate-500 block">Date</span>
-                                    <span className="text-sm font-medium text-slate-800">{activeDoc.ai_date_created}</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Publication Date</span>
+                                    <span className="text-sm font-medium text-slate-800 bg-slate-50 px-3 py-2 rounded-lg block border border-slate-100">{activeDoc.ai_date_created}</span>
                                 </div>
                             )}
                         </div>
@@ -147,9 +161,9 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
         </div>
 
         {/* === FOOTER === */}
-        <div className="p-4 border-t bg-white flex justify-between items-center shrink-0 z-10">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                {previewUrls.length > 0 ? `${previewUrls.length} Page Preview` : 'Document Viewer'}
+        <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-between items-center shrink-0 z-10">
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider hidden sm:block">
+                {previewUrls.length > 0 ? `Displaying ${previewUrls.length} Pages` : 'Document Viewer'}
             </p>
             
             {activeDoc.downloadLink ? (
@@ -157,17 +171,19 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                  href={activeDoc.downloadLink} 
                  target="_blank" 
                  rel="noopener noreferrer" 
-                 className="px-6 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 shadow-md flex items-center gap-2 transition-colors"
+                 className="w-full sm:w-auto px-6 py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
                >
-                 Download Full PDF
+                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                 Download PDF
                </a>
             ) : (
-               <a href="/login" className="px-6 py-2 bg-slate-900 text-white font-bold rounded-md hover:bg-slate-800 shadow-md transition-colors">
+               <a href="/login" className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 shadow-md hover:shadow-lg transition-all text-center">
                  Login to Download
                </a>
             )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body // PORTAL TARGET
   );
 }
