@@ -93,22 +93,27 @@ function HomeContent() {
     const safeTrending = Array.isArray(popularSearches) ? popularSearches : [];
 
     return (
-      <main className="min-h-screen flex flex-col bg-slate-50 relative overflow-x-hidden">
+      <main className="flex flex-col bg-slate-50 relative overflow-x-hidden">
         
-        {/* Abstract Background Shapes */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        {/* Abstract Background Shapes (Fixed to viewport) */}
+        <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-100/50 rounded-full blur-[120px] opacity-60"></div>
             <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[100px] opacity-70"></div>
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
         </div>
 
-        {/* --- HERO SECTION --- */}
-        {/* UPDATED: justify-center with flex-grow ensures vertical centering */}
-        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 py-20">
+        {/* --- HERO SECTION (Full Screen Height) --- */}
+        {/* min-h-screen ensures this takes up the full view, forcing the next section below the fold */}
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 text-center relative z-10 pb-20">
             <div className="max-w-4xl w-full space-y-12 animate-fade-in flex flex-col items-center">
                 
                 {/* Brand Header */}
                 <div className="space-y-6 flex flex-col items-center">
+                    <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/80 border border-indigo-100 shadow-sm mb-4 backdrop-blur-sm">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Institutional Repository</span>
+                    </div>
+                    
                     <div className="flex items-center justify-center gap-4 md:gap-6">
                         <div 
                             className="w-16 h-16 md:w-20 md:h-20 bg-center bg-no-repeat bg-contain"
@@ -123,7 +128,7 @@ function HomeContent() {
                     </div>
 
                     <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
-                        A centralized platform for discovering academic papers, journals, and cutting-edge research.
+                        Access academic papers, journals, and articles in one place.
                     </p>
                 </div>
 
@@ -169,25 +174,30 @@ function HomeContent() {
                     </div>
                 )}
             </div>
+            
+            {/* Optional: Scroll Down Indicator */}
+            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-slate-400 animate-bounce">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            </div>
         </div>
 
-        {/* --- BOTTOM ANCHOR (Clean CTA) --- */}
-        <div className="bg-slate-900 text-white py-16 px-4 text-center z-10 relative overflow-hidden">
+        {/* --- BOTTOM SECTION (Below the Fold) --- */}
+        <div className="bg-slate-900 text-white py-24 px-4 text-center z-10 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-30 pointer-events-none">
                 <div className="absolute top-[-50%] left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-indigo-600 rounded-full blur-[180px]"></div>
             </div>
             
             <div className="relative z-10 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8">
                 <div className="text-left md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Explore the Repository</h2>
-                    <p className="text-indigo-200 text-sm md:text-base font-light">
-                        Access thousands of peer-reviewed documents securely.
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Explore the Repository</h2>
+                    <p className="text-indigo-200 text-lg font-light leading-relaxed">
+                        Access uploaded documents, research papers, and articles from our extensive library. Start your academic journey today.
                     </p>
                 </div>
                 <div className="md:w-auto">
                     <button 
                         onClick={handleBrowseAll}
-                        className="inline-flex items-center gap-2 px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:bg-indigo-50 hover:scale-105 transition-all shadow-xl whitespace-nowrap"
+                        className="inline-flex items-center gap-3 px-10 py-4 bg-white text-slate-900 font-bold rounded-full hover:bg-indigo-50 hover:scale-105 transition-all shadow-2xl text-lg whitespace-nowrap"
                     >
                         Browse All Documents <span>&rarr;</span>
                     </button>
@@ -200,7 +210,6 @@ function HomeContent() {
 
   // --- VIEW: RESULTS LIST (APP MODE) ---
   return (
-    // UPDATED: Changed container to max-w-6xl for better centering on large screens
     <main className="max-w-6xl mx-auto p-4 md:p-8 min-h-screen animate-fade-in bg-slate-50/30">
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
