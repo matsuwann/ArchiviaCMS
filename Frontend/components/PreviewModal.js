@@ -47,7 +47,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                    ? 'bg-slate-900 text-white border-slate-900' 
                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
              >
-               {showAbstract ? 'Details View' : 'Metadata View'}
+               {showAbstract ? 'Show Abstract' : 'Hide Abstract'}
              </button>
           </div>
 

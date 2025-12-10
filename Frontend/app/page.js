@@ -113,7 +113,7 @@ function HomeContent() {
                         Archivia
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
-                        A centralized platform for discovering academic papers, journals, and cutting-edge research.
+                        Access academic papers, journals, and articles in one place.
                     </p>
                 </div>
 
@@ -169,7 +169,7 @@ function HomeContent() {
                 <div className="text-left md:w-1/2">
                     <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Explore the Repository</h2>
                     <p className="text-indigo-200 text-sm md:text-base font-light">
-                        Access thousands of peer-reviewed documents securely.
+                        Access uploaded documents, research papers, and articles from our extensive library. Start your journey now.
                     </p>
                 </div>
                 <div className="md:w-auto">
@@ -190,7 +190,7 @@ function HomeContent() {
   return (
     <main className="container mx-auto p-4 md:p-8 min-h-screen animate-fade-in bg-slate-50/30">
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
-        <div>
+        <div> 
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Library Results</h1>
             <p className="text-slate-500 text-sm mt-1">
                 Found {documents.length} {documents.length === 1 ? 'document' : 'documents'} matching your criteria.

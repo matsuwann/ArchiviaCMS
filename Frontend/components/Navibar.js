@@ -55,10 +55,6 @@ export default function Navbar() {
           </Link>
 
           <ul className="flex space-x-8 items-center font-medium text-sm">
-            {/* HIDE SEARCH FOR ADMINS */}
-            {!isAuthPage && !isAdmin && ( 
-              <li><Link href="/" style={linkStyle} className="hover:text-indigo-600 transition-colors">Library</Link></li>
-            )}
             
             {/* HIDE UPLOAD FOR ADMINS */}
             {isAuthenticated && !isAdmin && (
