@@ -119,7 +119,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center space-x-3">
                 {shouldShowLoginLink && <Link href="/login" style={{ color: 'var(--navbar-link-color)' }} className="px-4 py-2 hover:text-indigo-600 transition-colors font-medium">Sign In</Link>}
-                {!isAuthPage && <Link href="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 transition-all transform hover:-translate-y-0.5">Get Started</Link>}
+                {!isAuthPage && <Link href="/register" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 hover:shadow-indigo-300 transition-all transform hover:-translate-y-0.5">Get Started</Link>}
               </div>
             )}
           </ul>
