@@ -31,7 +31,8 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 pb-6">
         <div>
             <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Overview</h2>
-            <p className="text-slate-500 mt-2 font-medium">Welcome back, {user?.firstName}. Here is what's happening today.</p>
+            {/* FIXED: Escaped single quote */}
+            <p className="text-slate-500 mt-2 font-medium">Welcome back, {user?.firstName}. Here is what&apos;s happening today.</p>
         </div>
         <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">
             System Operational

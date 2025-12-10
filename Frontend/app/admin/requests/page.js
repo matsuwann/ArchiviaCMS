@@ -61,7 +61,8 @@ export default function AdminRequestsPage() {
                     <p className="text-xs text-slate-400 font-mono mb-3">{req.filename}</p>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Reason</span>
-                        <p className="text-slate-700 italic">"{req.deletion_reason}"</p>
+                        {/* FIXED: Quotes escaped */}
+                        <p className="text-slate-700 italic">&quot;{req.deletion_reason}&quot;</p>
                     </div>
                 </div>
                 <div className="flex gap-3 shrink-0 self-center md:self-start">

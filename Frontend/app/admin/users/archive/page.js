@@ -37,64 +37,73 @@ export default function ArchivedUsers() {
     try {
       await adminReactivateUser(userId);
       toast.success('User restored successfully.');
-      fetchArchivedUsers(); // Refresh list
+      fetchArchivedUsers(); 
     } catch (err) {
       toast.error('Failed to restore user.');
       console.error(err);
     }
   };
 
-  if (loading) return <p className="text-center">Loading archive...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
+  if (loading) return <div className="text-center p-10 text-slate-400">Loading archive...</div>;
+  if (error) return <div className="text-center p-10 text-red-500 font-medium">{error}</div>;
 
   return (
-    <div className="p-8 bg-white rounded-xl shadow-2xl">
-      <div className="flex justify-between items-center mb-6 border-b pb-2">
-        <h2 className="text-3xl font-bold text-gray-900">
-          Archived Users
-        </h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center pb-4 border-b border-slate-200">
+        <div>
+            <h2 className="text-3xl font-extrabold text-slate-900">Archived Users</h2>
+            <p className="text-slate-500 text-sm mt-1">View and restore deactivated accounts</p>
+        </div>
         <Link href="/admin/users">
-          <button className="py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
-            Back to Users
+          <button className="px-5 py-2 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition shadow-sm flex items-center gap-2">
+            <span>&larr;</span> Back to Active Users
           </button>
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <table className="min-w-full divide-y divide-slate-100">
+          <thead className="bg-slate-50/50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">User Profile</th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Previous Role</th>
+              <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-slate-100">
             {archivedUsers.length === 0 ? (
-              <tr><td colSpan="4" className="text-center py-4 text-gray-500">No archived users found.</td></tr>
+              <tr><td colSpan="3" className="text-center py-10 text-slate-400 italic">No archived users found.</td></tr>
             ) : (
               archivedUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.first_name} {user.last_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg mr-4">
+                            {user.first_name.charAt(0)}
+                        </div>
+                        <div>
+                            <div className="text-sm font-bold text-slate-700">{user.first_name} {user.last_name}</div>
+                            <div className="text-sm text-slate-400">{user.email}</div>
+                        </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {user.is_admin ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                        Admin
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Former Admin
                       </span>
                     ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        User
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-slate-50 text-slate-400 border border-slate-100">
+                        Former User
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => handleRestore(user.id)}
-                      className="py-1 px-3 bg-green-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-green-700"
+                      className="text-green-600 hover:text-green-800 font-bold bg-green-50 px-4 py-2 rounded-lg transition-colors border border-green-100 hover:border-green-200"
                     >
-                      Restore
+                      Restore Account
                     </button>
                   </td>
                 </tr>

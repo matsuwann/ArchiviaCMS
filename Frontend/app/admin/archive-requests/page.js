@@ -41,7 +41,8 @@ export default function AdminArchiveRequestsPage() {
         <div className="flex-grow">
             <h3 className="font-bold text-lg text-slate-800">{title}</h3>
             <p className="text-xs text-slate-400 font-mono mb-3">{sub}</p>
-            <p className="text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 italic">"{reason}"</p>
+            {/* FIXED: Quotes escaped */}
+            <p className="text-sm text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 italic">&quot;{reason}&quot;</p>
         </div>
         <div className="flex gap-3 shrink-0">
             <button onClick={onReject} className="px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50">Reject</button>

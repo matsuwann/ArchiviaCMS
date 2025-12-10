@@ -2,17 +2,21 @@ import LoginForm from '../../components/LoginForm';
 
 export default function LoginPage() {
   return (
-    <main className="container mx-auto p-4 md:p-8">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-          Archivia CMS Login
-        </h1>
-        <p className="mt-2 text-lg text-gray-500">
-          Sign in to access secure features.
-        </p>
-      </header>
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/30 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-200/30 rounded-full blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-xl mx-auto">
+      <div className="w-full max-w-md z-10 space-y-6">
+        <header className="text-center space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Archivia Access
+          </h1>
+          <p className="text-slate-500 text-sm">
+            Secure Repository Login
+          </p>
+        </header>
+
         <LoginForm />
       </div>
     </main>

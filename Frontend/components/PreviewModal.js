@@ -59,6 +59,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                     {previewUrls.length > 0 ? (
                     previewUrls.map((url, index) => (
                         <div key={index} className="relative shadow-lg w-full bg-white rounded-lg overflow-hidden border border-slate-200/60">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                             src={url} 
                             alt={`Page ${index + 1}`} 
