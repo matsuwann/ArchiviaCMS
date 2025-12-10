@@ -108,12 +108,7 @@ function HomeContent() {
             <div className="max-w-4xl w-full space-y-12 animate-fade-in flex flex-col items-center">
                 
                 {/* Brand Header */}
-                <div className="space-y-6 flex flex-col items-center">
-                    <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/80 border border-indigo-100 shadow-sm mb-4 backdrop-blur-sm">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Institutional Repository</span>
-                    </div>
-                    
+                <div className="space-y-6 flex flex-col items-center">    
                     <div className="flex items-center justify-center gap-4 md:gap-6">
                         <div 
                             className="w-16 h-16 md:w-20 md:h-20 bg-center bg-no-repeat bg-contain"
