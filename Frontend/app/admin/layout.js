@@ -1,98 +1,36 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Navbar from "../components/Navibar";
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from '../context/AuthContext'; 
-import { Toaster } from 'react-hot-toast';
+'use client';
 
-export const dynamic = 'force-dynamic'; 
+// Note: usage of '../../' to go up two levels (admin -> app -> Frontend)
+import { useAuth } from '../../context/AuthContext'; 
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+export default function AdminLayout({ children }) {
+  const { user, isAuthenticated, authLoading } = useAuth();
+  const router = useRouter();
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata = {
-  title: "Archivia", 
-  description: "A Capstone and Research Repository", 
-};
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-async function getSystemSettings() {
-  try {
-    const res = await fetch(`${API_URL}/settings`, { 
-      cache: 'no-store' 
-    });
-    
-    if (!res.ok) {
-      console.error("Failed to fetch settings, using defaults.");
-      return null;
+  useEffect(() => {
+    // If auth is done loading and user is not authed or is not an admin
+    if (!authLoading && (!isAuthenticated || !user?.is_admin)) {
+      router.push('/login'); // Redirect to login
     }
-    return await res.json();
-  } catch (error) {
-    console.error("Error fetching settings:", error.message);
-    return null;
+  }, [isAuthenticated, user, authLoading, router]);
+
+  // Show loading state or nothing while checking
+  if (authLoading || !isAuthenticated || !user?.is_admin) {
+    return (
+      <main className="container mx-auto p-20 text-center text-slate-400">
+        <div className="animate-pulse">Loading admin resources...</div>
+      </main>
+    );
   }
-}
 
-export default async function RootLayout({ children }) {
-  const settings = await getSystemSettings();
-  const GOOGLE_CLIENT_ID = "105198460940-ea151a6aa6ng04jmsbaja3i2djb0iuaj.apps.googleusercontent.com";
-
-  const brandIconUrl = settings?.brandIconUrl || 'none';
-  const bgImageUrl = settings?.backgroundImage || 'none';
-
-  // Updated defaults for a cleaner look if no settings exist
-  const customStyles = `
-    :root {
-      /* Page */
-      --background-color: ${settings?.backgroundColor || '#f8fafc'};
-      --background-image: ${bgImageUrl};
-      --foreground: ${settings?.foregroundColor || '#0f172a'};
-      
-      /* Navbar */
-      --navbar-bg-color: ${settings?.navbarBgColor || 'rgba(255, 255, 255, 0.85)'};
-      --navbar-text-color: ${settings?.navbarTextColor || '#1e293b'};
-      --navbar-link-color: ${settings?.navbarLinkColor || '#64748b'};
-      
-      /* Brand */
-      --navbar-brand-font: ${settings?.navbarBrandFont || 'var(--font-geist-sans)'};
-      --navbar-brand-size: ${settings?.navbarBrandSize || '1.5rem'};
-      --navbar-brand-weight: ${settings?.navbarBrandWeight || '800'};
-      --navbar-brand-text: '${settings?.navbarBrandText || 'Archivia'}';
-      
-      /* Brand Icon */
-      --brand-icon-url: ${brandIconUrl};
-      --brand-icon-display: ${brandIconUrl === 'none' ? 'none' : 'inline-block'};
-    }
-  `;
-
+  // If user is an admin, render the admin content
   return (
-    <html lang="en">
-      <head><style>{customStyles}</style></head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}> 
-          <AuthProvider> 
-            <Toaster position="bottom-right" toastOptions={{
-              style: {
-                background: '#334155',
-                color: '#fff',
-                borderRadius: '8px',
-              },
-            }}/>
-            <Navbar />
-            <div className="flex-grow flex flex-col">
-              {children}
-            </div>
-          </AuthProvider>
-        </GoogleOAuthProvider>
-      </body>
-    </html>
+    <main className="container mx-auto p-6 md:p-10 min-h-screen bg-slate-50/50">
+        <div className="max-w-7xl mx-auto">
+            {children}
+        </div>
+    </main>
   );
 }
