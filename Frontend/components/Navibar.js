@@ -68,11 +68,18 @@ export default function Navbar() {
             {isAuthenticated ? (
               <li className="relative">
                 <button onClick={toggleDropdown} className="group flex items-center gap-2 py-1.5 px-3 rounded-full hover:bg-black/5 transition-colors" style={{ color: 'var(--navbar-text-color)' }}>
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold uppercase text-xs">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold uppercase text-xs border border-indigo-200">
                     {user?.firstName?.charAt(0)}
                   </div>
                   <span className="font-semibold">{user?.firstName}</span>
-                  {isSuperAdmin && <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-bold">SA</span>}
+                  
+                  {/* ADMIN BADGES */}
+                  {isSuperAdmin ? (
+                    <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">SA</span>
+                  ) : isAdmin ? (
+                    <span className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Admin</span>
+                  ) : null}
+
                   <svg className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
