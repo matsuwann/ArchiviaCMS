@@ -109,10 +109,6 @@ function HomeContent() {
                 
                 {/* RESTORED: Brand Header */}
                 <div className="space-y-6">
-                    <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/80 border border-indigo-100 shadow-sm mb-4 backdrop-blur-sm">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Institutional Repository</span>
-                    </div>
                     <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight drop-shadow-sm">
                         Archivia
                     </h1>
