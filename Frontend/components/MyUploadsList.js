@@ -2,142 +2,92 @@
 
 import { useEffect, useState } from 'react';
 import EditDocumentModal from './EditDocumentModal'; 
-import RequestModal from './RequestModal'; // IMPORT NEW MODAL
+import RequestModal from './RequestModal'; 
 import { getMyUploads, updateDocument, requestDeletion } from '../services/apiService';
 import { toast } from 'react-hot-toast'; 
 
 export default function MyUploadsList() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
-
-  // --- MODAL STATE ---
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [docToDelete, setDocToDelete] = useState(null);
 
-  useEffect(() => {
-    fetchUploads();
-  }, []);
+  useEffect(() => { fetchUploads(); }, []);
 
   const fetchUploads = async () => {
     try {
       setLoading(true);
       const response = await getMyUploads();
       setDocuments(response.data);
-    } catch (err) {
-      setError('Failed to fetch your documents.');
-      toast.error('Failed to fetch your documents.'); 
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error('Fetch failed.'); } 
+    finally { setLoading(false); }
   };
 
-  const handleEdit = (doc) => {
-    setSelectedDocument(doc);
-    setIsModalOpen(true);
-  };
+  const handleEdit = (doc) => { setSelectedDocument(doc); setIsModalOpen(true); };
 
   const handleSave = async (docId, updatedData) => {
-    const savePromise = updateDocument(docId, updatedData);
-    await toast.promise(savePromise, {
-        loading: 'Saving changes...',
-        success: 'Changes saved successfully!',
-        error: 'Failed to save changes.'
-    });
-    try { await savePromise; await fetchUploads(); } catch (error) { console.error(error); }
+    try { await updateDocument(docId, updatedData); await fetchUploads(); toast.success("Saved."); } 
+    catch (e) { toast.error("Save failed."); }
   };
 
   const handleDeleteClick = (doc) => {
-    if (doc.deletion_requested) {
-        toast("Deletion already requested for this file.");
-        return;
-    }
+    if (doc.deletion_requested) return toast("Request already pending.");
     setDocToDelete(doc);
     setIsDeleteModalOpen(true);
   };
 
   const handleSubmitRequest = async (reason) => {
-    if (!reason.trim()) return toast.error("Please provide a reason.");
-
-    const promise = requestDeletion(docToDelete.id, reason);
-    
-    toast.promise(promise, {
-        loading: 'Sending request...',
-        success: 'Request sent to admin!',
-        error: 'Failed to send request.'
-    });
-
+    if (!reason.trim()) return toast.error("Reason required.");
     try {
-        await promise;
+        await requestDeletion(docToDelete.id, reason);
         setIsDeleteModalOpen(false);
         setDocToDelete(null);
+        toast.success("Request sent.");
         await fetchUploads(); 
-    } catch (err) {
-        console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
   
-  if (loading) return <p className="text-center">Loading your uploads...</p>;
-  if (error && documents.length === 0) return <p className="text-center text-red-500">{error}</p>;
+  if (loading) return <p className="text-center text-slate-400 p-10">Loading...</p>;
 
   return (
-    <>
-      <div className="p-8 bg-white rounded-xl shadow-2xl">
-        {documents.length === 0 ? (
-          <p className="text-center">You have not uploaded any documents yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {documents.map(doc => (
-                <li key={doc.id} className="py-4 flex justify-between items-center">
-                  <div>
-                    <p className="text-lg font-medium text-gray-900">{doc.title || "Untitled"}</p>
-                    <p className="text-sm text-gray-600">
-                      {doc.ai_authors?.length > 0 ? doc.ai_authors.join(', ') : 'No authors'}
+    <div className="space-y-4">
+      {documents.length === 0 ? (
+        <div className="text-center p-12 bg-white rounded-2xl border border-dashed border-slate-200">
+            <p className="text-slate-500 font-medium">You haven&apos;t uploaded any documents.</p>
+            <a href="/upload" className="mt-4 inline-block px-6 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg hover:bg-indigo-100 transition">Upload Now</a>
+        </div>
+      ) : (
+        documents.map(doc => (
+            <div key={doc.id} className="p-6 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">{doc.title || "Untitled"}</h3>
+                    <p className="text-sm text-slate-500 mt-1">
+                        <span className="font-semibold text-slate-700">Authors:</span> {doc.ai_authors?.length ? doc.ai_authors.join(', ') : 'N/A'}
                     </p>
-                    <p className="text-sm text-gray-500">Date: {doc.ai_date_created || 'N/A'}</p>
-                    <a href={doc.filepath} target="_blank" className="text-sm text-blue-500 hover:underline mt-2 inline-block">View PDF</a>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(doc)} className="py-1 px-3 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-blue-700">Edit</button>
+                    <div className="flex gap-4 mt-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <span>{doc.ai_date_created || 'Date Unknown'}</span>
+                        <a href={doc.filepath} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">View PDF</a>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={() => handleEdit(doc)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition">Edit</button>
                     <button
-                      onClick={() => handleDeleteClick(doc)}
-                      disabled={doc.deletion_requested}
-                      className={`py-1 px-3 text-sm font-semibold rounded-lg shadow-md transition-colors ${
-                        doc.deletion_requested ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"
-                      }`}
+                        onClick={() => handleDeleteClick(doc)}
+                        disabled={doc.deletion_requested}
+                        className={`px-4 py-2 text-white font-bold rounded-lg transition shadow-sm ${doc.deletion_requested ? "bg-slate-300 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"}`}
                     >
-                      {doc.deletion_requested ? "Pending..." : "Delete"}
+                        {doc.deletion_requested ? "Pending" : "Delete"}
                     </button>
-                  </div>
-                </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      
-      {isModalOpen && (
-        <EditDocumentModal 
-          document={selectedDocument} 
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSave}
-        />
+                </div>
+            </div>
+        ))
       )}
-
-      {/* REUSED REQUEST MODAL */}
-      <RequestModal 
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onSubmit={handleSubmitRequest}
-        title="Request Deletion"
-        message={
-            <p>Please tell the admin why you want to delete <span className="font-semibold">{docToDelete?.title}</span>.</p>
-        }
-        actionLabel="Send Request"
-      />
-    </>
+      
+      {isModalOpen && <EditDocumentModal document={selectedDocument} onClose={() => setIsModalOpen(false)} onSave={handleSave} />}
+      <RequestModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onSubmit={handleSubmitRequest} title="Request Deletion" message={<p>Why do you want to delete <span className="font-bold">{docToDelete?.title}</span>?</p>} actionLabel="Send Request" />
+    </div>
   );
 }

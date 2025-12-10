@@ -2,37 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import EditDocumentModal from '../../../components/EditDocumentModal'; 
-import { searchDocuments, adminDeleteDocument, adminArchiveDocument, adminUpdateDocument } from '../../../services/apiService'; // Added adminArchiveDocument
-import { useAuth } from '../../../context/AuthContext'; // Get auth info
+import { searchDocuments, adminDeleteDocument, adminArchiveDocument, adminUpdateDocument } from '../../../services/apiService'; 
+import { useAuth } from '../../../context/AuthContext'; 
 import { toast } from 'react-hot-toast';
 
 export default function AdminDocumentManagement() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
-  
-  const { user } = useAuth(); // Get current user to check for super admin
+  const { user } = useAuth(); 
 
-  useEffect(() => {
-    handleSearch('');
-  }, []);
+  useEffect(() => { handleSearch(''); }, []);
 
   const handleSearch = async (term) => {
     try {
       setLoading(true);
       const response = await searchDocuments(term); 
       setDocuments(response.data);
-    } catch (err) {
-      setError('Failed to fetch documents.');
-      toast.error('Failed to fetch documents.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error('Failed to fetch documents.'); } 
+    finally { setLoading(false); }
   };
 
   const handleSearchSubmit = (e) => {
@@ -40,40 +30,26 @@ export default function AdminDocumentManagement() {
     handleSearch(searchTerm);
   };
 
-  // This handles the Archive logic (similar to user-side delete request)
   const handleArchive = async (docId) => {
-    const reason = window.prompt("Enter a reason for archiving this document:");
-    if (reason === null) return; // Cancelled
-    if (!reason.trim()) return toast.error("Reason is required.");
-
+    const reason = window.prompt("Reason for archiving:");
+    if (!reason?.trim()) return;
     try {
         await adminArchiveDocument(docId, reason);
-        toast.success("Document archived/requested for deletion.");
+        toast.success("Archived successfully.");
         handleSearch(searchTerm);
-    } catch (err) {
-        console.error(err);
-        toast.error("Failed to archive document.");
-    }
+    } catch (err) { toast.error("Action failed."); }
   };
 
-  // Only Super Admins can call this
   const handlePermanentDelete = async (docId) => {
-    if(!confirm("Are you sure? This is permanent and bypasses archive.")) return;
-    
+    if(!confirm("Permanently delete this document?")) return;
     try {
         await adminDeleteDocument(docId);
-        toast.success("Document permanently deleted.");
+        toast.success("Deleted.");
         handleSearch(searchTerm);
-    } catch (err) {
-        console.error(err);
-        toast.error("Failed to delete document.");
-    }
+    } catch (err) { toast.error("Delete failed."); }
   };
 
-  const handleEdit = (doc) => {
-    setSelectedDocument(doc);
-    setIsModalOpen(true);
-  };
+  const handleEdit = (doc) => { setSelectedDocument(doc); setIsModalOpen(true); };
 
   const handleSave = async (docId, updatedData) => {
     try {
@@ -81,103 +57,71 @@ export default function AdminDocumentManagement() {
         setIsModalOpen(false);
         toast.success('Document updated.');
         handleSearch(searchTerm); 
-    } catch (error) {
-        console.error("Failed to save:", error);
-        toast.error("Failed to save changes.");
-    }
+    } catch (error) { toast.error("Save failed."); }
   };
 
   return (
-    <>
-      <div className="p-8 bg-white rounded-xl shadow-2xl">
-        <div className="flex justify-between items-center mb-6 border-b pb-2">
-            <h2 className="text-3xl font-bold text-gray-900">
-            Document Management
-            </h2>
-            {user?.is_super_admin && (
-                <span className="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded">Super Admin Mode</span>
-            )}
-        </div>
-        
-        <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-6">
-            <input
-                type="text"
-                placeholder="Search all documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-            />
-            <button type="submit" className="py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700">
-                Search
-            </button>
-        </form>
-
-        {loading ? (
-            <p className="text-center">Loading documents...</p>
-        ) : error ? (
-            <p className="text-center text-red-500">{error}</p>
-        ) : documents.length === 0 ? (
-            <p className="text-center">No documents found.</p>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {documents.map(doc => {
-              const aiAuthors = doc.ai_authors || [];
-              const isPending = doc.deletion_requested; // Assuming this field comes back from API
-
-              return (
-                <li key={doc.id} className="py-4 flex justify-between items-center">
-                  <div>
-                    <p className="text-lg font-medium text-gray-900">
-                        {doc.title || "Untitled"}
-                        {isPending && <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded">Archive Requested</span>}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {aiAuthors.length > 0 ? aiAuthors.join(', ') : 'No authors'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Date: {doc.ai_date_created || 'N/A'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(doc)}
-                      className="py-1 px-3 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-blue-700"
-                    >
-                      Edit
-                    </button>
-                    
-                    {/* LOGIC: Regular admins see 'Archive', Super admins see 'Delete' (or both if you prefer) */}
-                    {user?.is_super_admin ? (
-                        <button
-                            onClick={() => handlePermanentDelete(doc.id)}
-                            className="py-1 px-3 bg-red-800 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-900"
-                        >
-                            Delete (Super)
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => handleArchive(doc.id)}
-                            disabled={isPending}
-                            className={`py-1 px-3 text-white text-sm font-semibold rounded-lg shadow-md ${isPending ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600'}`}
-                        >
-                            {isPending ? 'Pending' : 'Archive'}
-                        </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <h2 className="text-3xl font-extrabold text-slate-900">Documents</h2>
+            <p className="text-slate-500 text-sm mt-1">Manage repository content</p>
+          </div>
+          {user?.is_super_admin && (
+              <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Super Admin Mode</span>
+          )}
       </div>
       
-      {isModalOpen && (
-        <EditDocumentModal 
-          document={selectedDocument} 
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleSave}
-        />
+      <form onSubmit={handleSearchSubmit} className="relative">
+          <input
+              type="text"
+              placeholder="Search by title, author, or keyword..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-4 pr-32 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+          />
+          <button type="submit" className="absolute right-2 top-2 bottom-2 px-6 bg-slate-900 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors text-sm">
+              Search
+          </button>
+      </form>
+
+      {loading ? (
+          <div className="text-center p-10 text-slate-400">Loading library...</div>
+      ) : documents.length === 0 ? (
+          <div className="text-center p-10 bg-white rounded-xl border border-dashed border-slate-200 text-slate-500">No documents found.</div>
+      ) : (
+        <div className="grid gap-4">
+          {documents.map(doc => {
+            const isPending = doc.deletion_requested;
+            return (
+              <div key={doc.id} className="p-5 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-3">
+                      {doc.title || "Untitled"}
+                      {isPending && <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Pending Archive</span>}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {doc.ai_authors?.length > 0 ? doc.ai_authors.join(', ') : 'Unknown Author'} • {doc.ai_date_created || 'No Date'}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => handleEdit(doc)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Edit</button>
+                  <div className="h-4 w-px bg-slate-200"></div>
+                  {user?.is_super_admin ? (
+                      <button onClick={() => handlePermanentDelete(doc.id)} className="text-sm font-semibold text-red-600 hover:text-red-800">Delete</button>
+                  ) : (
+                      <button onClick={() => handleArchive(doc.id)} disabled={isPending} className={`text-sm font-semibold ${isPending ? 'text-slate-300' : 'text-slate-500 hover:text-red-600'}`}>
+                          {isPending ? 'Requested' : 'Archive'}
+                      </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
-    </>
+      
+      {isModalOpen && <EditDocumentModal document={selectedDocument} onClose={() => setIsModalOpen(false)} onSave={handleSave}/>}
+    </div>
   );
 }

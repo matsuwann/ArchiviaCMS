@@ -3,117 +3,52 @@
 import { useState, useEffect } from 'react';
 
 export default function EditUserModal({ user, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    is_admin: false,
-  });
+  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', is_admin: false });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        email: user.email || '',
-        is_admin: user.is_admin || false,
-      });
-    }
+    if (user) setFormData({ first_name: user.first_name || '', last_name: user.last_name || '', email: user.email || '', is_admin: user.is_admin || false });
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-
-    try {
-      await onSave(user.id, formData); // onSave is the handleSave function from the parent
-      onClose();
-    } catch (err) {
-      setMessage('Failed to update user. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    e.preventDefault(); setLoading(true);
+    try { await onSave(user.id, formData); onClose(); } 
+    catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-4">Edit User</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-4">
-            <div className="w-1/2">
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">First Name</label>
-              <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-              />
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg">
+        <h2 className="text-xl font-bold mb-6 text-slate-900">Edit User Profile</h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">First Name</label>
+              <input name="first_name" value={formData.first_name} onChange={handleChange} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
-            <div className="w-1/2">
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">Last Name</label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-              />
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Last Name</label>
+              <input name="last_name" value={formData.last_name} onChange={handleChange} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-            />
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+            <input name="email" value={formData.email} onChange={handleChange} className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_admin"
-              name="is_admin"
-              checked={formData.is_admin}
-              onChange={handleChange}
-              className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-            />
-            <label htmlFor="is_admin" className="ml-2 block text-sm text-gray-900">Make Admin</label>
+          <div className="flex items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <input type="checkbox" id="is_admin" name="is_admin" checked={formData.is_admin} onChange={handleChange} className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+            <label htmlFor="is_admin" className="ml-3 block text-sm font-semibold text-slate-700">Grant Administrator Privileges</label>
           </div>
-          {message && <p className="text-red-500 text-sm">{message}</p>}
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="py-2 px-4 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400"
-            >
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={loading} className="px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-md disabled:bg-indigo-300">
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>

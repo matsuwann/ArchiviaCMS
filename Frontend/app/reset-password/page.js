@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, Suspense } from 'react'; // Import Suspense
+import { useState, Suspense } from 'react'; 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { resetPassword } from '../../services/apiService';
 import PasswordChecklist from '../../components/PasswordChecklist';
 import { toast } from 'react-hot-toast';
 
-// Create a separate component for the form logic
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -34,36 +33,33 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) return toast.error("Passwords don't match.");
-    if (!Object.values(passwordValidity).every(Boolean)) return toast.error("Password too weak.");
+    if (password !== confirmPassword) return toast.error("Passwords do not match.");
+    if (!Object.values(passwordValidity).every(Boolean)) return toast.error("Password is too weak.");
 
     setLoading(true);
     try {
       await resetPassword(token, password);
-      toast.success('Password reset successful! Redirecting to login...');
+      toast.success('Password updated!');
       setTimeout(() => router.push('/login'), 2000);
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to reset password.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { toast.error('Reset failed.'); } 
+    finally { setLoading(false); }
   };
 
-  if (!token) return <p className="text-center text-red-500">Invalid password reset link.</p>;
+  if (!token) return <p className="text-center text-red-500">Invalid link.</p>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5 text-left">
       <div>
-        <label className="block text-sm font-medium text-gray-700">New Password</label>
-        <input type="password" value={password} onChange={handlePasswordChange} className="mt-1 w-full px-3 py-2 border rounded-md" required />
-        <PasswordChecklist validity={passwordValidity} />
+        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">New Password</label>
+        <input type="password" value={password} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
+        <div className="mt-2"><PasswordChecklist validity={passwordValidity} /></div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
-        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full px-3 py-2 border rounded-md" required />
+        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Confirm Password</label>
+        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
       </div>
-      <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400">
-        {loading ? 'Resetting...' : 'Set New Password'}
+      <button type="submit" disabled={loading} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition disabled:bg-indigo-300">
+        {loading ? 'Updating...' : 'Set Password'}
       </button>
     </form>
   );
@@ -71,12 +67,10 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="container mx-auto p-4 pt-20 max-w-sm">
-      <div className="bg-slate-100 p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Set New Password</h1>
-        <Suspense fallback={<div>Loading...</div>}>
-          <ResetPasswordForm />
-        </Suspense>
+    <div className="container mx-auto p-4 pt-20 max-w-md">
+      <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 text-center">
+        <h1 className="text-2xl font-extrabold text-slate-900 mb-6">Create New Password</h1>
+        <Suspense fallback={<div>Loading...</div>}><ResetPasswordForm /></Suspense>
       </div>
     </div>
   );

@@ -30,18 +30,17 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
   };
 
   const renderSection = (title, category, items, isSingleSelect = false) => (
-    <div className="mb-4 border-b border-gray-200 pb-4">
+    <div className="mb-1 border-b border-slate-100 last:border-0">
       <button 
         onClick={() => toggleSection(category)}
-        className="flex justify-between items-center w-full text-left font-bold text-gray-700 hover:text-indigo-700 mb-2 transition-colors"
+        className="flex justify-between items-center w-full text-left py-3 px-1 font-bold text-slate-700 hover:text-indigo-600 transition-colors text-sm"
       >
         {title}
-        <span className="text-gray-400 text-sm">{openSections[category] ? '▼' : '▶'}</span>
+        <span className={`text-slate-400 text-xs transition-transform duration-200 ${openSections[category] ? 'rotate-180' : ''}`}>▼</span>
       </button>
       
       {openSections[category] && (
-        <div className="max-h-48 overflow-y-auto pr-2 space-y-1 scrollbar-thin scrollbar-thumb-gray-300">
-          {/* SAFETY FIX: Check if items is a valid array before mapping */}
+        <div className="pb-4 pl-1 max-h-56 overflow-y-auto pr-2 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {Array.isArray(items) && items.length > 0 ? (
             items.map((item) => {
                const label = item.label || item;
@@ -52,7 +51,11 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
                   : (selectedFilters[category] || []).includes(value);
 
                return (
-                <label key={value} className="flex items-center text-sm text-gray-600 hover:bg-gray-50 p-1 rounded cursor-pointer transition-colors group">
+                <label key={value} className={`flex items-center text-sm p-1.5 rounded-md cursor-pointer transition-all ${isChecked ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2.5 transition-colors ${isChecked ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300'}`}>
+                    {isChecked && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                  </div>
+                  {/* Hidden native input for accessibility */}
                   <input
                     type={isSingleSelect ? "radio" : "checkbox"}
                     checked={isChecked || false}
@@ -63,16 +66,16 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
                             handleCheckboxChange(category, value);
                         }
                     }}
-                    className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    className="hidden"
                   />
-                  <span className={`truncate group-hover:text-indigo-600 ${isChecked ? 'font-medium text-indigo-700' : ''}`} title={label}>
+                  <span className="truncate font-medium" title={label}>
                       {label}
                   </span>
                 </label>
               );
             })
           ) : (
-            <p className="text-xs text-gray-400 italic ml-6">No options available</p>
+            <p className="text-xs text-slate-400 italic ml-1">No options available</p>
           )}
         </div>
       )}
@@ -85,18 +88,17 @@ export default function FilterSidebar({ filters, selectedFilters, onFilterChange
     { label: 'This Year', value: 'thisYear' },
   ];
 
-  // SAFETY FIX: Ensure safeFilters is never null
   const safeFilters = filters || {};
 
   return (
-    <div className="w-full bg-white p-5 rounded-lg shadow-sm border border-gray-200 h-fit sticky top-4">
-      <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Refine by</h3>
+    <div className="w-full bg-white px-5 py-4 rounded-xl shadow-sm border border-slate-200">
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+        <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Filters</h3>
         <button 
             onClick={() => onFilterChange('reset')}
-            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded transition-colors"
         >
-            Clear All
+            Reset
         </button>
       </div>
 

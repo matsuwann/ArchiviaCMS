@@ -17,43 +17,33 @@ export default function LoginForm() {
   const { login } = useAuth();
   
   const handleRedirect = (user) => {
-    // If user is an admin, send them to the stats/dashboard page
     if (user.is_admin) {
       router.push('/admin');
     } else {
-      // Otherwise send them to the home/search page
       router.push('/');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!email.trim() || !password.trim()) {
       toast.error('Please enter both email and password.'); 
       return;
     }
-
     setLoading(true);
     const toastId = toast.loading('Logging in...');
-
     try {
       const response = await apiLogin({ email, password });
       const userData = response.data.user;
-
       login(userData, response.data.token);
-      
       toast.success(`Success! Welcome, ${userData.firstName}.`, { id: toastId });
-
       setTimeout(() => {
         handleRedirect(userData);
       }, 1000);
-      
     } catch (error) {
       const errorMessage = error.response?.status === 401
         ? 'Login failed: Invalid email or password.'
         : 'Login failed. An unexpected error occurred.';
-      
       toast.error(errorMessage, { id: toastId });
       console.error('Login error:', error);
     } finally {
@@ -66,15 +56,12 @@ export default function LoginForm() {
       const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
         token: credentialResponse.credential,
       });
-
       const userData = res.data.user;
       login(userData, res.data.token);
       toast.success(`Welcome, ${userData.firstName}!`);
-      
       setTimeout(() => {
         handleRedirect(userData);
       }, 1000);
-
     } catch (err) {
       console.error('Google Login Error:', err);
       toast.error('Google login failed.');
@@ -82,38 +69,39 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md max-w-sm mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-center">User Login</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 w-full max-w-md mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-extrabold text-slate-900">Welcome Back</h2>
+        <p className="text-slate-500 text-sm mt-2">Sign in to access the repository</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
+          <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
           <input
             type="email"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             required
-            aria-required="true"
           />
         </div>
         
-        {/* Password Field with Toggle */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-          <div className="relative mt-1">
+          <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+          <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm pr-10" 
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all pr-12" 
               required
-              aria-required="true"
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
@@ -131,23 +119,24 @@ export default function LoginForm() {
         </div>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-500">
+          <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
             Forgot password?
           </Link>
         </div>
+        
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400"
+          className="w-full py-3 px-4 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-600 hover:shadow-indigo-500/30 transition-all transform hover:-translate-y-0.5 disabled:bg-slate-400 disabled:cursor-not-allowed"
         >
-          {loading ? 'Logging In...' : 'Login'}
+          {loading ? 'Authenticating...' : 'Sign In'}
         </button>
       </form>
 
-      <div className="my-4 flex items-center">
-        <div className="flex-grow border-t border-gray-300"></div>
-        <span className="mx-4 text-gray-500 text-sm">OR</span>
-        <div className="flex-grow border-t border-gray-300"></div>
+      <div className="my-6 flex items-center">
+        <div className="flex-grow border-t border-slate-200"></div>
+        <span className="mx-4 text-slate-400 text-xs font-bold uppercase tracking-wide">Or continue with</span>
+        <div className="flex-grow border-t border-slate-200"></div>
       </div>
 
       <div className="flex justify-center">
@@ -157,13 +146,14 @@ export default function LoginForm() {
           theme="outline"
           size="large"
           width="100%"
+          shape="pill"
         />
       </div>
       
-      <p className="mt-4 text-center text-sm text-gray-500">
+      <p className="mt-8 text-center text-sm text-slate-500">
         Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
-          Register now
+        <Link href="/register" className="text-indigo-600 hover:text-indigo-800 font-bold transition-colors">
+          Create one now
         </Link>
       </p>
     </div>

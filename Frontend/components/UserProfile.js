@@ -6,17 +6,14 @@ import { useEffect, useState } from 'react';
 import { updateUserProfile, changeUserPassword } from '../services/apiService';
 
 export default function UserProfile() {
-  // Destructure 'login' to update context state
   const { user, isAuthenticated, authLoading, login } = useAuth();
   const router = useRouter();
 
-  // Editing State
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '' });
   const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Password Modal State
   const [showPwModal, setShowPwModal] = useState(false);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [pwMessage, setPwMessage] = useState({ type: '', text: '' });
@@ -27,11 +24,7 @@ export default function UserProfile() {
       router.push('/login');
     }
     if (user) {
-      setEditForm({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || ''
-      });
+      setEditForm({ firstName: user.firstName || '', lastName: user.lastName || '', email: user.email || '' });
     }
   }, [isAuthenticated, authLoading, router, user]);
 
@@ -43,27 +36,18 @@ export default function UserProfile() {
     e.preventDefault();
     setIsSaving(true);
     setProfileMessage({ type: '', text: '' });
-
     try {
       const response = await updateUserProfile(editForm);
-      
-      // Update auth context immediately if token is returned
       if (response.data.token && response.data.user) {
         login(response.data.user, response.data.token);
       }
-
       setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
       setIsEditing(false);
-      // No reload needed
     } catch (err) {
       setProfileMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update profile.' });
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handlePwChange = (e) => {
-    setPwForm({ ...pwForm, [e.target.name]: e.target.value });
   };
 
   const handlePwSubmit = async (e) => {
@@ -72,10 +56,8 @@ export default function UserProfile() {
       setPwMessage({ type: 'error', text: 'New passwords do not match.' });
       return;
     }
-    
     setIsPwSaving(true);
     setPwMessage({ type: '', text: '' });
-
     try {
       await changeUserPassword(pwForm.currentPassword, pwForm.newPassword);
       setPwMessage({ type: 'success', text: 'Password changed successfully!' });
@@ -88,173 +70,120 @@ export default function UserProfile() {
     }
   };
 
-  if (authLoading || !isAuthenticated) return <div className="text-center p-6">Loading...</div>;
+  if (authLoading || !isAuthenticated) return <div className="text-center p-10 text-slate-400">Loading profile...</div>;
 
   return (
-    <div className="p-8 bg-white rounded-xl shadow-2xl max-w-3xl mx-auto relative">
-      <div className="flex justify-between items-center mb-6 border-b pb-2">
-        <h2 className="text-3xl font-bold text-gray-900">Account Profile</h2>
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Profile Header Card */}
+      <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 flex flex-col md:flex-row items-center md:items-start gap-6">
+        <div className="w-24 h-24 rounded-full bg-slate-900 text-white flex items-center justify-center text-3xl font-bold uppercase shadow-lg shadow-slate-200">
+            {user.firstName.charAt(0)}
+        </div>
+        <div className="flex-grow text-center md:text-left">
+            <h2 className="text-3xl font-extrabold text-slate-900">{user.firstName} {user.lastName}</h2>
+            <p className="text-slate-500 font-medium">{user.email}</p>
+            <div className="mt-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${user.is_admin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {user.is_admin ? 'Administrator' : 'Standard User'}
+                </span>
+            </div>
+        </div>
         {!isEditing && (
-          <button 
-            onClick={() => setIsEditing(true)}
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
-          >
-            Edit Profile
+          <button onClick={() => setIsEditing(true)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition shadow-sm">
+            Edit Details
           </button>
         )}
       </div>
 
       {profileMessage.text && (
-        <div className={`mb-4 p-3 rounded ${profileMessage.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+        <div className={`p-4 rounded-xl font-medium border ${profileMessage.type === 'error' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
           {profileMessage.text}
         </div>
       )}
 
-      <form onSubmit={handleProfileUpdate} className="space-y-6">
-        <h3 className="text-xl font-semibold text-indigo-700">Personal Information</h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {isEditing ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">First Name</label>
-                <input
-                  name="firstName"
-                  value={editForm.firstName}
-                  onChange={handleEditChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                <input
-                  name="lastName"
-                  value={editForm.lastName}
-                  onChange={handleEditChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <InfoItem label="First Name" value={user.firstName} />
-              <InfoItem label="Last Name" value={user.lastName} />
-            </>
-          )}
-        </div>
-        
-        <div>
-          {isEditing ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
-              <input
-                name="email"
-                type="email"
-                value={editForm.email}
-                onChange={handleEditChange}
-                className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
-          ) : (
-            <InfoItem label="Email Address" value={user.email} isFullWidth={true} />
-          )}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Left Column: Personal Info Form */}
+        <div className="md:col-span-2 bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Personal Details</h3>
+            <form onSubmit={handleProfileUpdate} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">First Name</label>
+                        {isEditing ? (
+                            <input name="firstName" value={editForm.firstName} onChange={handleEditChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required />
+                        ) : (
+                            <p className="text-slate-800 font-semibold text-lg">{user.firstName}</p>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Last Name</label>
+                        {isEditing ? (
+                            <input name="lastName" value={editForm.lastName} onChange={handleEditChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required />
+                        ) : (
+                            <p className="text-slate-800 font-semibold text-lg">{user.lastName}</p>
+                        )}
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
+                    {isEditing ? (
+                        <input name="email" type="email" value={editForm.email} onChange={handleEditChange} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required />
+                    ) : (
+                        <p className="text-slate-800 font-semibold text-lg">{user.email}</p>
+                    )}
+                </div>
+
+                {isEditing && (
+                    <div className="flex gap-3 pt-4">
+                        <button type="submit" disabled={isSaving} className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition disabled:bg-indigo-300">
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                        <button type="button" onClick={() => { setIsEditing(false); setEditForm({ firstName: user.firstName, lastName: user.lastName, email: user.email }); }} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition">
+                            Cancel
+                        </button>
+                    </div>
+                )}
+            </form>
         </div>
 
-        {isEditing && (
-          <div className="flex gap-4 mt-4">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+        {/* Right Column: Security */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 h-fit">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Security</h3>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed">Ensure your account uses a strong password to protect your data.</p>
+            <button onClick={() => setShowPwModal(true)} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-100 transition-colors">
+                Change Password
             </button>
-            <button
-              type="button"
-              onClick={() => { setIsEditing(false); setEditForm({ firstName: user.firstName, lastName: user.lastName, email: user.email }); }}
-              className="py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </form>
-
-      <div className="pt-4 border-t mt-8">
-        <h3 className="text-xl font-semibold text-indigo-700 mb-4">Account Security</h3>
-        <p className="text-gray-600 mb-4">
-            You can manage your account security and settings here.
-        </p>
-        <button
-          onClick={() => setShowPwModal(true)}
-          className="py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700"
-        >
-          Change Password
-        </button>
+        </div>
       </div>
 
       {/* Change Password Modal */}
       {showPwModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">Change Password</h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Update Password</h3>
             {pwMessage.text && (
-              <div className={`mb-4 p-2 text-sm rounded ${pwMessage.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              <div className={`mb-4 p-3 text-sm rounded-lg font-medium ${pwMessage.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                 {pwMessage.text}
               </div>
             )}
             <form onSubmit={handlePwSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Current Password</label>
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={pwForm.currentPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Current Password</label>
+                <input type="password" name="currentPassword" value={pwForm.currentPassword} onChange={(e) => setPwForm({...pwForm, [e.target.name]: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">New Password</label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={pwForm.newPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">8+ chars, Uppercase, Lowercase, Number, Special char</p>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">New Password</label>
+                <input type="password" name="newPassword" value={pwForm.newPassword} onChange={(e) => setPwForm({...pwForm, [e.target.name]: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={pwForm.confirmPassword}
-                  onChange={handlePwChange}
-                  className="mt-1 w-full p-2 border rounded-md focus:ring-2 focus:ring-red-500"
-                  required
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Confirm New Password</label>
+                <input type="password" name="confirmPassword" value={pwForm.confirmPassword} onChange={(e) => setPwForm({...pwForm, [e.target.name]: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required />
               </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowPwModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPwSaving}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-400"
-                >
-                  {isPwSaving ? 'Updating...' : 'Update Password'}
+              <div className="flex justify-end gap-3 mt-8">
+                <button type="button" onClick={() => setShowPwModal(false)} className="px-5 py-2.5 text-slate-600 font-bold hover:text-slate-800 transition">Cancel</button>
+                <button type="submit" disabled={isPwSaving} className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition disabled:bg-slate-400">
+                  {isPwSaving ? 'Updating...' : 'Confirm Update'}
                 </button>
               </div>
             </form>
@@ -264,12 +193,3 @@ export default function UserProfile() {
     </div>
   );
 }
-
-const InfoItem = ({ label, value, isFullWidth = false }) => (
-  <div className={isFullWidth ? 'sm:col-span-2' : ''}>
-    <p className="text-sm font-medium text-gray-500">{label}</p>
-    <p className="mt-1 text-lg font-medium text-gray-800 p-2 bg-slate-100 rounded-md border">
-      {value}
-    </p>
-  </div>
-);

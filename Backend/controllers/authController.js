@@ -4,6 +4,7 @@ const { OAuth2Client } = require('google-auth-library');
 const userModel = require('../models/userModel');
 const emailService = require('../services/emailService');
 const crypto = require('crypto');
+const db = require('../db');
 
 const saltRounds = 10;
 const JWT_SECRET = process.env.JWT_SECRET;

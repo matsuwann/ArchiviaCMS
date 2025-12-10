@@ -10,67 +10,69 @@ export default function UploadForm({ onUploadSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!file) {
       toast.error('Please select a file to upload.'); 
       return;
     }
-
     setLoading(true); 
-    
     const formData = new FormData();
     formData.append('file', file);
 
-    const uploadPromise = uploadDocument(formData);
-
-    toast.promise(
-      uploadPromise,
-      {
-        loading: 'Processing... this may take a moment.',
+    toast.promise(uploadDocument(formData), {
+        loading: 'Uploading and analyzing document...',
         success: (response) => {
           setFile(null);
           e.target.reset(); 
-          if (onUploadSuccess) {
-            onUploadSuccess();
-          }
-          return `Success! Uploaded: ${response.data.title}`;
+          if (onUploadSuccess) onUploadSuccess();
+          return `Successfully uploaded: ${response.data.title}`;
         },
-        error: (error) => {
-          if (error.response && error.response.data && error.response.data.message) {
-            return `Upload failed: ${error.response.data.message}`;
-          }
-          return 'Upload failed. An unexpected error occurred.';
-        }
-      }
-    ).finally(() => {
-      setLoading(false);
-    });
+        error: (error) => error.response?.data?.message || 'Upload failed.'
+    }).finally(() => { setLoading(false); });
   };
 
   return (
-    <div className="p-6 mb-8 bg-slate-100 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Upload New Research Paper</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="file" className="block text-sm font-medium text-gray-700">PDF Document</label>
+    <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">Upload Research Paper</h2>
+        <p className="text-slate-500 mt-2">PDF files only. The AI will automatically extract metadata.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="group relative border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50/30 transition-all cursor-pointer">
           <input
             type="file"
             id="file"
             onChange={(e) => setFile(e.target.files[0])}
             accept="application/pdf"
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-7Am00 hover:file:bg-indigo-100"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             required
           />
+          <div className="space-y-2 pointer-events-none">
+             {file ? (
+                <div className="text-indigo-600 font-bold flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {file.name}
+                </div>
+             ) : (
+                <>
+                    <p className="text-slate-600 font-medium">Click to browse or drag file here</p>
+                    <p className="text-xs text-slate-400">Maximum file size: 10MB</p>
+                </>
+             )}
+          </div>
         </div>
+
         <button
           type="submit"
           disabled={loading} 
-          className="w-full py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75"
+          className="w-full py-3.5 px-6 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-600 hover:shadow-indigo-500/30 transition-all transform hover:-translate-y-0.5 disabled:bg-slate-400 disabled:cursor-not-allowed"
         >
-          {loading ? 'Processing...' : 'Upload and Analyze'}
+          {loading ? 'Processing Document...' : 'Upload & Analyze'}
         </button>
       </form>
-      
     </div>
   );
 }

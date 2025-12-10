@@ -10,31 +10,21 @@ export default function MyUploadsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
+    if (!authLoading && !isAuthenticated) router.push('/login');
   }, [isAuthenticated, authLoading, router]);
 
   if (authLoading || !isAuthenticated) {
-    return (
-      <main className="container mx-auto p-4 md:p-8 text-center">
-        <p className="text-lg">Loading your documents...</p>
-      </main>
-    );
+    return <main className="container mx-auto p-10 text-center text-slate-400">Loading...</main>;
   }
 
   return (
     <main className="container mx-auto p-4 md:p-8">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-          Your Submissions
-        </h1>
-        <p className="mt-2 text-lg text-gray-500">
-          Here you can view, edit, or delete your uploaded documents.
-        </p>
+      <header className="mb-8 border-b border-slate-200 pb-4">
+        <h1 className="text-3xl font-extrabold text-slate-900">Your Contributions</h1>
+        <p className="mt-1 text-slate-500">Manage the documents you have contributed to the repository.</p>
       </header>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <MyUploadsList />
       </div>
     </main>

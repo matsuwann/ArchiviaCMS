@@ -23,99 +23,99 @@ export default function AdminDashboardPage() {
     fetchStats();
   }, []);
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
+  if (loading) return <div className="p-20 text-center text-slate-400">Loading dashboard data...</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 animate-fade-in">
       {/* Header */}
-      <div className="bg-white p-8 rounded-xl shadow-xl border border-gray-100">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, {user?.firstName}!
-        </h2>
-        <p className="text-gray-500">Here is an overview of the Archivia system performance.</p>
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 pb-6">
+        <div>
+            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Overview</h2>
+            <p className="text-slate-500 mt-2 font-medium">Welcome back, {user?.firstName}. Here is what's happening today.</p>
+        </div>
+        <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">
+            System Operational
+        </span>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Total Users */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
-            <div className="flex justify-between items-center">
+        {/* Card Component */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
+            <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Users</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats?.totalUsers || 0}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Users</p>
+                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-indigo-600 transition-colors">{stats?.totalUsers || 0}</h3>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-full">
-                    <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 </div>
             </div>
-            <p className="text-xs text-green-600 mt-4 font-medium">
-                {stats?.activeUsers} Active Accounts
-            </p>
+            <div className="mt-4 pt-4 border-t border-slate-50 flex items-center text-sm text-green-600 font-bold">
+                <span className="bg-green-100 px-1.5 py-0.5 rounded text-xs mr-2">LIVE</span>
+                {stats?.activeUsers} Active Now
+            </div>
         </div>
 
-        {/* Total Documents */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-indigo-500">
-            <div className="flex justify-between items-center">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
+            <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Documents</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats?.totalDocuments || 0}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Documents</p>
+                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-indigo-600 transition-colors">{stats?.totalDocuments || 0}</h3>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-full">
-                    <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-100 transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
             </div>
-            <p className="text-xs text-gray-400 mt-4">Across all categories</p>
+            <p className="mt-4 pt-4 border-t border-slate-50 text-xs text-slate-400 font-medium">Indexed across all categories</p>
         </div>
 
-        {/* Pending Requests */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-orange-500">
-            <div className="flex justify-between items-center">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
+            <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Pending Requests</p>
-                    <h3 className="text-3xl font-bold text-gray-800 mt-1">{stats?.pendingRequests || 0}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending</p>
+                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-orange-500 transition-colors">{stats?.pendingRequests || 0}</h3>
                 </div>
-                <div className="p-3 bg-orange-50 rounded-full">
-                    <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div className="p-3 bg-orange-50 text-orange-500 rounded-xl group-hover:bg-orange-100 transition-colors">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
             </div>
-            <p className="text-xs text-orange-600 mt-4 font-medium">Action Required</p>
+            <p className="mt-4 pt-4 border-t border-slate-50 text-xs text-orange-600 font-bold">Action required immediately</p>
         </div>
 
-        {/* System Status */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
-            <div className="flex justify-between items-center">
-                <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">System Status</p>
-                    <h3 className="text-xl font-bold text-green-600 mt-2">Operational</h3>
-                </div>
-                <div className="p-3 bg-green-50 rounded-full">
-                    <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-800 hover:shadow-lg transition-all group relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+                <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+            </div>
+            <div className="relative z-10">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions</p>
+                <div className="mt-4 flex flex-col gap-2">
+                    <button className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-500 transition">Review Documents</button>
+                    <button className="w-full py-2 bg-slate-700 text-slate-200 rounded-lg text-sm font-bold hover:bg-slate-600 transition">Manage Users</button>
                 </div>
             </div>
-            <p className="text-xs text-gray-400 mt-4">Server running smoothly</p>
         </div>
       </div>
 
       {/* Top Searches Section */}
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900">Top Search Trends</h3>
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+        <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+            <h3 className="text-lg font-extrabold text-slate-800">Top Search Trends</h3>
         </div>
         <div className="p-6">
             {stats?.topSearches && stats.topSearches.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-5">
                     {stats.topSearches.map((item, idx) => (
-                        <div key={idx} className="flex items-center">
-                            <span className="text-gray-400 w-6 font-bold text-sm">#{idx + 1}</span>
-                            <div className="flex-1 ml-4">
-                                <div className="flex justify-between mb-1">
-                                    <span className="text-sm font-medium text-gray-700 capitalize">{item.term}</span>
-                                    <span className="text-xs text-gray-500">{item.count} searches</span>
+                        <div key={idx} className="flex items-center group">
+                            <span className="text-slate-300 w-8 font-extrabold text-lg group-hover:text-indigo-600 transition-colors">0{idx + 1}</span>
+                            <div className="flex-1 ml-2">
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-sm font-bold text-slate-700 capitalize">{item.term}</span>
+                                    <span className="text-xs font-medium text-slate-400">{item.count} queries</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                                     <div 
-                                        className="bg-indigo-600 h-2 rounded-full" 
+                                        className="bg-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out" 
                                         style={{ width: `${Math.min((item.count / stats.topSearches[0].count) * 100, 100)}%` }}
                                     ></div>
                                 </div>
@@ -124,7 +124,7 @@ export default function AdminDashboardPage() {
                     ))}
                 </div>
             ) : (
-                <p className="text-gray-500 italic">No search data available yet.</p>
+                <p className="text-slate-400 italic text-center py-4">No search data available yet.</p>
             )}
         </div>
       </div>
