@@ -15,29 +15,30 @@ const getSafeList = (data) => {
 export default function PreviewModal({ document: activeDoc, onClose, allDocs, onSelectDoc }) {
   const [showAbstract, setShowAbstract] = useState(false);
 
-  // === NEW: Instantly reset view to top when document changes ===
+  // === NEW: Force scroll to top when document changes ===
   useEffect(() => {
     const scrollContainer = document.getElementById('modal-content');
     if (scrollContainer) {
       scrollContainer.scrollTop = 0;
     }
-  }, [activeDoc]); // Triggers whenever activeDoc updates
+  }, [activeDoc]);
 
   if (!activeDoc) return null;
 
   const previewUrls = getSafeList(activeDoc.preview_urls);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/20">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center z-50 p-4 animate-fade-in">
+      {/* INCREASED SIZE: w-[95vw] and h-[95vh] for maximum view area */}
+      <div className="bg-white rounded-2xl shadow-2xl w-[95vw] max-w-[1600px] h-[95vh] flex flex-col overflow-hidden ring-1 ring-white/20">
         
         {/* === HEADER === */}
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 z-10">
           <div className="flex items-center gap-4 overflow-hidden">
-             <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+             <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 hidden sm:block">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
              </div>
-             <h2 className="text-lg font-bold text-slate-800 truncate">{activeDoc.title || "Untitled Document"}</h2>
+             <h2 className="text-lg font-bold text-slate-800 truncate max-w-md">{activeDoc.title || "Untitled Document"}</h2>
              
              {/* TOGGLE BUTTON */}
              <button 
@@ -47,7 +48,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                    ? 'bg-slate-900 text-white border-slate-900' 
                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}
              >
-               {showAbstract ? 'Show Abstract' : 'Hide Abstract'}
+               {showAbstract ? 'Details View' : 'Metadata View'}
              </button>
           </div>
 
@@ -60,8 +61,8 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
         <div className="flex flex-1 overflow-hidden relative bg-slate-50">
             
             {/* LEFT: SCROLLABLE PDF PREVIEW */}
-            <div className="flex-1 overflow-y-auto p-8 scroll-smooth" id="modal-content">
-                <div className="max-w-3xl mx-auto flex flex-col items-center gap-8">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 scroll-smooth" id="modal-content">
+                <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
                     
                     {/* Visual Previews */}
                     {previewUrls.length > 0 ? (
@@ -71,13 +72,13 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                         <img 
                             src={url} 
                             alt={`Page ${index + 1}`} 
-                            className="w-full h-auto min-h-[200px] object-contain" 
+                            className="w-full h-auto min-h-[400px] object-contain" 
                             onError={(e) => {e.target.style.display='none'}}
                         />
                         
                         {/* Login Wall Blur */}
                         {index === 3 && !activeDoc.downloadLink && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-md">
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-md">
                             <div className="bg-white p-8 rounded-2xl shadow-2xl text-center border border-slate-100 max-w-sm">
                                 <p className="font-bold text-slate-900 text-lg mb-2">Read Full Document</p>
                                 <p className="text-slate-500 text-sm mb-6">Create a free account to continue reading.</p>
@@ -111,7 +112,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
 
             {/* RIGHT: ABSTRACT SIDEBAR (CONDITIONAL) */}
             {showAbstract && (
-                <div className="w-[400px] bg-white border-l border-slate-200 p-8 overflow-y-auto shrink-0 shadow-xl animate-fade-in relative z-20">
+                <div className="w-[400px] bg-white border-l border-slate-200 p-8 overflow-y-auto shrink-0 shadow-xl animate-fade-in relative z-20 hidden md:block">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
                         Abstract
                     </h3>
@@ -142,7 +143,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
 
         {/* === FOOTER === */}
         <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-between items-center shrink-0 z-10">
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider hidden sm:block">
                 {previewUrls.length > 0 ? `Displaying ${previewUrls.length} Pages` : 'Document Viewer'}
             </p>
             
@@ -151,13 +152,13 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                  href={activeDoc.downloadLink} 
                  target="_blank" 
                  rel="noopener noreferrer" 
-                 className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
+                 className="w-full sm:w-auto px-6 py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
                >
                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                  Download PDF
                </a>
             ) : (
-               <a href="/login" className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 shadow-md hover:shadow-lg transition-all">
+               <a href="/login" className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 shadow-md hover:shadow-lg transition-all text-center">
                  Login to Download
                </a>
             )}
