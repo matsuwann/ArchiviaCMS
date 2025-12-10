@@ -93,36 +93,51 @@ function HomeContent() {
     const safeTrending = Array.isArray(popularSearches) ? popularSearches : [];
 
     return (
-      <main className="min-h-screen flex flex-col bg-white relative overflow-x-hidden">
+      // MODIFIED: Changed bg-white to bg-slate-50 for a warmer, premium look
+      <main className="min-h-screen flex flex-col bg-slate-50 relative overflow-x-hidden">
+        
         {/* Abstract Background Shapes */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-50 rounded-full blur-[120px] opacity-60"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-50 rounded-full blur-[100px] opacity-70"></div>
-            <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-100/50 rounded-full blur-[120px] opacity-60"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[100px] opacity-70"></div>
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
         </div>
 
         {/* --- HERO SECTION --- */}
-        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 pt-10 pb-20">
-            <div className="max-w-3xl w-full space-y-8 animate-fade-in">
+        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 pt-20 pb-20">
+            <div className="max-w-4xl w-full space-y-10 animate-fade-in">
                 
-                {/* Hero Search Bar - Centered & Prominent */}
-                <div className="relative group w-full">
+                {/* RESTORED: Brand Header */}
+                <div className="space-y-6">
+                    <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/80 border border-indigo-100 shadow-sm mb-4 backdrop-blur-sm">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Institutional Repository</span>
+                    </div>
+                    <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight drop-shadow-sm">
+                        Archivia
+                    </h1>
+                    <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
+                        A centralized platform for discovering academic papers, journals, and cutting-edge research.
+                    </p>
+                </div>
+
+                {/* Hero Search Bar */}
+                <div className="relative group max-w-2xl mx-auto w-full">
                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-2xl opacity-20 group-hover:opacity-30 blur-lg transition duration-500"></div>
-                    <div className="relative flex items-center bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-transform group-hover:scale-[1.005]">
+                    <div className="relative flex items-center bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-transform group-hover:scale-[1.01]">
                         <span className="pl-6 text-slate-400">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </span>
                         <input 
                             type="text" 
-                            placeholder="What are you looking for?" 
-                            className="flex-grow px-4 py-6 text-xl text-slate-800 bg-transparent focus:outline-none placeholder-slate-400 font-medium"
+                            placeholder="Search keywords, authors, or titles..." 
+                            className="flex-grow px-4 py-5 text-lg text-slate-800 bg-transparent focus:outline-none placeholder-slate-400"
                             value={heroInput} 
                             onChange={(e) => setHeroInput(e.target.value)} 
                             onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(heroInput); }}
-                            autoFocus
                         />
                         <button 
-                            className="mr-3 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all duration-300 shadow-lg hover:shadow-indigo-500/30"
+                            className="mr-2 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all duration-300 shadow-lg hover:shadow-indigo-500/30"
                             onClick={() => handleSearch(heroInput)}
                         >
                             Search
@@ -130,21 +145,21 @@ function HomeContent() {
                     </div>
                 </div>
 
-                {/* Trending Pills - Simplified */}
-                {safeTrending.length > 0 && (
-                    <div className="flex flex-wrap justify-center items-center gap-3">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2">Popular:</span>
+                {/* Trending Pills */}
+                <div className="pt-6">
+                    <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest">Trending Topics</p>
+                    <div className="flex flex-wrap justify-center gap-3">
                         {safeTrending.slice(0, 5).map((item, idx) => (
                             <button 
                                 key={idx}
                                 onClick={() => handleSearch(item.term || item)}
-                                className="px-4 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-sm font-medium rounded-full hover:border-indigo-300 hover:text-indigo-600 hover:bg-white transition-all"
+                                className="px-5 py-2 bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-600 text-sm font-semibold rounded-full hover:border-indigo-300 hover:text-indigo-600 hover:bg-white hover:shadow-md transition-all duration-200"
                             >
                                 {item.term || item}
                             </button>
                         ))}
                     </div>
-                )}
+                </div>
             </div>
         </div>
 
