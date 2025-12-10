@@ -1,8 +1,9 @@
 const db = require('../db');
 
 exports.findAll = async () => {
+  // ADDED: deletion_requested, archive_requested, archive_reason to SELECT
   const { rows } = await db.query(
-    `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id 
+    `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id, deletion_requested, archive_requested, archive_reason 
      FROM documents ORDER BY created_at DESC`
   );
   return rows;
@@ -10,7 +11,6 @@ exports.findAll = async () => {
 
 // === NEW: DUPLICATE CHECK ===
 exports.findByExactTitle = async (title) => {
-  // Check for exact title match (case-insensitive)
   const { rows } = await db.query(
     'SELECT id FROM documents WHERE LOWER(title) = LOWER($1)',
     [title]
@@ -19,22 +19,19 @@ exports.findByExactTitle = async (title) => {
 };
 
 exports.findByTerm = async (term) => {
-  // 1. LENIENCY: Split the search phrase into individual words
   const terms = term.trim().split(/\s+/).filter(t => t.length > 0);
   
   if (terms.length === 0) {
-      // If terms are empty after trimming, return all
+      // ADDED: deletion_requested, archive_requested, archive_reason
       const { rows } = await db.query(
-        `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
+        `SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id, deletion_requested, archive_requested, archive_reason 
          FROM documents ORDER BY created_at DESC`
       );
       return rows;
   }
 
-  // 2. DYNAMIC QUERY: Build a query that ensures EACH word appears SOMEWHERE in the metadata
-  // This creates logic like: (Title has 'Medical' OR Abstract has 'Medical') AND (Title has '2024' OR Date has '2024')
   const whereClauses = terms.map((_, i) => {
-      const idx = i + 1; // PostgreSQL params start at $1
+      const idx = i + 1; 
       return `(
         title ILIKE $${idx} 
         OR ai_keywords::text ILIKE $${idx} 
@@ -42,17 +39,17 @@ exports.findByTerm = async (term) => {
         OR ai_date_created ILIKE $${idx} 
         OR ai_journal ILIKE $${idx}
         OR ai_abstract ILIKE $${idx} 
-      )`; // Added ai_abstract for better results
+      )`; 
   });
 
+  // ADDED: deletion_requested, archive_requested, archive_reason
   const query = `
-      SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract 
+      SELECT id, title, filename, filepath, preview_urls, created_at, ai_keywords, ai_authors, ai_date_created, ai_journal, ai_abstract, user_id, deletion_requested, archive_requested, archive_reason 
       FROM documents 
       WHERE ${whereClauses.join(' AND ')} 
       ORDER BY created_at DESC
   `;
 
-  // 3. Add wildcards to every word
   const params = terms.map(t => `%${t}%`);
 
   const { rows } = await db.query(query, params);
@@ -221,7 +218,6 @@ exports.revokeArchiveRequest = async (id) => {
 // === AUTO-ARCHIVE FUNCTION ===
 exports.autoArchiveOldDocuments = async () => {
   try {
-    // Archives documents created > 10 years ago that aren't already flagged
     const { rowCount } = await db.query(
       `UPDATE documents 
        SET archive_requested = TRUE, 

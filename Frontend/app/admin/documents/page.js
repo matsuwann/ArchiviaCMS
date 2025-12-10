@@ -10,8 +10,15 @@ export default function AdminDocumentManagement() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // NEW STATE: Tabs & Pagination
+  const [currentTab, setCurrentTab] = useState('active'); // 'active' or 'archived'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  
   const { user } = useAuth(); 
 
   useEffect(() => { handleSearch(''); }, []);
@@ -21,8 +28,12 @@ export default function AdminDocumentManagement() {
       setLoading(true);
       const response = await searchDocuments(term); 
       setDocuments(response.data);
-    } catch (err) { toast.error('Failed to fetch documents.'); } 
-    finally { setLoading(false); }
+      setCurrentPage(1); // Reset page on new search
+    } catch (err) {
+      toast.error('Failed to fetch documents.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSearchSubmit = (e) => {
@@ -31,20 +42,21 @@ export default function AdminDocumentManagement() {
   };
 
   const handleArchive = async (docId) => {
-    const reason = window.prompt("Reason for archiving:");
+    const reason = window.prompt("Enter a reason for archiving this document:");
     if (!reason?.trim()) return;
+
     try {
         await adminArchiveDocument(docId, reason);
-        toast.success("Archived successfully.");
+        toast.success("Document archived.");
         handleSearch(searchTerm);
-    } catch (err) { toast.error("Action failed."); }
+    } catch (err) { toast.error("Failed to archive."); }
   };
 
   const handlePermanentDelete = async (docId) => {
-    if(!confirm("Permanently delete this document?")) return;
+    if(!confirm("Are you sure? This is permanent.")) return;
     try {
         await adminDeleteDocument(docId);
-        toast.success("Deleted.");
+        toast.success("Document deleted.");
         handleSearch(searchTerm);
     } catch (err) { toast.error("Delete failed."); }
   };
@@ -60,22 +72,48 @@ export default function AdminDocumentManagement() {
     } catch (error) { toast.error("Save failed."); }
   };
 
+  // --- FILTERING & PAGINATION LOGIC ---
+  const filteredDocuments = documents.filter(doc => {
+      if (currentTab === 'active') return !doc.archive_requested;
+      if (currentTab === 'archived') return doc.archive_requested;
+      return true;
+  });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredDocuments.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-4">
+      {/* Header & Tabs */}
+      <div className="flex flex-col md:flex-row justify-between items-end border-b border-slate-200 pb-4 gap-4">
           <div>
             <h2 className="text-3xl font-extrabold text-slate-900">Documents</h2>
             <p className="text-slate-500 text-sm mt-1">Manage repository content</p>
           </div>
-          {user?.is_super_admin && (
-              <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Super Admin Mode</span>
-          )}
+          
+          <div className="flex bg-slate-100 p-1 rounded-lg">
+              <button 
+                onClick={() => setCurrentTab('active')}
+                className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${currentTab === 'active' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Library
+              </button>
+              <button 
+                onClick={() => setCurrentTab('archived')}
+                className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${currentTab === 'archived' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Archive
+              </button>
+          </div>
       </div>
       
+      {/* Search Bar */}
       <form onSubmit={handleSearchSubmit} className="relative">
           <input
               type="text"
-              placeholder="Search by title, author, or keyword..."
+              placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-4 pr-32 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
@@ -85,40 +123,78 @@ export default function AdminDocumentManagement() {
           </button>
       </form>
 
+      {/* List */}
       {loading ? (
           <div className="text-center p-10 text-slate-400">Loading library...</div>
-      ) : documents.length === 0 ? (
-          <div className="text-center p-10 bg-white rounded-xl border border-dashed border-slate-200 text-slate-500">No documents found.</div>
+      ) : filteredDocuments.length === 0 ? (
+          <div className="text-center p-10 bg-white rounded-xl border border-dashed border-slate-200 text-slate-500">
+              No {currentTab} documents found.
+          </div>
       ) : (
-        <div className="grid gap-4">
-          {documents.map(doc => {
-            const isPending = doc.deletion_requested;
-            return (
-              <div key={doc.id} className="p-5 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-3">
-                      {doc.title || "Untitled"}
-                      {isPending && <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Pending Archive</span>}
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {doc.ai_authors?.length > 0 ? doc.ai_authors.join(', ') : 'Unknown Author'} • {doc.ai_date_created || 'No Date'}
-                  </p>
+        <>
+            <div className="grid gap-4">
+            {currentItems.map(doc => (
+                <div key={doc.id} className="p-5 bg-white rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex justify-between items-center">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-3">
+                            {doc.title || "Untitled"}
+                            {doc.deletion_requested && <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Deletion Requested</span>}
+                        </h3>
+                        {currentTab === 'archived' && doc.archive_reason && (
+                            <p className="text-xs text-orange-600 font-medium mt-1">Reason: {doc.archive_reason}</p>
+                        )}
+                        <p className="text-sm text-slate-500 mt-1">
+                            {doc.ai_authors?.length > 0 ? doc.ai_authors.join(', ') : 'Unknown Author'} • {doc.ai_date_created || 'No Date'}
+                        </p>
+                    </div>
+                    <div className="flex gap-3">
+                        {currentTab === 'active' && (
+                            <button onClick={() => handleEdit(doc)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Edit</button>
+                        )}
+                        
+                        <div className="h-4 w-px bg-slate-200"></div>
+                        
+                        {/* Super Admins can Delete anything. Regular Admins can Archive active docs. */}
+                        {user?.is_super_admin ? (
+                            <button onClick={() => handlePermanentDelete(doc.id)} className="text-sm font-semibold text-red-600 hover:text-red-800">
+                                Delete
+                            </button>
+                        ) : (
+                            // Regular Admin logic
+                            currentTab === 'active' ? (
+                                <button onClick={() => handleArchive(doc.id)} className="text-sm font-semibold text-slate-500 hover:text-red-600">
+                                    Archive
+                                </button>
+                            ) : (
+                                <span className="text-xs text-slate-400 font-medium italic">Archived</span>
+                            )
+                        )}
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => handleEdit(doc)} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Edit</button>
-                  <div className="h-4 w-px bg-slate-200"></div>
-                  {user?.is_super_admin ? (
-                      <button onClick={() => handlePermanentDelete(doc.id)} className="text-sm font-semibold text-red-600 hover:text-red-800">Delete</button>
-                  ) : (
-                      <button onClick={() => handleArchive(doc.id)} disabled={isPending} className={`text-sm font-semibold ${isPending ? 'text-slate-300' : 'text-slate-500 hover:text-red-600'}`}>
-                          {isPending ? 'Requested' : 'Archive'}
-                      </button>
-                  )}
+            ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 pt-4">
+                    <button 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-sm font-bold text-slate-600">Page {currentPage} of {totalPages}</span>
+                    <button 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-50"
+                    >
+                        Next
+                    </button>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+            )}
+        </>
       )}
       
       {isModalOpen && <EditDocumentModal document={selectedDocument} onClose={() => setIsModalOpen(false)} onSave={handleSave}/>}

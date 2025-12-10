@@ -6,11 +6,11 @@ if (!process.env.JWT_SECRET || !process.env.DATABASE_URL) {
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const cron = require('node-cron');
 const authRoutes = require('./routes/auth'); 
 const documentRoutes = require('./routes/documents');
 const adminRoutes = require('./routes/admin'); 
 const settingsRoutes = require('./routes/settings'); 
-// IMPORT MODEL
 const documentModel = require('./models/documentModel'); 
 
 const app = express();
@@ -20,9 +20,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://archivia-frontend.vercel.app' 
-    // Make sure this matches your Vercel URL exactly (no trailing slash)
   ],
-  credentials: true // <--- ADD THIS LINE
+  credentials: true 
 }));
 
 app.use(express.json()); 
@@ -40,6 +39,24 @@ app.use((err, req, res, next) => {
 app.listen(port, async () => {
   console.log(`Backend server running on port ${port}`);
   
-  // === RUN AUTO-ARCHIVE CHECK ON STARTUP ===
-  await documentModel.autoArchiveOldDocuments();
+  // 1. Run immediately on startup (optional but recommended for consistency)
+  console.log("Running initial auto-archive check...");
+  try {
+    await documentModel.autoArchiveOldDocuments();
+  } catch (err) {
+    console.error("Initial auto-archive check failed:", err);
+  }
+
+  // 2. Schedule to run on the 1st of every month at midnight (00:00)
+  // Syntax: "Minute Hour DayMonth Month DayWeek"
+  // "0 0 1 * *" means: Minute 0, Hour 0, Day 1, Every Month, Any DayOfWeek
+  cron.schedule('0 0 1 * *', async () => {
+    console.log('Running scheduled monthly auto-archive job...');
+    try {
+      await documentModel.autoArchiveOldDocuments();
+      console.log('Monthly auto-archive job completed.');
+    } catch (error) {
+      console.error('Scheduled auto-archive failed:', error);
+    }
+  });
 });
