@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RelatedPapersWidget from './RelatedPapersWidget';
 
 const getSafeList = (data) => {
@@ -14,6 +14,14 @@ const getSafeList = (data) => {
 
 export default function PreviewModal({ document: activeDoc, onClose, allDocs, onSelectDoc }) {
   const [showAbstract, setShowAbstract] = useState(false);
+
+  // === NEW: Instantly reset view to top when document changes ===
+  useEffect(() => {
+    const scrollContainer = document.getElementById('modal-content');
+    if (scrollContainer) {
+      scrollContainer.scrollTop = 0;
+    }
+  }, [activeDoc]); // Triggers whenever activeDoc updates
 
   if (!activeDoc) return null;
 
@@ -52,7 +60,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
         <div className="flex flex-1 overflow-hidden relative bg-slate-50">
             
             {/* LEFT: SCROLLABLE PDF PREVIEW */}
-            <div className="flex-1 overflow-y-auto p-8" id="modal-content">
+            <div className="flex-1 overflow-y-auto p-8 scroll-smooth" id="modal-content">
                 <div className="max-w-3xl mx-auto flex flex-col items-center gap-8">
                     
                     {/* Visual Previews */}
@@ -95,11 +103,7 @@ export default function PreviewModal({ document: activeDoc, onClose, allDocs, on
                         <RelatedPapersWidget 
                             currentDoc={activeDoc}
                             allDocs={allDocs}
-                            onSelectDoc={(doc) => {
-                                const scrollContainer = document.getElementById('modal-content');
-                                if(scrollContainer) scrollContainer.scrollTop = 0;
-                                onSelectDoc(doc);
-                            }}
+                            onSelectDoc={onSelectDoc}
                         />
                     </div>
                 </div>

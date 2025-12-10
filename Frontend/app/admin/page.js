@@ -1,134 +1,223 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAdminAnalytics } from '../../services/apiService';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import DocumentList from '../components/DocumentList';
+import FilterSidebar from '../components/FilterSidebar';
+import { searchDocuments, getFilters, filterDocuments, getPopularSearches } from '../services/apiService';
 
-export default function AdminDashboardPage() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // URL-Driven State
+  const currentSearchTerm = searchParams.get('q');
+  const isHeroMode = currentSearchTerm === null;
 
+  // App Data State
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [heroInput, setHeroInput] = useState(''); 
+
+  // Filter/Data State
+  const [availableFilters, setAvailableFilters] = useState({ authors: [], keywords: [], years: [], journals: [] });
+  const [popularSearches, setPopularSearches] = useState([]);
+  const [selectedFilters, setSelectedFilters] = useState({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+
+  // Initial Data Load
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await getAdminAnalytics();
-        setStats(res.data);
-      } catch (err) {
-        console.error("Failed to load stats");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+    Promise.all([
+      getFilters(),             
+      getPopularSearches()      
+    ]).then(([filtersRes, popRes]) => {
+      setAvailableFilters(filtersRes.data || { authors: [], keywords: [], years: [], journals: [] });
+      setPopularSearches(Array.isArray(popRes.data) ? popRes.data : []);
+    }).catch(err => {
+        console.error("Initial load error:", err);
+        setPopularSearches([]);
+    });
   }, []);
 
-  if (loading) return <div className="p-20 text-center text-slate-400">Loading dashboard data...</div>;
+  // Trigger Search when URL changes
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        if (!isHeroMode) {
+            const term = currentSearchTerm || '';
+            const response = await searchDocuments(term);
+            setDocuments(response.data || []);
+        } else {
+            setDocuments([]); 
+        }
+      } catch (error) {
+        console.error("Search failed:", error);
+        setDocuments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    fetchData();
+  }, [currentSearchTerm, isHeroMode]);
+
+  // HANDLERS
+  const handleSearch = (term) => {
+    if (!term) return; 
+    const cleanTerm = typeof term === 'string' ? term : String(term);
+    router.push(`/?q=${encodeURIComponent(cleanTerm)}`);
+  };
+
+  const handleBrowseAll = () => {
+    router.push('/?q='); 
+  };
+
+  const handleFilterChange = async (category, value) => {
+    if (category === 'reset') {
+        setSelectedFilters({ authors: [], keywords: [], year: null, journal: [], dateRange: null });
+        const response = await searchDocuments(currentSearchTerm || '');
+        setDocuments(response.data);
+        return;
+    }
+    const newFilters = { ...selectedFilters, [category]: value };
+    setSelectedFilters(newFilters);
+    setIsLoading(true);
+    try {
+        const response = await filterDocuments(newFilters);
+        setDocuments(response.data);
+    } catch(e) { console.error(e); } finally { setIsLoading(false); }
+  };
+
+  // --- VIEW: LANDING PAGE (HERO) ---
+  if (isHeroMode) {
+    const safeTrending = Array.isArray(popularSearches) ? popularSearches : [];
+
+    return (
+      <main className="min-h-screen flex flex-col bg-white relative overflow-hidden">
+        {/* Abstract Background Shapes */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-100 rounded-full blur-[120px] opacity-60"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-50 rounded-full blur-[100px] opacity-70"></div>
+            {/* Dot Pattern Overlay */}
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+        </div>
+
+        <div className="flex-grow flex flex-col items-center justify-center px-4 text-center relative z-10 pt-10">
+            <div className="max-w-3xl w-full space-y-10 animate-fade-in">
+                
+                {/* Brand Header */}
+                <div className="space-y-4">
+                    <span className="inline-block py-1 px-3 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold uppercase tracking-wider border border-indigo-100 mb-2">
+                        Institutional Repository
+                    </span>
+                    <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900">
+                        Archivia
+                    </h1>
+                    <p className="text-xl md:text-2xl text-slate-500 font-light max-w-2xl mx-auto leading-relaxed">
+                        Discover academic papers, journals, and research articles.
+                    </p>
+                </div>
+
+                {/* Hero Search Bar */}
+                <div className="relative group max-w-2xl mx-auto w-full">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-2xl opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
+                    <div className="relative flex items-center bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                        <span className="pl-6 text-slate-400">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </span>
+                        <input 
+                            type="text" 
+                            placeholder="Search by keyword, title, or author..." 
+                            className="flex-grow px-4 py-5 text-lg text-slate-800 bg-transparent focus:outline-none placeholder-slate-400"
+                            value={heroInput} 
+                            onChange={(e) => setHeroInput(e.target.value)} 
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(heroInput); }}
+                        />
+                        <button 
+                            className="mr-2 px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-colors shadow-lg"
+                            onClick={() => handleSearch(heroInput)}
+                        >
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                {/* Trending Pills */}
+                <div className="pt-4">
+                    <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-widest">Trending Topics</p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        {safeTrending.slice(0, 5).map((item, idx) => (
+                            <button 
+                                key={idx}
+                                onClick={() => handleSearch(item.term || item)}
+                                className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-600 text-sm font-medium rounded-full hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md transition-all"
+                            >
+                                {item.term || item}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div className="bg-white/50 backdrop-blur-sm py-10 border-t border-slate-100 text-center z-10">
+            <button 
+                onClick={handleBrowseAll}
+                className="text-indigo-600 font-bold hover:text-indigo-800 transition flex items-center justify-center gap-2 mx-auto"
+            >
+                Browse Full Library <span>&rarr;</span>
+            </button>
+        </div>
+      </main>
+    );
+  }
+
+  // --- VIEW: RESULTS LIST (APP MODE) ---
   return (
-    <div className="space-y-10 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 pb-6">
+    <main className="container mx-auto p-4 md:p-8 min-h-screen animate-fade-in bg-slate-50/30">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
-            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Overview</h2>
-            {/* FIXED: Escaped single quote */}
-            <p className="text-slate-500 mt-2 font-medium">Welcome back, {user?.firstName}. Here is what&apos;s happening today.</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Library Results</h1>
+            <p className="text-slate-500 text-sm mt-1">
+                Found {documents.length} {documents.length === 1 ? 'document' : 'documents'} matching your criteria.
+            </p>
         </div>
-        <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">
-            System Operational
-        </span>
+        <button 
+            onClick={() => router.push('/')}
+            className="text-sm font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 hover:border-indigo-200 transition-all shadow-sm"
+        >
+            <span>&larr;</span> Back to Home
+        </button>
       </div>
+      
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <aside className="w-full lg:w-1/4 flex-shrink-0 sticky top-24">
+            <FilterSidebar 
+                filters={availableFilters} 
+                selectedFilters={selectedFilters}
+                onFilterChange={handleFilterChange}
+            />
+        </aside>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Card Component */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Users</p>
-                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-indigo-600 transition-colors">{stats?.totalUsers || 0}</h3>
-                </div>
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-slate-50 flex items-center text-sm text-green-600 font-bold">
-                <span className="bg-green-100 px-1.5 py-0.5 rounded text-xs mr-2">LIVE</span>
-                {stats?.activeUsers} Active Now
-            </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Documents</p>
-                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-indigo-600 transition-colors">{stats?.totalDocuments || 0}</h3>
-                </div>
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-100 transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-            </div>
-            <p className="mt-4 pt-4 border-t border-slate-50 text-xs text-slate-400 font-medium">Indexed across all categories</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-all group">
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending</p>
-                    <h3 className="text-4xl font-extrabold text-slate-900 mt-2 group-hover:text-orange-500 transition-colors">{stats?.pendingRequests || 0}</h3>
-                </div>
-                <div className="p-3 bg-orange-50 text-orange-500 rounded-xl group-hover:bg-orange-100 transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-            </div>
-            <p className="mt-4 pt-4 border-t border-slate-50 text-xs text-orange-600 font-bold">Action required immediately</p>
-        </div>
-
-        <div className="bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-800 hover:shadow-lg transition-all group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-                <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
-            </div>
-            <div className="relative z-10">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions</p>
-                <div className="mt-4 flex flex-col gap-2">
-                    <button className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-500 transition">Review Documents</button>
-                    <button className="w-full py-2 bg-slate-700 text-slate-200 rounded-lg text-sm font-bold hover:bg-slate-600 transition">Manage Users</button>
-                </div>
-            </div>
+        <div className="w-full lg:w-3/4">
+            <DocumentList 
+              documents={documents} 
+              isLoading={isLoading}
+              searchPerformed={true} 
+              onSearch={handleSearch}
+              popularSearches={popularSearches}
+              initialSearchTerm={currentSearchTerm || ''}
+            />
         </div>
       </div>
+    </main>
+  );
+}
 
-      {/* Top Searches Section */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-50 bg-slate-50/50">
-            <h3 className="text-lg font-extrabold text-slate-800">Top Search Trends</h3>
-        </div>
-        <div className="p-6">
-            {stats?.topSearches && stats.topSearches.length > 0 ? (
-                <div className="space-y-5">
-                    {stats.topSearches.map((item, idx) => (
-                        <div key={idx} className="flex items-center group">
-                            <span className="text-slate-300 w-8 font-extrabold text-lg group-hover:text-indigo-600 transition-colors">0{idx + 1}</span>
-                            <div className="flex-1 ml-2">
-                                <div className="flex justify-between mb-2">
-                                    <span className="text-sm font-bold text-slate-700 capitalize">{item.term}</span>
-                                    <span className="text-xs font-medium text-slate-400">{item.count} queries</span>
-                                </div>
-                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                    <div 
-                                        className="bg-indigo-600 h-2 rounded-full transition-all duration-1000 ease-out" 
-                                        style={{ width: `${Math.min((item.count / stats.topSearches[0].count) * 100, 100)}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <p className="text-slate-400 italic text-center py-4">No search data available yet.</p>
-            )}
-        </div>
-      </div>
-    </div>
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-20 text-center text-slate-400 font-medium">Loading Archivia...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
