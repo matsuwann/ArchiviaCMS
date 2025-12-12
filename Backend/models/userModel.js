@@ -1,7 +1,5 @@
 const db = require('../db');
 
-// ... (Keep existing findByEmail, createWithOTP, create, markVerified, findAll, updateAdminStatus, updateUserDetails)
-
 exports.findByEmail = async (email) => {
   const { rows } = await db.query(
     'SELECT id, first_name, last_name, email, password_hash, is_admin, is_super_admin, is_verified, otp_code, otp_expires, is_active FROM users WHERE email = $1', 
@@ -59,7 +57,6 @@ exports.updateUserDetails = async (userId, { first_name, last_name, email, is_ad
   return rows[0];
 };
 
-// === NEW: Update Profile (User Self-Service) ===
 exports.updateProfile = async (userId, { firstName, lastName, email }) => {
   const { rows } = await db.query(
     `UPDATE users 
@@ -77,6 +74,12 @@ exports.deactivate = async (userId) => {
     [userId]
   );
   return rows[0];
+};
+
+// === NEW: PERMANENT DELETE ===
+exports.deletePermanently = async (userId) => {
+  const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [userId]);
+  return rowCount;
 };
 
 exports.reactivate = async (userId) => {

@@ -8,11 +8,11 @@ const api = axios.create({
 });
 
 export const setAuthToken = (token) => {
-    if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-        delete api.defaults.headers.common['Authorization'];
-    }
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
 };
 
 // ==========================================
@@ -90,6 +90,8 @@ export const requestDeletion = requestDelete; // Alias
 // ==========================================
 // ADMIN ROUTES
 // ==========================================
+
+export const adminDeleteUserPermanently = (id) => api.delete(`/admin/users/${id}?permanent=true`);
 
 // 1. Analytics
 export const getAdminAnalytics = () => api.get('/admin/analytics');
