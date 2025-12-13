@@ -24,8 +24,24 @@ export default function AdminRequestsPage() {
 
   useEffect(() => { if(user?.is_super_admin) fetchRequests(); }, [user]);
 
-  const handleApprove = async (id) => {
-    if(!confirm("Permanently delete this file?")) return;
+  // === REPLACED: Native Confirm with Toast ===
+  const handleApprove = (id) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="font-bold text-slate-900 text-sm">Approve deletion?</p>
+        <p className="text-xs text-slate-500">This file will be lost forever.</p>
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={() => toast.dismiss(t.id)} className="text-xs font-bold px-3 py-1 bg-slate-100 rounded hover:bg-slate-200 text-slate-600">Cancel</button>
+          <button onClick={() => {
+              executeApprove(id);
+              toast.dismiss(t.id);
+          }} className="text-xs bg-red-600 text-white font-bold px-3 py-1 rounded hover:bg-red-700">Confirm Delete</button>
+        </div>
+      </div>
+    ), { duration: 6000, position: 'top-center', icon: '🗑️' });
+  };
+
+  const executeApprove = async (id) => {
     try {
         await adminApproveDeletion(id);
         toast.success("Deleted.");
@@ -61,7 +77,6 @@ export default function AdminRequestsPage() {
                     <p className="text-xs text-slate-400 font-mono mb-3">{req.filename}</p>
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Reason</span>
-                        {/* FIXED: Quotes escaped */}
                         <p className="text-slate-700 italic">&quot;{req.deletion_reason}&quot;</p>
                     </div>
                 </div>

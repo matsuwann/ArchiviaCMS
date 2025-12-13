@@ -10,14 +10,14 @@ const model = 'gemini-2.0-flash';
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function generateMetadata(fileBuffer) {
-  // Updated prompt to explicitly ask for image/visual safety checks
+  // === MODIFIED PROMPT: SINGLE-WORD CONSTRAINT APPLIED ONLY TO KEYWORDS ===
   const prompt = `Analyze this PDF research paper (including text and visual diagrams/images). 
     
     1. Extract Metadata:
-       - Exact Title.
-       - Primary authors (list of strings).
-       - 5-8 relevant keywords (list of strings).
-       - Publication Date (YYYY-MM-DD or YYYY).
+       - Exact Title: The full, exact title of the paper.
+       - Primary authors: List of strings (Full names).
+       - Keywords: List of 5-8 strings. IMPORTANT: Each keyword must be EXACTLY ONE WORD (no spaces).
+       - Publication Date: YYYY-MM-DD or YYYY.
        - The Journal/Conference Name. Use "Unknown Source" if not found.
        - A concise Abstract (approx. 100-150 words).
     
@@ -25,7 +25,7 @@ async function generateMetadata(fileBuffer) {
        - Review the document for hate speech, harassment, and dangerous content.
        - Review ALL IMAGES and FIGURES for explicit sexual content, gore, or inappropriate symbols.
        - Set 'is_safe' to false if ANY text or image violates these policies.
-       - If unsafe, provide a specific 'safety_reason'.
+       - Safety Reason: If unsafe, provide a specific explanation (e.g., "Contains explicit nudity in Figure 3").
     
     Return JSON.`;
 
@@ -58,7 +58,7 @@ async function generateMetadata(fileBuffer) {
             properties: {
               ai_title: { type: "string" },
               ai_authors: { type: "array", items: { type: "string" } },
-              keywords: { type: "array", items: { type: "string" } },
+              keywords: { type: "array", items: { type: "string" } }, // Constrained to single words by prompt
               ai_date_created: { type: "string" },
               ai_journal: { type: "string" },
               ai_abstract: { type: "string" },
@@ -86,12 +86,12 @@ async function generateMetadata(fileBuffer) {
 
 exports.analyzeDocument = async (fileBuffer) => {
   try {
-    // 1. Keep pdf-parse as requested (e.g., for logging, sanity check, or future full-text search)
+    // 1. Keep pdf-parse for text logging/sanity check
     const data = await pdfParse(fileBuffer); 
     const rawText = data.text; 
-    console.log(`[AI Service] Text parsed via pdf-parse (${rawText.length} chars). Proceeding to Gemini analysis...`);
+    console.log(`[AI Service] Text parsed (${rawText.length} chars). Executing Hybrid Analysis (1-Word Keywords)...`);
 
-    // 2. Send the BUFFER to Gemini so it can check images + text
+    // 2. Send Buffer to Gemini
     const metadata = await generateMetadata(fileBuffer);
     
     return {

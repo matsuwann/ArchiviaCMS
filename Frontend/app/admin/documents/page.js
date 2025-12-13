@@ -41,10 +41,37 @@ export default function AdminDocumentManagement() {
     handleSearch(searchTerm);
   };
 
-  const handleArchive = async (docId) => {
-    const reason = window.prompt("Enter a reason for archiving this document:");
-    if (!reason?.trim()) return;
+  // === REPLACED: Native Prompt with Toast Input ===
+  const handleArchive = (docId) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-bold text-slate-800 text-sm">Reason for archiving:</p>
+        <form 
+          className="flex flex-col gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const reason = e.target.elements.reason.value;
+            if (!reason.trim()) return toast.error("Reason is required");
+            executeArchive(docId, reason);
+            toast.dismiss(t.id);
+          }}
+        >
+          <input 
+            name="reason" 
+            placeholder="Type reason..." 
+            className="border border-slate-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end pt-1">
+             <button type="button" onClick={() => toast.dismiss(t.id)} className="text-xs text-slate-500 font-bold px-2 py-1 hover:bg-slate-100 rounded">Cancel</button>
+             <button type="submit" className="text-xs bg-indigo-600 text-white font-bold px-3 py-1 rounded hover:bg-indigo-700">Archive</button>
+          </div>
+        </form>
+      </div>
+    ), { duration: Infinity, position: 'top-center', icon: '📂' });
+  };
 
+  const executeArchive = async (docId, reason) => {
     try {
         await adminArchiveDocument(docId, reason);
         toast.success("Document archived.");
@@ -52,8 +79,24 @@ export default function AdminDocumentManagement() {
     } catch (err) { toast.error("Failed to archive."); }
   };
 
-  const handlePermanentDelete = async (docId) => {
-    if(!confirm("Are you sure? This is permanent.")) return;
+  // === REPLACED: Native Confirm with Toast Confirm ===
+  const handlePermanentDelete = (docId) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="font-bold text-slate-800 text-sm">Permanently delete?</p>
+        <p className="text-xs text-slate-500">This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={() => toast.dismiss(t.id)} className="text-xs text-slate-500 font-bold px-3 py-1 bg-slate-100 rounded hover:bg-slate-200">Cancel</button>
+          <button onClick={() => {
+              executeDelete(docId);
+              toast.dismiss(t.id);
+          }} className="text-xs bg-red-600 text-white font-bold px-3 py-1 rounded hover:bg-red-700">Delete</button>
+        </div>
+      </div>
+    ), { duration: 6000, position: 'top-center', icon: '⚠️' });
+  };
+
+  const executeDelete = async (docId) => {
     try {
         await adminDeleteDocument(docId);
         toast.success("Document deleted.");
