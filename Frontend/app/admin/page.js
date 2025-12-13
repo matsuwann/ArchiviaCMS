@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAdminAnalytics } from '../../services/apiService';
 import { useAuth } from '../../context/AuthContext';
+import Link from 'next/link';
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState(null);
@@ -90,8 +91,18 @@ export default function AdminDashboardPage() {
             <div className="relative z-10">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Actions</p>
                 <div className="mt-4 flex flex-col gap-2">
-                    <button className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-500 transition">Review Documents</button>
-                    <button className="w-full py-2 bg-slate-700 text-slate-200 rounded-lg text-sm font-bold hover:bg-slate-600 transition">Manage Users</button>
+                    <Link 
+                        href="/admin/documents" 
+                        className="block w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-500 transition text-center"
+                    >
+                        Review Documents
+                    </Link>
+                    <Link 
+                        href="/admin/users" 
+                        className="block w-full py-2 bg-slate-700 text-slate-200 rounded-lg text-sm font-bold hover:bg-slate-600 transition text-center"
+                    >
+                        Manage Users
+                    </Link>
                 </div>
             </div>
         </div>
