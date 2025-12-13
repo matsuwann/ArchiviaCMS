@@ -79,16 +79,11 @@ exports.filterDocuments = async (req, res) => {
 
 exports.getPopularSearches = async (req, res) => {
   try {
-    // 1. Fetch the actual top 10 terms directly from the DB
-    // (Skipping the AI Service "summarization" which hides real data)
     const rawTerms = await analyticsModel.getTopSearches(10);
     
     if (rawTerms.length === 0) {
         return res.json([]);
     }
-
-    // 2. Return them directly. 
-    // The structure matches what frontend expects: [{ term: 'abc', count: 12 }]
     res.json(rawTerms);
 
   } catch (err) {
@@ -162,7 +157,7 @@ exports.uploadDocument = (req, res) => {
     try {
         // === SPEED OPTIMIZATION: Start all tasks simultaneously ===
         
-        // 1. Start AI Analysis
+        // 1. Start AI Analysis (now includes Safety Check)
         const analysisPromise = aiService.analyzeDocument(req.file.buffer);
 
         // 2. Start Preview Generation (Fail-safe: returns [] on error)
@@ -182,22 +177,43 @@ exports.uploadDocument = (req, res) => {
             s3Promise
         ]);
 
-        // === POST-PROCESS CHECKS ===
+        // === CONTENT MODERATION CHECK ===
+        // If the AI says it's unsafe, we reject it and delete the S3 file we just uploaded.
+        if (metadata.is_safe === false) {
+            console.warn(`[Content Moderation] Upload rejected: ${metadata.safety_reason}`);
+            
+            // Cleanup: Delete the file from S3 immediately
+            if (s3Service.deleteFromS3) {
+                await s3Service.deleteFromS3(fileKey);
+            }
+            
+            return res.status(422).json({ 
+                message: `Upload rejected. Content flagged as inappropriate: ${metadata.safety_reason || 'Policy violation detected.'}` 
+            });
+        }
 
-        // Check for duplicates (now happens after upload, so we must cleanup if found)
+        // === POST-PROCESS CHECKS (Duplicates) ===
         if (metadata.title) {
             const existingDoc = await documentModel.findByExactTitle(metadata.title);
             if (existingDoc) {
-                // Cleanup the S3 file we just uploaded since we are rejecting it
-                await s3Service.deleteFromS3(fileKey); 
+                // Cleanup S3 on duplicate
+                if (s3Service.deleteFromS3) {
+                    await s3Service.deleteFromS3(fileKey);
+                }
                 return res.status(409).json({ 
                     message: `Duplicate detected. A document with the title "${metadata.title}" already exists.` 
                 });
             }
         }
 
+        // Prepare data for DB (exclude safety fields)
         const documentData = {
-          ...metadata,
+          title: metadata.title,
+          ai_keywords: metadata.ai_keywords,
+          ai_authors: metadata.ai_authors,
+          ai_date_created: metadata.ai_date_created,
+          ai_journal: metadata.ai_journal,
+          ai_abstract: metadata.ai_abstract,
           filename: filename,
           filepath: fileKey,
           preview_urls: previewUrls, 
@@ -284,7 +300,6 @@ exports.requestDeleteDocument = async (req, res) => {
   }
 };
 
-// === NEW: GENERATE CITATION ===
 exports.generateCitation = async (req, res) => {
   try {
     const { document, style } = req.body;
